@@ -123,7 +123,7 @@ t.it("returns 0 when no files found with --allow-no-files", async () => {
   t.expect(exitCode).toBe(0);
 });
 
-t.it("returns 1 when no config file found", async () => {
+t.it("returns 11 when no config file found", async () => {
   // Use /tmp for truly isolated testing outside project root
   const isolatedDir = path.join("/tmp", "dprint-test-isolated-" + Date.now());
   fs.mkdirSync(isolatedDir, { recursive: true });
@@ -131,7 +131,7 @@ t.it("returns 1 when no config file found", async () => {
 
   try {
     const exitCode = await fmtCommand();
-    t.expect(exitCode).toBe(1);
+    t.expect(exitCode).toBe(11); // Config error exit code
   } finally {
     process.chdir(projectRoot);
     if (fs.existsSync(isolatedDir)) {

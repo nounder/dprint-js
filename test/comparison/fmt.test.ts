@@ -210,3 +210,113 @@ t.it("respects excludes option identically to rust dprint", async () => {
   t.expect(ourExcluded).toBe(malformattedTS);
   t.expect(theirExcluded).toBe(malformattedTS);
 });
+
+// Error tests
+t.it("returns same exit code when config file is missing", async () => {
+  // Remove config files
+  fs.unlinkSync(path.join(oursDir, "dprint.json"));
+  fs.unlinkSync(path.join(theirsDir, "dprint.json"));
+
+  // Create a test file
+  fs.writeFileSync(path.join(oursDir, "test.ts"), malformattedTS);
+  fs.writeFileSync(path.join(theirsDir, "test.ts"), malformattedTS);
+
+  // Format with our implementation (disable config discovery to avoid finding parent config)
+  process.chdir(oursDir);
+  const ourExitCode = await fmtCommand([], { log_level: "silent", config_discovery: false });
+
+  // Format with rust dprint (use --config to specify non-existent config)
+  process.chdir(theirsDir);
+  const theirResult = await Bun.$`npx dprint fmt --log-level silent --config dprint.json`.nothrow().quiet();
+  const theirExitCode = theirResult.exitCode;
+
+  // Both should return error exit code (11 for config error)
+  t.expect(ourExitCode).toBe(11);
+  t.expect(theirExitCode).toBe(11);
+  t.expect(ourExitCode).toBe(theirExitCode);
+});
+
+t.it("returns same exit code when config has invalid JSON", async () => {
+  // Write invalid JSON to config files
+  fs.writeFileSync(path.join(oursDir, "dprint.json"), "{ invalid json");
+  fs.writeFileSync(path.join(theirsDir, "dprint.json"), "{ invalid json");
+
+  // Create a test file
+  fs.writeFileSync(path.join(oursDir, "test.ts"), malformattedTS);
+  fs.writeFileSync(path.join(theirsDir, "test.ts"), malformattedTS);
+
+  // Format with our implementation
+  process.chdir(oursDir);
+  const ourExitCode = await fmtCommand([], { log_level: "silent" });
+
+  // Format with rust dprint
+  process.chdir(theirsDir);
+  const theirResult = await Bun.$`npx dprint fmt --log-level silent`.nothrow().quiet();
+  const theirExitCode = theirResult.exitCode;
+
+  // Both should return error exit code
+  t.expect(ourExitCode).toBeGreaterThan(0);
+  t.expect(theirExitCode).toBeGreaterThan(0);
+  t.expect(ourExitCode).toBe(theirExitCode);
+});
+
+t.it("returns same exit code when config is missing plugins", async () => {
+  // Write config without plugins
+  const invalidConfig = {
+    lineWidth: 80,
+    indentWidth: 2,
+    useTabs: false,
+  };
+  fs.writeFileSync(path.join(oursDir, "dprint.json"), JSON.stringify(invalidConfig, null, 2));
+  fs.writeFileSync(path.join(theirsDir, "dprint.json"), JSON.stringify(invalidConfig, null, 2));
+
+  // Create a test file
+  fs.writeFileSync(path.join(oursDir, "test.ts"), malformattedTS);
+  fs.writeFileSync(path.join(theirsDir, "test.ts"), malformattedTS);
+
+  // Format with our implementation
+  process.chdir(oursDir);
+  const ourExitCode = await fmtCommand([], { log_level: "silent" });
+
+  // Format with rust dprint
+  process.chdir(theirsDir);
+  const theirResult = await Bun.$`npx dprint fmt --log-level silent`.nothrow().quiet();
+  const theirExitCode = theirResult.exitCode;
+
+  // Both should return error exit code
+  t.expect(ourExitCode).toBeGreaterThan(0);
+  t.expect(theirExitCode).toBeGreaterThan(0);
+  t.expect(ourExitCode).toBe(theirExitCode);
+});
+
+t.it("returns same exit code for non-existent file argument", async () => {
+  // Format with our implementation for a non-existent file
+  process.chdir(oursDir);
+  const ourExitCode = await fmtCommand(["non-existent-file.ts"], { log_level: "silent" });
+
+  // Format with rust dprint for a non-existent file
+  process.chdir(theirsDir);
+  const theirResult = await Bun.$`npx dprint fmt --log-level silent non-existent-file.ts`.nothrow().quiet();
+  const theirExitCode = theirResult.exitCode;
+
+  // Both should return error exit code (14 for no files found)
+  t.expect(ourExitCode).toBe(14);
+  t.expect(theirExitCode).toBe(14);
+  t.expect(ourExitCode).toBe(theirExitCode);
+});
+
+t.it("returns same exit code with --allow-no-files for non-existent files", async () => {
+  // Format with our implementation for a non-existent file with --allow-no-files
+  process.chdir(oursDir);
+  const ourExitCode = await fmtCommand(["non-existent-file.ts"], { allow_no_files: true, log_level: "silent" });
+
+  // Format with rust dprint for a non-existent file with --allow-no-files
+  process.chdir(theirsDir);
+  const theirResult = await Bun.$`npx dprint fmt --log-level silent --allow-no-files non-existent-file.ts`.nothrow().quiet();
+  const theirExitCode = theirResult.exitCode;
+
+  // Both should return success with --allow-no-files
+  t.expect(ourExitCode).toBe(0);
+  t.expect(theirExitCode).toBe(0);
+  t.expect(ourExitCode).toBe(theirExitCode);
+});

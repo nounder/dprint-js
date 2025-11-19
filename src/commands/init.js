@@ -24,8 +24,12 @@ export default async function initCommand(options = {}) {
 
   const configJson = JSON.stringify(config, null, 2);
 
-  fs.writeFileSync(configPath, configJson, "utf-8");
-  console.log(`Created ${path.basename(configPath)}`);
-
-  return 0;
+  try {
+    fs.writeFileSync(configPath, configJson, "utf-8");
+    console.log(`Created ${path.basename(configPath)}`);
+    return 0;
+  } catch (error) {
+    console.error(`Error: Failed to create config file: ${error.message}`);
+    return 1;
+  }
 }
