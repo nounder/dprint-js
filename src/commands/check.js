@@ -6,7 +6,7 @@ import { formatFile, loadPlugins } from "../formatter.js";
  * Check if files are formatted correctly
  */
 export default async function checkCommand(filePatterns = [], options = {}) {
-  const cwd = process.cwd();
+  const cwd = options.cwd || process.cwd();
   const logLevel = options.log_level || "info";
   const shouldLog = (level) => {
     const levels = ["debug", "info", "warn", "error", "silent"];

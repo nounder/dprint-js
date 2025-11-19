@@ -11,11 +11,9 @@ t.beforeEach(() => {
   if (!fs.existsSync(testDir)) {
     fs.mkdirSync(testDir, { recursive: true });
   }
-  process.chdir(testDir);
 });
 
 t.afterEach(() => {
-  process.chdir(projectRoot);
   if (fs.existsSync(testDir)) {
     fs.rmSync(testDir, { recursive: true, force: true });
   }
@@ -35,7 +33,7 @@ t.it("excludes files matching exclude patterns", async () => {
   fs.writeFileSync(srcFile, "const   x=1");
   fs.writeFileSync(testFile, "const   y=2");
 
-  await fmtCommand();
+  await fmtCommand([], { cwd: testDir });
 
   // src.ts should be formatted
   t.expect(fs.readFileSync(srcFile, "utf-8")).toBe("const x = 1;\n");
@@ -60,7 +58,7 @@ t.it("excludes node_modules directory", async () => {
   fs.writeFileSync(moduleFile, "const   x=1");
   fs.writeFileSync(srcFile, "const   y=2");
 
-  await fmtCommand();
+  await fmtCommand([], { cwd: testDir });
 
   // node_modules file should not be formatted
   t.expect(fs.readFileSync(moduleFile, "utf-8")).toBe("const   x=1");
@@ -92,7 +90,7 @@ t.it("supports multiple exclude patterns", async () => {
   fs.writeFileSync(distFile, "const   c=3");
   fs.writeFileSync(specFile, "const   d=4");
 
-  await fmtCommand();
+  await fmtCommand([], { cwd: testDir });
 
   t.expect(fs.readFileSync(srcFile, "utf-8")).toBe("const a = 1;\n");
   t.expect(fs.readFileSync(testFile, "utf-8")).toBe("const   b=2");
@@ -112,7 +110,7 @@ t.it("handles empty excludes array", async () => {
   const file = path.join(testDir, "test.ts");
   fs.writeFileSync(file, "const   x=1");
 
-  await fmtCommand();
+  await fmtCommand([], { cwd: testDir });
 
   // Should format everything
   t.expect(fs.readFileSync(file, "utf-8")).toBe("const x = 1;\n");
@@ -135,7 +133,7 @@ t.it("excludes take precedence over includes", async () => {
   fs.writeFileSync(srcFile, "const   x=1");
   fs.writeFileSync(rootFile, "const   y=2");
 
-  await fmtCommand();
+  await fmtCommand([], { cwd: testDir });
 
   // src/app.ts should not be formatted (excluded)
   t.expect(fs.readFileSync(srcFile, "utf-8")).toBe("const   x=1");

@@ -6,8 +6,9 @@ import { getDefaultConfig } from "../config.js";
  * Initialize a new dprint.json configuration file
  */
 export default async function initCommand(options = {}) {
+  const cwd = options.cwd || process.cwd();
   // Use custom config path if provided, otherwise use dprint.json in current directory
-  const configPath = options.config || path.join(process.cwd(), "dprint.json");
+  const configPath = options.config ? path.join(cwd, options.config) : path.join(cwd, "dprint.json");
 
   if (fs.existsSync(configPath)) {
     console.error(`Configuration file '${path.basename(configPath)}' already exists in the current directory.`);

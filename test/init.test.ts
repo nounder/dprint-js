@@ -12,13 +12,9 @@ t.beforeEach(() => {
   if (!fs.existsSync(testDir)) {
     fs.mkdirSync(testDir, { recursive: true });
   }
-  // Change to test directory
-  process.chdir(testDir);
 });
 
 t.afterEach(() => {
-  // Change back to project root using absolute path
-  process.chdir(projectRoot);
   // Clean up test directory
   if (fs.existsSync(testDir)) {
     fs.rmSync(testDir, { recursive: true, force: true });
@@ -26,14 +22,14 @@ t.afterEach(() => {
 });
 
 t.it("creates dprint.json in current directory", async () => {
-  const exitCode = await initCommand();
+  const exitCode = await initCommand({ cwd: testDir });
 
   t.expect(exitCode).toBe(0);
   t.expect(fs.existsSync(configPath)).toBe(true);
 });
 
 t.it("creates valid JSON configuration", async () => {
-  await initCommand();
+  await initCommand({ cwd: testDir });
 
   const content = fs.readFileSync(configPath, "utf-8");
   const config = JSON.parse(content);
@@ -46,7 +42,7 @@ t.it("creates valid JSON configuration", async () => {
 });
 
 t.it("includes default plugins", async () => {
-  await initCommand();
+  await initCommand({ cwd: testDir });
 
   const content = fs.readFileSync(configPath, "utf-8");
   const config = JSON.parse(content);
@@ -57,7 +53,7 @@ t.it("includes default plugins", async () => {
 });
 
 t.it("includes default file patterns", async () => {
-  await initCommand();
+  await initCommand({ cwd: testDir });
 
   const content = fs.readFileSync(configPath, "utf-8");
   const config = JSON.parse(content);
@@ -67,7 +63,7 @@ t.it("includes default file patterns", async () => {
 });
 
 t.it("includes default exclude patterns", async () => {
-  await initCommand();
+  await initCommand({ cwd: testDir });
 
   const content = fs.readFileSync(configPath, "utf-8");
   const config = JSON.parse(content);
@@ -80,13 +76,13 @@ t.it("fails if dprint.json already exists", async () => {
   // Create config file first
   fs.writeFileSync(configPath, "{}", "utf-8");
 
-  const exitCode = await initCommand();
+  const exitCode = await initCommand({ cwd: testDir });
 
   t.expect(exitCode).toBe(1);
 });
 
 t.it("formats configuration with proper indentation", async () => {
-  await initCommand();
+  await initCommand({ cwd: testDir });
 
   const content = fs.readFileSync(configPath, "utf-8");
 

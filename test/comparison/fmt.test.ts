@@ -55,7 +55,6 @@ t.beforeEach(() => {
 });
 
 t.afterEach(() => {
-  process.chdir(projectRoot);
   if (fs.existsSync(testDir)) {
     fs.rmSync(testDir, { recursive: true, force: true });
   }
@@ -68,12 +67,10 @@ t.it("formats TypeScript identically to rust dprint", async () => {
   fs.writeFileSync(path.join(theirsDir, filename), malformattedTS);
 
   // Format with our implementation
-  process.chdir(oursDir);
-  await fmtCommand([], { log_level: "silent" });
+  await fmtCommand([], { log_level: "silent", cwd: oursDir });
 
   // Format with rust dprint
-  process.chdir(theirsDir);
-  await Bun.$`npx dprint fmt --log-level silent`.quiet();
+  await $`npx dprint fmt --log-level silent`.cwd(theirsDir).quiet();
 
   // Compare results
   const ourResult = fs.readFileSync(path.join(oursDir, filename), "utf-8");
@@ -89,12 +86,10 @@ t.it("formats JSON identically to rust dprint", async () => {
   fs.writeFileSync(path.join(theirsDir, filename), malformattedJSON);
 
   // Format with our implementation
-  process.chdir(oursDir);
-  await fmtCommand([], { log_level: "silent" });
+  await fmtCommand([], { log_level: "silent", cwd: oursDir });
 
   // Format with rust dprint
-  process.chdir(theirsDir);
-  await Bun.$`npx dprint fmt --log-level silent`.quiet();
+  await $`npx dprint fmt --log-level silent`.cwd(theirsDir).quiet();
 
   // Compare results
   const ourResult = fs.readFileSync(path.join(oursDir, filename), "utf-8");
@@ -110,12 +105,10 @@ t.it("formats Markdown identically to rust dprint", async () => {
   fs.writeFileSync(path.join(theirsDir, filename), malformattedMD);
 
   // Format with our implementation
-  process.chdir(oursDir);
-  await fmtCommand([], { log_level: "silent" });
+  await fmtCommand([], { log_level: "silent", cwd: oursDir });
 
   // Format with rust dprint
-  process.chdir(theirsDir);
-  await Bun.$`npx dprint fmt --log-level silent`.quiet();
+  await $`npx dprint fmt --log-level silent`.cwd(theirsDir).quiet();
 
   // Compare results
   const ourResult = fs.readFileSync(path.join(oursDir, filename), "utf-8");
@@ -135,12 +128,10 @@ t.it("handles multiple files identically to rust dprint", async () => {
   fs.writeFileSync(path.join(theirsDir, "file3.md"), malformattedMD);
 
   // Format with our implementation
-  process.chdir(oursDir);
-  await fmtCommand([], { log_level: "silent" });
+  await fmtCommand([], { log_level: "silent", cwd: oursDir });
 
   // Format with rust dprint
-  process.chdir(theirsDir);
-  await Bun.$`npx dprint fmt --log-level silent`.quiet();
+  await $`npx dprint fmt --log-level silent`.cwd(theirsDir).quiet();
 
   // Compare results for all files
   for (const file of ["file1.ts", "file2.json", "file3.md"]) {
@@ -159,12 +150,10 @@ t.it("respects file patterns identically to rust dprint", async () => {
   fs.writeFileSync(path.join(theirsDir, "skip.json"), malformattedJSON);
 
   // Format only .ts files with our implementation
-  process.chdir(oursDir);
-  await fmtCommand(["*.ts"], { log_level: "silent" });
+  await fmtCommand(["*.ts"], { log_level: "silent", cwd: oursDir });
 
   // Format only .ts files with rust dprint
-  process.chdir(theirsDir);
-  await Bun.$`npx dprint fmt --log-level silent *.ts`.quiet();
+  await $`npx dprint fmt --log-level silent *.ts`.cwd(theirsDir).quiet();
 
   // TS file should be formatted
   const ourTS = fs.readFileSync(path.join(oursDir, "format.ts"), "utf-8");
@@ -192,12 +181,10 @@ t.it("respects excludes option identically to rust dprint", async () => {
   fs.writeFileSync(path.join(theirsDir, "excluded", "code.ts"), malformattedTS);
 
   // Format with excludes using our implementation
-  process.chdir(oursDir);
-  await fmtCommand([], { excludes: ["**/excluded/**"], log_level: "silent" });
+  await fmtCommand([], { excludes: ["**/excluded/**"], log_level: "silent", cwd: oursDir });
 
   // Format with excludes using rust dprint
-  process.chdir(theirsDir);
-  await Bun.$`npx dprint fmt --log-level silent --excludes "**/excluded/**"`.quiet();
+  await $`npx dprint fmt --log-level silent --excludes "**/excluded/**"`.cwd(theirsDir).quiet();
 
   // src file should be formatted
   const ourSrc = fs.readFileSync(path.join(oursDir, "src", "code.ts"), "utf-8");

@@ -6,7 +6,7 @@ import { formatFile, loadPlugins } from "../formatter.js";
  * Format files according to configuration
  */
 export default async function fmtCommand(filePatterns = [], options = {}) {
-  const cwd = process.cwd();
+  const cwd = options.cwd || process.cwd();
   const logLevel = options.log_level || "info";
   const shouldLog = (level) => {
     const levels = ["debug", "info", "warn", "error", "silent"];

@@ -11,11 +11,9 @@ t.beforeEach(() => {
   if (!fs.existsSync(testDir)) {
     fs.mkdirSync(testDir, { recursive: true });
   }
-  process.chdir(testDir);
 });
 
 t.afterEach(() => {
-  process.chdir(projectRoot);
   if (fs.existsSync(testDir)) {
     fs.rmSync(testDir, { recursive: true, force: true });
   }
@@ -35,7 +33,7 @@ t.it("formats files matching includes patterns", async () => {
   fs.writeFileSync(tsFile, "const   x=1");
   fs.writeFileSync(jsFile, "const   y=2");
 
-  await fmtCommand();
+  await fmtCommand([], { cwd: testDir });
 
   // TS file should be formatted
   t.expect(fs.readFileSync(tsFile, "utf-8")).toBe("const x = 1;\n");
@@ -61,7 +59,7 @@ t.it("supports multiple includes patterns", async () => {
   fs.writeFileSync(jsonFile, "{\"a\":1}");
   fs.writeFileSync(mdFile, "#   Title");
 
-  await fmtCommand();
+  await fmtCommand([], { cwd: testDir });
 
   t.expect(fs.readFileSync(tsFile, "utf-8")).toBe("const x = 1;\n");
   t.expect(fs.readFileSync(jsonFile, "utf-8")).toContain("\"a\"");
@@ -85,7 +83,7 @@ t.it("supports glob patterns with braces", async () => {
   fs.writeFileSync(jsFile, "const   y=2");
   fs.writeFileSync(jsonFile, "{\"a\":1}");
 
-  await fmtCommand();
+  await fmtCommand([], { cwd: testDir });
 
   t.expect(fs.readFileSync(tsFile, "utf-8")).toBe("const x = 1;\n");
   t.expect(fs.readFileSync(jsFile, "utf-8")).toBe("const y = 2;\n");
@@ -106,7 +104,7 @@ t.it("matches files in subdirectories with **", async () => {
   const nestedFile = path.join(subDir, "file.ts");
   fs.writeFileSync(nestedFile, "const   x=1");
 
-  await fmtCommand();
+  await fmtCommand([], { cwd: testDir });
 
   t.expect(fs.readFileSync(nestedFile, "utf-8")).toBe("const x = 1;\n");
 });
@@ -123,7 +121,7 @@ t.it("handles empty includes array", async () => {
   const tsFile = path.join(testDir, "test.ts");
   fs.writeFileSync(tsFile, "const   x=1");
 
-  await fmtCommand();
+  await fmtCommand([], { cwd: testDir });
 
   // Should not format anything
   t.expect(fs.readFileSync(tsFile, "utf-8")).toBe("const   x=1");
