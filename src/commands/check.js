@@ -92,7 +92,8 @@ export default async function checkCommand(filePatterns = [], options = {}) {
         console.error("\nRun 'dprint-js fmt' to format them");
       }
     }
-    return 1;
+    // Return exit code 20 to match dprint standard (20 = unformatted files)
+    return 20;
   }
 
   if (errorCount > 0) {

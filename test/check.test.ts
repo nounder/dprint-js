@@ -51,7 +51,7 @@ t.it("fails for unformatted TypeScript files", async () => {
 
   const exitCode = await checkCommand();
 
-  t.expect(exitCode).toBe(1);
+  t.expect(exitCode).toBe(20);
 });
 
 t.it("fails for unformatted JSON files", async () => {
@@ -60,7 +60,7 @@ t.it("fails for unformatted JSON files", async () => {
 
   const exitCode = await checkCommand();
 
-  t.expect(exitCode).toBe(1);
+  t.expect(exitCode).toBe(20);
 });
 
 t.it("passes when all files are formatted", async () => {
@@ -80,7 +80,7 @@ t.it("fails when any file is unformatted", async () => {
 
   const exitCode = await checkCommand();
 
-  t.expect(exitCode).toBe(1);
+  t.expect(exitCode).toBe(20);
 });
 
 t.it("does not modify files during check", async () => {
@@ -101,7 +101,7 @@ t.it("checks only specified file patterns", async () => {
   const exitCode = await checkCommand(["*.json"]);
 
   // Should fail because JSON file is not formatted
-  t.expect(exitCode).toBe(1);
+  t.expect(exitCode).toBe(20);
 });
 
 t.it("returns 14 when no files found", async () => {
@@ -124,7 +124,7 @@ t.it("returns 1 when no config file found", async () => {
 
   try {
     const exitCode = await checkCommand();
-    t.expect(exitCode).toBe(1);
+    t.expect(exitCode).toBe(1); // Error finding config, not unformatted files
   } finally {
     process.chdir(projectRoot);
     if (fs.existsSync(isolatedDir)) {
@@ -162,5 +162,5 @@ t.it("fails for multiple unformatted files", async () => {
 
   const exitCode = await checkCommand();
 
-  t.expect(exitCode).toBe(1);
+  t.expect(exitCode).toBe(20);
 });
