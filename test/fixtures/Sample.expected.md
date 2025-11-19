@@ -25,4 +25,4 @@ More content.
 2. Second item
 3. Third item
 
-**Bold text** and *italic text*.
+**Bold text** and _italic text_.

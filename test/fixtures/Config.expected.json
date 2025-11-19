@@ -1,6 +1,18 @@
 {
   "server": { "host": "localhost", "port": 3000, "ssl": false },
-  "database": { "type": "postgres", "host": "db.example.com", "port": 5432, "username": "admin", "password": "secret", "poolSize": 10 },
-  "logging": { "level": "info", "format": "json", "outputs": ["console", "file"], "rotation": { "enabled": true, "maxSize": "10M" } },
+  "database": {
+    "type": "postgres",
+    "host": "db.example.com",
+    "port": 5432,
+    "username": "admin",
+    "password": "secret",
+    "poolSize": 10
+  },
+  "logging": {
+    "level": "info",
+    "format": "json",
+    "outputs": ["console", "file"],
+    "rotation": { "enabled": true, "maxSize": "10M" }
+  },
   "features": { "auth": true, "api": true, "dashboard": false, "metrics": true }
 }
