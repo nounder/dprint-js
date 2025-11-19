@@ -1,6 +1,0 @@
-{
-  "server": { "host": "localhost", "port": 3000, "ssl": false },
-  "database": { "type": "postgres", "host": "db.example.com", "port": 5432, "username": "admin", "password": "secret" },
-  "logging": { "level": "info", "format": "json", "outputs": ["console", "file"] },
-  "features": { "auth": true, "api": true, "dashboard": false }
-}

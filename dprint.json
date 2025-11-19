@@ -10,7 +10,8 @@
     "**/*-lock.json",
     "**/dist",
     "**/build",
-    "**/coverage"
+    "**/coverage",
+    "test/fixtures/**"
   ],
   "plugins": [
     "@dprint/typescript",

@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 
-import { main } from "../src/index.js";
+import { main } from "../src/cli.js";
 
 main().then((exitCode) => {
   process.exit(exitCode);

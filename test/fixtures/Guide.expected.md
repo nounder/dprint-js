@@ -4,7 +4,7 @@
 
 ```bash
 npm   install   dprint-js
-# or
+#   or
 bun   install   dprint-js
 ```
 
@@ -33,15 +33,7 @@ dprint-js   check
 Edit `dprint.json` to customize formatting:
 
 ```json
-{
-"typescript":{
-"indentWidth":2,
-"lineWidth":120
-},
-"json":{
-"indentWidth":2
-}
-}
+{"typescript":{"indentWidth":2,"lineWidth":120},"json":{"indentWidth":2}}
 ```
 
 ## Advanced
@@ -51,4 +43,10 @@ Edit `dprint.json` to customize formatting:
 ```bash
 dprint-js   fmt   src/**/*.ts
 dprint-js   check   --   lib/**/*.js   test/**/*.ts
+```
+
+### CI Integration
+
+```bash
+dprint-js   check   ||   exit   1
 ```

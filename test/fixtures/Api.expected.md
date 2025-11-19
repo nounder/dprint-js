@@ -9,10 +9,7 @@ Login to the system.
 **Request Body:**
 
 ```json
-{
-"username":"user@example.com",
-"password":"secret123"
-}
+{"username":"user@example.com","password":"secret123"}
 ```
 
 **Response:**
@@ -33,6 +30,13 @@ Get all users.
 ### POST /api/users
 
 Create a new user.
+
+- **Auth required:** Yes
+- **Permissions:** admin
+
+### DELETE /api/users/:id
+
+Delete a user.
 
 - **Auth required:** Yes
 - **Permissions:** admin

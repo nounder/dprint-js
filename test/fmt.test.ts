@@ -1,12 +1,10 @@
-import { describe, expect, test, beforeEach, afterEach } from "bun:test";
-import { fmtCommand } from "../src/commands.js";
+import { expect, test, beforeEach, afterEach } from "bun:test";
+import fmtCommand from "../src/commands/fmt.js";
 import * as fs from "node:fs";
 import * as path from "node:path";
 
-describe("fmt command", () => {
-  const testDir = path.join(process.cwd(), "test-tmp-fmt");
-  const configPath = path.join(testDir, "dprint.json");
-
+const testDir = path.join(process.cwd(), "test-tmp-fmt");
+const configPath = path.join(testDir, "dprint.json");
   beforeEach(() => {
     // Create test directory
     if (!fs.existsSync(testDir)) {

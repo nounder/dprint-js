@@ -1,12 +1,10 @@
-import { describe, expect, test, beforeEach, afterEach } from "bun:test";
-import { checkCommand } from "../src/commands.js";
+import { expect, test, beforeEach, afterEach } from "bun:test";
+import checkCommand from "../src/commands/check.js";
 import * as fs from "node:fs";
 import * as path from "node:path";
 
-describe("check command", () => {
-  const testDir = path.join(process.cwd(), "test-tmp-check");
-  const configPath = path.join(testDir, "dprint.json");
-
+const testDir = path.join(process.cwd(), "test-tmp-check");
+const configPath = path.join(testDir, "dprint.json");
   beforeEach(() => {
     // Create test directory
     if (!fs.existsSync(testDir)) {

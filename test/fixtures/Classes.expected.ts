@@ -1,4 +1,4 @@
-// Unformatted class example
+// Horribly formatted class example
 export class User {
   private name: string;
   private age: number;
@@ -30,5 +30,11 @@ export class Database {
   }
   connect(): Promise<void> {
     return Promise.resolve();
+  }
+  disconnect(): Promise<void> {
+    return Promise.resolve();
+  }
+  query<T>(sql: string, ...params: any[]): Promise<T[]> {
+    return Promise.resolve([]);
   }
 }

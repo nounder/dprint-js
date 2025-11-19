@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "description": "JavaScript implementation of dprint CLI for code formatting",
   "type": "module",
-  "main": "src/index.js",
+  "main": "src/cli.js",
   "bin": {
     "dprint-js": "./bin/dprint-js.js"
   },

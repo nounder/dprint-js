@@ -1,4 +1,4 @@
-// Async/await example with poor formatting
+// Extremely malformatted async example
 async function fetchData(url: string): Promise<any> {
   const response = await fetch(url);
   if (!response.ok) {

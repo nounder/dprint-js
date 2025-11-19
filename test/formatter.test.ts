@@ -1,10 +1,8 @@
 import { describe, expect, test, beforeAll, afterAll } from "bun:test";
-import { loadPlugin, loadPlugins, getFormatterForFile, formatText } from "../src/formatter.js";
+import { loadPlugin, loadPlugins, getFormatterForFile, formatText, formatFile } from "../src/formatter.js";
 import * as fs from "node:fs";
 import * as path from "node:path";
 
-describe("formatter", () => {
-  describe("loadPlugin", () => {
     test("loads @dprint/typescript plugin successfully", async () => {
       const result = await loadPlugin("@dprint/typescript");
 
@@ -183,4 +181,160 @@ describe("formatter", () => {
       expect(output).toBe(input);
     });
   });
-});
+
+  describe("formatFile with actual/expected data files", () => {
+    const testDir = path.join(process.cwd(), "test-tmp-formatter");
+    const dataDir = path.join(process.cwd(), "test/fixtures");
+    let loadedPlugins: any[];
+    const config = {
+      plugins: ["@dprint/typescript", "@dprint/json", "@dprint/markdown"],
+      typescript: {},
+      json: {},
+      markdown: {},
+    };
+
+    beforeAll(async () => {
+      loadedPlugins = await loadPlugins(config);
+      if (!fs.existsSync(testDir)) {
+        fs.mkdirSync(testDir, { recursive: true });
+      }
+    });
+
+    afterAll(() => {
+      if (fs.existsSync(testDir)) {
+        fs.rmSync(testDir, { recursive: true, force: true });
+      }
+    });
+
+    test("formats Async.ts to match expected output", async () => {
+      const actualPath = path.join(dataDir, "Async.actual.ts");
+      const expectedPath = path.join(dataDir, "Async.expected.ts");
+      const tempPath = path.join(testDir, "Async.ts");
+
+      // Copy actual to temp
+      fs.copyFileSync(actualPath, tempPath);
+
+      // Format the file
+      const result = await formatFile(tempPath, loadedPlugins, config, false);
+
+      expect(result.formatted).toBe(true);
+      expect(result.error).toBeNull();
+
+      // Compare with expected
+      const formatted = fs.readFileSync(tempPath, "utf-8");
+      const expected = fs.readFileSync(expectedPath, "utf-8");
+      expect(formatted).toBe(expected);
+    });
+
+    test("formats Classes.ts to match expected output", async () => {
+      const actualPath = path.join(dataDir, "Classes.actual.ts");
+      const expectedPath = path.join(dataDir, "Classes.expected.ts");
+      const tempPath = path.join(testDir, "Classes.ts");
+
+      fs.copyFileSync(actualPath, tempPath);
+      const result = await formatFile(tempPath, loadedPlugins, config, false);
+
+      expect(result.formatted).toBe(true);
+      const formatted = fs.readFileSync(tempPath, "utf-8");
+      const expected = fs.readFileSync(expectedPath, "utf-8");
+      expect(formatted).toBe(expected);
+    });
+
+    test("formats Sample.ts to match expected output", async () => {
+      const actualPath = path.join(dataDir, "Sample.actual.ts");
+      const expectedPath = path.join(dataDir, "Sample.expected.ts");
+      const tempPath = path.join(testDir, "Sample.ts");
+
+      fs.copyFileSync(actualPath, tempPath);
+      const result = await formatFile(tempPath, loadedPlugins, config, false);
+
+      expect(result.formatted).toBe(true);
+      const formatted = fs.readFileSync(tempPath, "utf-8");
+      const expected = fs.readFileSync(expectedPath, "utf-8");
+      expect(formatted).toBe(expected);
+    });
+
+    test("formats Config.json to match expected output", async () => {
+      const actualPath = path.join(dataDir, "Config.actual.json");
+      const expectedPath = path.join(dataDir, "Config.expected.json");
+      const tempPath = path.join(testDir, "Config.json");
+
+      fs.copyFileSync(actualPath, tempPath);
+      const result = await formatFile(tempPath, loadedPlugins, config, false);
+
+      expect(result.formatted).toBe(true);
+      const formatted = fs.readFileSync(tempPath, "utf-8");
+      const expected = fs.readFileSync(expectedPath, "utf-8");
+      expect(formatted).toBe(expected);
+    });
+
+    test("formats Users.json to match expected output", async () => {
+      const actualPath = path.join(dataDir, "Users.actual.json");
+      const expectedPath = path.join(dataDir, "Users.expected.json");
+      const tempPath = path.join(testDir, "Users.json");
+
+      fs.copyFileSync(actualPath, tempPath);
+      const result = await formatFile(tempPath, loadedPlugins, config, false);
+
+      expect(result.formatted).toBe(true);
+      const formatted = fs.readFileSync(tempPath, "utf-8");
+      const expected = fs.readFileSync(expectedPath, "utf-8");
+      expect(formatted).toBe(expected);
+    });
+
+    test("formats Sample.json to match expected output", async () => {
+      const actualPath = path.join(dataDir, "Sample.actual.json");
+      const expectedPath = path.join(dataDir, "Sample.expected.json");
+      const tempPath = path.join(testDir, "Sample.json");
+
+      fs.copyFileSync(actualPath, tempPath);
+      const result = await formatFile(tempPath, loadedPlugins, config, false);
+
+      expect(result.formatted).toBe(true);
+      const formatted = fs.readFileSync(tempPath, "utf-8");
+      const expected = fs.readFileSync(expectedPath, "utf-8");
+      expect(formatted).toBe(expected);
+    });
+
+    test("formats Api.md to match expected output", async () => {
+      const actualPath = path.join(dataDir, "Api.actual.md");
+      const expectedPath = path.join(dataDir, "Api.expected.md");
+      const tempPath = path.join(testDir, "Api.md");
+
+      fs.copyFileSync(actualPath, tempPath);
+      const result = await formatFile(tempPath, loadedPlugins, config, false);
+
+      expect(result.formatted).toBe(true);
+      const formatted = fs.readFileSync(tempPath, "utf-8");
+      const expected = fs.readFileSync(expectedPath, "utf-8");
+      expect(formatted).toBe(expected);
+    });
+
+    test("formats Guide.md to match expected output", async () => {
+      const actualPath = path.join(dataDir, "Guide.actual.md");
+      const expectedPath = path.join(dataDir, "Guide.expected.md");
+      const tempPath = path.join(testDir, "Guide.md");
+
+      fs.copyFileSync(actualPath, tempPath);
+      const result = await formatFile(tempPath, loadedPlugins, config, false);
+
+      expect(result.formatted).toBe(true);
+      const formatted = fs.readFileSync(tempPath, "utf-8");
+      const expected = fs.readFileSync(expectedPath, "utf-8");
+      expect(formatted).toBe(expected);
+    });
+
+    test("formats Sample.md to match expected output", async () => {
+      const actualPath = path.join(dataDir, "Sample.actual.md");
+      const expectedPath = path.join(dataDir, "Sample.expected.md");
+      const tempPath = path.join(testDir, "Sample.md");
+
+      fs.copyFileSync(actualPath, tempPath);
+      const result = await formatFile(tempPath, loadedPlugins, config, false);
+
+      expect(result.formatted).toBe(true);
+      const formatted = fs.readFileSync(tempPath, "utf-8");
+      const expected = fs.readFileSync(expectedPath, "utf-8");
+      expect(formatted).toBe(expected);
+    });
+  });
