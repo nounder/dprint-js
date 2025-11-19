@@ -1,0 +1,96 @@
+import * as t from "bun:test";
+import * as fs from "node:fs";
+import * as path from "node:path";
+import initCommand from "../src/commands/init.js";
+
+const projectRoot = process.cwd();
+const testDir = path.join(projectRoot, "test-tmp-init");
+const configPath = path.join(testDir, "dprint.json");
+
+t.beforeEach(() => {
+  // Create test directory
+  if (!fs.existsSync(testDir)) {
+    fs.mkdirSync(testDir, { recursive: true });
+  }
+  // Change to test directory
+  process.chdir(testDir);
+});
+
+t.afterEach(() => {
+  // Change back to project root using absolute path
+  process.chdir(projectRoot);
+  // Clean up test directory
+  if (fs.existsSync(testDir)) {
+    fs.rmSync(testDir, { recursive: true, force: true });
+  }
+});
+
+t.it("creates dprint.json in current directory", async () => {
+  const exitCode = await initCommand();
+
+  t.expect(exitCode).toBe(0);
+  t.expect(fs.existsSync(configPath)).toBe(true);
+});
+
+t.it("creates valid JSON configuration", async () => {
+  await initCommand();
+
+  const content = fs.readFileSync(configPath, "utf-8");
+  const config = JSON.parse(content);
+
+  t.expect(config).toBeDefined();
+  t.expect(config.$schema).toBeDefined();
+  t.expect(config.includes).toBeDefined();
+  t.expect(config.excludes).toBeDefined();
+  t.expect(config.plugins).toBeDefined();
+});
+
+t.it("includes default plugins", async () => {
+  await initCommand();
+
+  const content = fs.readFileSync(configPath, "utf-8");
+  const config = JSON.parse(content);
+
+  t.expect(config.plugins).toContain("@dprint/typescript");
+  t.expect(config.plugins).toContain("@dprint/json");
+  t.expect(config.plugins).toContain("@dprint/markdown");
+});
+
+t.it("includes default file patterns", async () => {
+  await initCommand();
+
+  const content = fs.readFileSync(configPath, "utf-8");
+  const config = JSON.parse(content);
+
+  t.expect(config.includes).toBeDefined();
+  t.expect(config.includes.length).toBeGreaterThan(0);
+});
+
+t.it("includes default exclude patterns", async () => {
+  await initCommand();
+
+  const content = fs.readFileSync(configPath, "utf-8");
+  const config = JSON.parse(content);
+
+  t.expect(config.excludes).toContain("**/node_modules");
+  t.expect(config.excludes).toContain("**/dist");
+});
+
+t.it("fails if dprint.json already exists", async () => {
+  // Create config file first
+  fs.writeFileSync(configPath, "{}", "utf-8");
+
+  const exitCode = await initCommand();
+
+  t.expect(exitCode).toBe(1);
+});
+
+t.it("formats configuration with proper indentation", async () => {
+  await initCommand();
+
+  const content = fs.readFileSync(configPath, "utf-8");
+
+  // Check for proper JSON formatting (should have newlines and indentation)
+  t.expect(content).toContain("\n");
+  t.expect(content).toContain("  "); // 2-space indentation
+});

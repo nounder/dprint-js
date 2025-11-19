@@ -1,0 +1,12 @@
+node_modules/
+*.log
+.DS_Store
+dist/
+build/
+coverage/
+.env
+.vscode/
+.idea/
+test-dprint/
+test-*.js
+tree/

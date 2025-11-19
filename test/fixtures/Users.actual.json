@@ -1,0 +1,1 @@
+[{"id":1,"name":"Alice","email":"alice@example.com","roles":["admin","user"],"active":true},{"id":2,"name":"Bob","email":"bob@example.com","roles":["user"],"active":true},{"id":3,"name":"Charlie","email":"charlie@example.com","roles":["user","moderator"],"active":false}]
