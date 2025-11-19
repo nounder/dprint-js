@@ -42,15 +42,15 @@ export async function fmtCommand(filePatterns = [], options = {}) {
 
   // Load plugins
   console.log("Loading plugins...");
-  const formatters = await loadPlugins(config, cwd);
+  const loadedPlugins = await loadPlugins(config, cwd);
 
-  if (formatters.size === 0) {
+  if (loadedPlugins.length === 0) {
     console.error("Error: No formatters loaded. Make sure plugins are installed:");
-    console.error("  npm install @dprint/typescript @dprint/json @dprint/markdown");
+    console.error("  bun install @dprint/typescript @dprint/json @dprint/markdown");
     return 1;
   }
 
-  console.log(`Loaded ${formatters.size} formatter(s)`);
+  console.log(`Loaded ${loadedPlugins.length} formatter(s)`);
 
   // Find files
   const files = await findFiles(config, filePatterns, cwd);
@@ -67,7 +67,7 @@ export async function fmtCommand(filePatterns = [], options = {}) {
   let errorCount = 0;
 
   for (const file of files) {
-    const result = await formatFile(file, formatters, config, false);
+    const result = await formatFile(file, loadedPlugins, config, false);
 
     if (result.error) {
       console.error(`Error formatting ${file}: ${result.error}`);
@@ -106,15 +106,15 @@ export async function checkCommand(filePatterns = [], options = {}) {
 
   // Load plugins
   console.log("Loading plugins...");
-  const formatters = await loadPlugins(config, cwd);
+  const loadedPlugins = await loadPlugins(config, cwd);
 
-  if (formatters.size === 0) {
+  if (loadedPlugins.length === 0) {
     console.error("Error: No formatters loaded. Make sure plugins are installed:");
-    console.error("  npm install @dprint/typescript @dprint/json @dprint/markdown");
+    console.error("  bun install @dprint/typescript @dprint/json @dprint/markdown");
     return 1;
   }
 
-  console.log(`Loaded ${formatters.size} formatter(s)`);
+  console.log(`Loaded ${loadedPlugins.length} formatter(s)`);
 
   // Find files
   const files = await findFiles(config, filePatterns, cwd);
@@ -131,7 +131,7 @@ export async function checkCommand(filePatterns = [], options = {}) {
   let errorCount = 0;
 
   for (const file of files) {
-    const result = await formatFile(file, formatters, config, true);
+    const result = await formatFile(file, loadedPlugins, config, true);
 
     if (result.error) {
       console.error(`Error checking ${file}: ${result.error}`);
