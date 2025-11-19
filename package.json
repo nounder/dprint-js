@@ -1,0 +1,28 @@
+{
+  "name": "dprint-cli",
+  "version": "0.1.0",
+  "description": "JavaScript implementation of dprint CLI for formatting source code",
+  "type": "module",
+  "main": "src/index.js",
+  "bin": {
+    "dprint-js": "./bin/dprint.js"
+  },
+  "scripts": {
+    "test": "node test/test.js"
+  },
+  "keywords": [
+    "dprint",
+    "formatter",
+    "code-formatter"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@dprint/formatter": "^0.3.0",
+    "@dprint/typescript": "^0.91.6",
+    "@dprint/json": "^0.19.3",
+    "@dprint/markdown": "^0.17.2",
+    "globby": "^14.0.0",
+    "minimist": "^1.2.8"
+  }
+}

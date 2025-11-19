@@ -1,0 +1,28 @@
+{
+  "$schema": "https://dprint.dev/schemas/v0.json",
+  "includes": [
+    "**/*.{ts,tsx,js,jsx,json,md}"
+  ],
+  "excludes": [
+    "**/node_modules",
+    "**/.git",
+    "**/dist",
+    "**/build",
+    "**/coverage"
+  ],
+  "plugins": [
+    "@dprint/typescript",
+    "@dprint/json",
+    "@dprint/markdown"
+  ],
+  "typescript": {
+    "quoteStyle": "double",
+    "semiColons": "always"
+  },
+  "json": {
+    "indentWidth": 2
+  },
+  "markdown": {
+    "lineWidth": 80
+  }
+}

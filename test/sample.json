@@ -1,0 +1,7 @@
+{
+  "name": "test",
+  "version": "1.0.0",
+  "description": "A test file",
+  "keywords": ["test", "sample"],
+  "config": { "option1": true, "option2": false }
+}
