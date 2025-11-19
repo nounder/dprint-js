@@ -1,5 +1,5 @@
 import * as t from "bun:test";
-import { loadPlugins, formatText } from "../src/formatter.js";
+import { formatText, loadPlugins } from "../src/formatter.js";
 
 t.it("respects lineWidth configuration for TypeScript", async () => {
   const config = {
@@ -12,7 +12,7 @@ t.it("respects lineWidth configuration for TypeScript", async () => {
   const loadedPlugins = await loadPlugins(config);
   const formatter = loadedPlugins[0].formatter;
 
-  const input = 'const longVariable = "this is a very long string that should wrap";';
+  const input = "const longVariable = \"this is a very long string that should wrap\";";
   const output = formatText("test.ts", input, formatter);
 
   // With lineWidth 40, the line should be broken
@@ -30,7 +30,7 @@ t.it("uses wider lineWidth when configured", async () => {
   const loadedPlugins = await loadPlugins(config);
   const formatter = loadedPlugins[0].formatter;
 
-  const input = 'const longVariable = "this is a moderately long string";';
+  const input = "const longVariable = \"this is a moderately long string\";";
   const output = formatText("test.ts", input, formatter);
 
   // With lineWidth 200, should stay on one line
@@ -49,7 +49,7 @@ t.it("applies lineWidth to JSON formatting", async () => {
   const loadedPlugins = await loadPlugins(config);
   const formatter = loadedPlugins[0].formatter;
 
-  const input = '{"a":1,"b":2,"c":3,"d":4,"e":5,"f":6,"g":7}';
+  const input = "{\"a\":1,\"b\":2,\"c\":3,\"d\":4,\"e\":5,\"f\":6,\"g\":7}";
   const output = formatText("test.json", input, formatter);
 
   // Should format with appropriate line breaks

@@ -5,7 +5,17 @@ import * as path from "node:path";
  * Find dprint.json configuration file starting from the current directory
  * and walking up the directory tree.
  */
-export function findConfigFile(startDir = process.cwd()) {
+export function findConfigFile(startDir = process.cwd(), options = {}) {
+  // If config discovery is disabled, don't search
+  if (options.config_discovery === false) {
+    return null;
+  }
+
+  // If custom config path is specified, use it
+  if (options.config) {
+    return options.config;
+  }
+
   let currentDir = startDir;
 
   while (true) {
@@ -26,7 +36,7 @@ export function findConfigFile(startDir = process.cwd()) {
 /**
  * Load and parse dprint.json configuration file
  */
-export function loadConfig(configPath) {
+export function loadConfig(configPath, options = {}) {
   if (!configPath) {
     throw new Error("No dprint.json configuration file found");
   }
@@ -35,13 +45,21 @@ export function loadConfig(configPath) {
     const content = fs.readFileSync(configPath, "utf-8");
 
     // Try parsing directly first
+    let config;
     try {
-      return JSON.parse(content);
+      config = JSON.parse(content);
     } catch (parseError) {
       // If direct parsing fails, try stripping comments
       const jsonContent = stripJsonComments(content);
-      return JSON.parse(jsonContent);
+      config = JSON.parse(jsonContent);
     }
+
+    // Apply command-line option overrides
+    if (options.plugins && options.plugins.length > 0) {
+      config.plugins = options.plugins;
+    }
+
+    return config;
   } catch (error) {
     throw new Error(`Failed to parse configuration file ${configPath}: ${error.message}`);
   }
@@ -72,15 +90,15 @@ export function getDefaultConfig() {
       "**/*-lock.json",
       "**/dist",
       "**/build",
-      "**/coverage"
+      "**/coverage",
     ],
     "plugins": [
       "@dprint/typescript",
       "@dprint/json",
-      "@dprint/markdown"
+      "@dprint/markdown",
     ],
     "typescript": {},
     "json": {},
-    "markdown": {}
+    "markdown": {},
   };
 }

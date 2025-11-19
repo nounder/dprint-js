@@ -1,7 +1,7 @@
 import * as t from "bun:test";
-import initCommand from "../src/commands/init.js";
 import * as fs from "node:fs";
 import * as path from "node:path";
+import initCommand from "../src/commands/init.js";
 
 const projectRoot = process.cwd();
 const testDir = path.join(projectRoot, "test-tmp-init");

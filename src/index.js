@@ -1,4 +1,4 @@
-import { initCommand, fmtCommand, checkCommand } from "./commands.js";
+import { checkCommand, fmtCommand, initCommand } from "./commands.js";
 
 /**
  * Parse command line arguments

@@ -7,17 +7,44 @@ import * as path from "node:path";
  * @param {object} config - The dprint configuration object
  * @param {string[]} additionalPatterns - Additional file patterns from command line
  * @param {string} cwd - Current working directory
+ * @param {object} options - Additional options for file finding
  * @returns {Promise<string[]>} Array of matching file paths
  */
-export async function findFiles(config, additionalPatterns = [], cwd = process.cwd()) {
-  const includes = config.includes || ["**/*"];
-  const excludes = config.excludes || [];
+export async function findFiles(config, additionalPatterns = [], cwd = process.cwd(), options = {}) {
+  // Determine includes patterns
+  let includes;
+  if (options.includes_override && options.includes_override.length > 0) {
+    // --includes-override completely replaces config includes
+    includes = options.includes_override;
+  } else if (additionalPatterns.length > 0) {
+    // Command line patterns subset config includes
+    includes = additionalPatterns;
+  } else {
+    // Use config includes
+    includes = config.includes || ["**/*"];
+  }
 
-  // Combine config includes with command-line patterns
-  const patterns = additionalPatterns.length > 0 ? additionalPatterns : includes;
+  // Determine excludes patterns
+  let excludes;
+  if (options.excludes_override && options.excludes_override.length > 0) {
+    // --excludes-override completely replaces config excludes
+    excludes = options.excludes_override;
+  } else {
+    // Start with config excludes
+    excludes = config.excludes || [];
+    // Add additional excludes from --excludes
+    if (options.excludes && options.excludes.length > 0) {
+      excludes = [...excludes, ...options.excludes];
+    }
+  }
+
+  // Add node_modules to excludes unless --allow-node-modules is set
+  if (!options.allow_node_modules && !excludes.includes("**/node_modules")) {
+    excludes = [...excludes, "**/node_modules"];
+  }
 
   // Use fast-glob to find files
-  const files = await fg(patterns, {
+  const files = await fg(includes, {
     cwd,
     ignore: excludes,
     dot: false,

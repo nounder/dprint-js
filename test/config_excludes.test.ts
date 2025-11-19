@@ -1,7 +1,7 @@
 import * as t from "bun:test";
-import fmtCommand from "../src/commands/fmt.js";
 import * as fs from "node:fs";
 import * as path from "node:path";
+import fmtCommand from "../src/commands/fmt.js";
 
 const projectRoot = process.cwd();
 const testDir = path.join(projectRoot, "test-tmp-config-excludes");

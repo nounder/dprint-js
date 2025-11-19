@@ -1,7 +1,7 @@
 import * as t from "bun:test";
-import fmtCommand from "../src/commands/fmt.js";
 import * as fs from "node:fs";
 import * as path from "node:path";
+import fmtCommand from "../src/commands/fmt.js";
 
 const projectRoot = process.cwd();
 const testDir = path.join(projectRoot, "test-tmp-fmt");
@@ -51,7 +51,7 @@ t.it("formats TypeScript files", async () => {
 
 t.it("formats JSON files", async () => {
   const filePath = path.join(testDir, "test.json");
-  const unformatted = '{"a":1,"b":2}';
+  const unformatted = "{\"a\":1,\"b\":2}";
   fs.writeFileSync(filePath, unformatted);
 
   const exitCode = await fmtCommand();
@@ -100,7 +100,7 @@ t.it("skips already formatted files", async () => {
 
 t.it("formats only specified file patterns", async () => {
   fs.writeFileSync(path.join(testDir, "test.ts"), "const   a=1");
-  fs.writeFileSync(path.join(testDir, "test.json"), '{"x":1}');
+  fs.writeFileSync(path.join(testDir, "test.json"), "{\"x\":1}");
 
   const exitCode = await fmtCommand(["*.ts"]);
 
@@ -108,11 +108,17 @@ t.it("formats only specified file patterns", async () => {
   // TypeScript file should be formatted
   t.expect(fs.readFileSync(path.join(testDir, "test.ts"), "utf-8")).toBe("const a = 1;\n");
   // JSON file should remain unformatted (not matched by pattern)
-  t.expect(fs.readFileSync(path.join(testDir, "test.json"), "utf-8")).toBe('{"x":1}');
+  t.expect(fs.readFileSync(path.join(testDir, "test.json"), "utf-8")).toBe("{\"x\":1}");
 });
 
-t.it("returns 0 when no files found", async () => {
+t.it("returns 14 when no files found", async () => {
   const exitCode = await fmtCommand();
+
+  t.expect(exitCode).toBe(14);
+});
+
+t.it("returns 0 when no files found with --allow-no-files", async () => {
+  const exitCode = await fmtCommand([], { allow_no_files: true });
 
   t.expect(exitCode).toBe(0);
 });

@@ -1,7 +1,7 @@
 import * as t from "bun:test";
-import checkCommand from "../src/commands/check.js";
 import * as fs from "node:fs";
 import * as path from "node:path";
+import checkCommand from "../src/commands/check.js";
 
 const projectRoot = process.cwd();
 const testDir = path.join(projectRoot, "test-tmp-check");
@@ -56,7 +56,7 @@ t.it("fails for unformatted TypeScript files", async () => {
 
 t.it("fails for unformatted JSON files", async () => {
   const filePath = path.join(testDir, "test.json");
-  fs.writeFileSync(filePath, '{"a":1,"b":2}');
+  fs.writeFileSync(filePath, "{\"a\":1,\"b\":2}");
 
   const exitCode = await checkCommand();
 
@@ -96,7 +96,7 @@ t.it("does not modify files during check", async () => {
 
 t.it("checks only specified file patterns", async () => {
   fs.writeFileSync(path.join(testDir, "test.ts"), "const   a=1"); // Unformatted
-  fs.writeFileSync(path.join(testDir, "test.json"), '{"x":1}'); // Would fail if checked
+  fs.writeFileSync(path.join(testDir, "test.json"), "{\"x\":1}"); // Would fail if checked
 
   const exitCode = await checkCommand(["*.json"]);
 
@@ -104,8 +104,14 @@ t.it("checks only specified file patterns", async () => {
   t.expect(exitCode).toBe(1);
 });
 
-t.it("passes when no files found", async () => {
+t.it("returns 14 when no files found", async () => {
   const exitCode = await checkCommand();
+
+  t.expect(exitCode).toBe(14);
+});
+
+t.it("returns 0 when no files found with --allow-no-files", async () => {
+  const exitCode = await checkCommand([], { allow_no_files: true });
 
   t.expect(exitCode).toBe(0);
 });

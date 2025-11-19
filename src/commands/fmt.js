@@ -1,13 +1,22 @@
 import { findConfigFile, loadConfig } from "../config.js";
 import { findFiles } from "../files.js";
-import { loadPlugins, formatFile } from "../formatter.js";
+import { formatFile, loadPlugins } from "../formatter.js";
 
 /**
  * Format files according to configuration
  */
 export default async function fmtCommand(filePatterns = [], options = {}) {
   const cwd = process.cwd();
-  const configPath = findConfigFile(cwd);
+  const logLevel = options.log_level || "info";
+  const shouldLog = (level) => {
+    const levels = ["debug", "info", "warn", "error", "silent"];
+    const currentLevel = levels.indexOf(logLevel);
+    const messageLevel = levels.indexOf(level);
+    return messageLevel >= currentLevel;
+  };
+
+  // Find config file
+  const configPath = findConfigFile(cwd, options);
 
   if (!configPath) {
     console.error("Error: No dprint.json configuration file found");
@@ -15,11 +24,16 @@ export default async function fmtCommand(filePatterns = [], options = {}) {
     return 1;
   }
 
-  const config = loadConfig(configPath);
-  console.log(`Using configuration from: ${configPath}`);
+  // Load config with option overrides
+  const config = loadConfig(configPath, options);
+  if (shouldLog("info")) {
+    console.log(`Using configuration from: ${configPath}`);
+  }
 
   // Load plugins
-  console.log("Loading plugins...");
+  if (shouldLog("info")) {
+    console.log("Loading plugins...");
+  }
   const loadedPlugins = await loadPlugins(config, cwd);
 
   if (loadedPlugins.length === 0) {
@@ -28,17 +42,24 @@ export default async function fmtCommand(filePatterns = [], options = {}) {
     return 1;
   }
 
-  console.log(`Loaded ${loadedPlugins.length} formatter(s)`);
-
-  // Find files
-  const files = await findFiles(config, filePatterns, cwd);
-
-  if (files.length === 0) {
-    console.log("No files found to format");
-    return 0;
+  if (shouldLog("info")) {
+    console.log(`Loaded ${loadedPlugins.length} formatter(s)`);
   }
 
-  console.log(`Found ${files.length} file(s) to format`);
+  // Find files with option overrides
+  const files = await findFiles(config, filePatterns, cwd, options);
+
+  if (files.length === 0) {
+    if (shouldLog("info")) {
+      console.log("No files found to format");
+    }
+    // Exit with 0 if --allow-no-files, otherwise 14
+    return options.allow_no_files ? 0 : 14;
+  }
+
+  if (shouldLog("info")) {
+    console.log(`Found ${files.length} file(s) to format`);
+  }
 
   // Format files
   let formattedCount = 0;
@@ -51,12 +72,21 @@ export default async function fmtCommand(filePatterns = [], options = {}) {
       console.error(`Error formatting ${file}: ${result.error}`);
       errorCount++;
     } else if (result.formatted) {
-      console.log(`Formatted ${file}`);
+      if (shouldLog("info")) {
+        console.log(`Formatted ${file}`);
+      }
       formattedCount++;
+
+      // Show diff if --diff flag is set
+      if (options.diff && result.diff) {
+        console.log(result.diff);
+      }
     }
   }
 
-  console.log(`\nFormatted ${formattedCount} file(s)`);
+  if (shouldLog("info")) {
+    console.log(`\nFormatted ${formattedCount} file(s)`);
+  }
 
   if (errorCount > 0) {
     console.error(`${errorCount} error(s) occurred`);

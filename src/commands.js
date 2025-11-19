@@ -1,8 +1,8 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { findConfigFile, loadConfig, getDefaultConfig } from "./config.js";
+import { findConfigFile, getDefaultConfig, loadConfig } from "./config.js";
 import { findFiles } from "./files.js";
-import { loadPlugins, formatFile } from "./formatter.js";
+import { formatFile, loadPlugins } from "./formatter.js";
 
 /**
  * Initialize a new dprint.json configuration file

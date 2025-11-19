@@ -1,5 +1,5 @@
 import * as t from "bun:test";
-import { loadPlugins, formatText } from "../src/formatter.js";
+import { formatText, loadPlugins } from "../src/formatter.js";
 
 t.it("respects indentWidth: 2 for TypeScript", async () => {
   const config = {
@@ -66,12 +66,12 @@ t.it("respects indentWidth for JSON", async () => {
   const loadedPlugins = await loadPlugins(config);
   const formatter = loadedPlugins[0].formatter;
 
-  const input = '{"nested":{"value":1,"items":["a","b","c"]}}';
+  const input = "{\"nested\":{\"value\":1,\"items\":[\"a\",\"b\",\"c\"]}}";
   const output = formatText("test.json", input, formatter);
 
   // Count leading spaces on the "value" line
-  const lines = output.split('\n');
-  const valueLine = lines.find(l => l.includes('"value"'));
+  const lines = output.split("\n");
+  const valueLine = lines.find(l => l.includes("\"value\""));
   const leadingSpaces = valueLine ? valueLine.match(/^ */)[0].length : 0;
   t.expect(leadingSpaces).toBe(8); // 4 spaces * 2 levels
 });

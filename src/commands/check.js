@@ -1,13 +1,22 @@
 import { findConfigFile, loadConfig } from "../config.js";
 import { findFiles } from "../files.js";
-import { loadPlugins, formatFile } from "../formatter.js";
+import { formatFile, loadPlugins } from "../formatter.js";
 
 /**
  * Check if files are formatted correctly
  */
 export default async function checkCommand(filePatterns = [], options = {}) {
   const cwd = process.cwd();
-  const configPath = findConfigFile(cwd);
+  const logLevel = options.log_level || "info";
+  const shouldLog = (level) => {
+    const levels = ["debug", "info", "warn", "error", "silent"];
+    const currentLevel = levels.indexOf(logLevel);
+    const messageLevel = levels.indexOf(level);
+    return messageLevel >= currentLevel;
+  };
+
+  // Find config file
+  const configPath = findConfigFile(cwd, options);
 
   if (!configPath) {
     console.error("Error: No dprint.json configuration file found");
@@ -15,11 +24,16 @@ export default async function checkCommand(filePatterns = [], options = {}) {
     return 1;
   }
 
-  const config = loadConfig(configPath);
-  console.log(`Using configuration from: ${configPath}`);
+  // Load config with option overrides
+  const config = loadConfig(configPath, options);
+  if (shouldLog("info")) {
+    console.log(`Using configuration from: ${configPath}`);
+  }
 
   // Load plugins
-  console.log("Loading plugins...");
+  if (shouldLog("info")) {
+    console.log("Loading plugins...");
+  }
   const loadedPlugins = await loadPlugins(config, cwd);
 
   if (loadedPlugins.length === 0) {
@@ -28,17 +42,24 @@ export default async function checkCommand(filePatterns = [], options = {}) {
     return 1;
   }
 
-  console.log(`Loaded ${loadedPlugins.length} formatter(s)`);
-
-  // Find files
-  const files = await findFiles(config, filePatterns, cwd);
-
-  if (files.length === 0) {
-    console.log("No files found to check");
-    return 0;
+  if (shouldLog("info")) {
+    console.log(`Loaded ${loadedPlugins.length} formatter(s)`);
   }
 
-  console.log(`Checking ${files.length} file(s)...`);
+  // Find files with option overrides
+  const files = await findFiles(config, filePatterns, cwd, options);
+
+  if (files.length === 0) {
+    if (shouldLog("info")) {
+      console.log("No files found to check");
+    }
+    // Exit with 0 if --allow-no-files, otherwise 14
+    return options.allow_no_files ? 0 : 14;
+  }
+
+  if (shouldLog("info")) {
+    console.log(`Checking ${files.length} file(s)...`);
+  }
 
   // Check files
   const unformattedFiles = [];
@@ -56,11 +77,21 @@ export default async function checkCommand(filePatterns = [], options = {}) {
   }
 
   if (unformattedFiles.length > 0) {
-    console.error(`\nThe following ${unformattedFiles.length} file(s) are not formatted:`);
-    for (const file of unformattedFiles) {
-      console.error(`  ${file}`);
+    if (options.list_different) {
+      // Just output file paths, no extra text
+      for (const file of unformattedFiles) {
+        console.log(file);
+      }
+    } else {
+      // Show full message with formatting info
+      if (shouldLog("info")) {
+        console.error(`\nThe following ${unformattedFiles.length} file(s) are not formatted:`);
+        for (const file of unformattedFiles) {
+          console.error(`  ${file}`);
+        }
+        console.error("\nRun 'dprint-js fmt' to format them");
+      }
     }
-    console.error("\nRun 'dprint-js fmt' to format them");
     return 1;
   }
 
@@ -69,6 +100,8 @@ export default async function checkCommand(filePatterns = [], options = {}) {
     return 1;
   }
 
-  console.log("All files are formatted correctly!");
+  if (shouldLog("info")) {
+    console.log("All files are formatted correctly!");
+  }
   return 0;
 }

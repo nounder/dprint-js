@@ -1,7 +1,7 @@
 import * as t from "bun:test";
-import { loadPlugin, loadPlugins, getFormatterForFile, formatText, formatFile } from "../src/formatter.js";
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { formatFile, formatText, getFormatterForFile, loadPlugin, loadPlugins } from "../src/formatter.js";
 
 t.it("loads @dprint/typescript plugin successfully", async () => {
   const result = await loadPlugin("@dprint/typescript");
@@ -203,11 +203,11 @@ t.it("formats JSON correctly", async () => {
   };
   const loadedPlugins = await loadPlugins(config);
   const formatter = getFormatterForFile("test.json", loadedPlugins);
-  const input = '{"a":1,"b":2}';
+  const input = "{\"a\":1,\"b\":2}";
   const output = formatText("test.json", input, formatter!);
 
-  t.expect(output).toContain('"a"');
-  t.expect(output).toContain('"b"');
+  t.expect(output).toContain("\"a\"");
+  t.expect(output).toContain("\"b\"");
   // JSON should be formatted with proper spacing
   t.expect(output.length).toBeGreaterThan(input.length);
 });

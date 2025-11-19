@@ -51,7 +51,7 @@ export async function loadPlugins(config, cwd = process.cwd()) {
       const { formatter, fileMatchingInfo } = await loadPlugin(pluginName, cwd);
 
       // Set configuration for the formatter
-      const pluginConfigKey = pluginName.split('/')[1]; // e.g., '@dprint/typescript' -> 'typescript'
+      const pluginConfigKey = pluginName.split("/")[1]; // e.g., '@dprint/typescript' -> 'typescript'
       const pluginConfig = config[pluginConfigKey] || {};
 
       // Call setConfig with the plugin-specific configuration
@@ -108,7 +108,7 @@ export function formatText(filePath, content, formatter) {
     // The formatter.formatText API uses object parameter syntax
     const formatted = formatter.formatText({
       filePath: filePath,
-      fileText: content
+      fileText: content,
     });
 
     return formatted;

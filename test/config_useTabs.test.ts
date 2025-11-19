@@ -1,5 +1,5 @@
 import * as t from "bun:test";
-import { loadPlugins, formatText } from "../src/formatter.js";
+import { formatText, loadPlugins } from "../src/formatter.js";
 
 t.it("uses spaces when useTabs: false", async () => {
   const config = {
@@ -70,12 +70,12 @@ t.it("respects useTabs for JSON", async () => {
   const loadedPlugins = await loadPlugins(config);
   const formatter = loadedPlugins[0].formatter;
 
-  const input = '{"nested":{"value":1,"items":["a","b","c"]}}';
+  const input = "{\"nested\":{\"value\":1,\"items\":[\"a\",\"b\",\"c\"]}}";
   const output = formatText("test.json", input, formatter);
 
   // Should use tabs - check for tab character in indentation
-  const lines = output.split('\n');
-  const indentedLine = lines.find(l => l.startsWith('\t') || l.includes('\t"'));
+  const lines = output.split("\n");
+  const indentedLine = lines.find(l => l.startsWith("\t") || l.includes("\t\""));
   t.expect(indentedLine).toBeDefined();
   t.expect(output).toContain("\t");
 });
