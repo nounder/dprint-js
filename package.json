@@ -18,10 +18,7 @@
   ],
   "author": "nounder",
   "license": "MIT",
-  "dependencies": {
-    "fast-glob": "^3.3.2",
-    "minimatch": "^10.0.1"
-  },
+  "dependencies": {},
   "devDependencies": {
     "@types/bun": "latest",
     "typescript": "^5.9.3",

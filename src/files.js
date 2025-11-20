@@ -1,5 +1,5 @@
-import fg from "fast-glob";
-import { minimatch } from "minimatch";
+import fg from "./fast-glob.js";
+import { minimatch } from "./minimatch.js";
 import * as path from "node:path";
 import { normalizeExcludePatterns, normalizeIncludePatterns } from "./glob.js";
 
