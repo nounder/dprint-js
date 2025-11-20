@@ -163,3 +163,99 @@ t.it("creates config compatible with rust dprint format", async () => {
   const formatted = fs.readFileSync(path.join(theirsDir, "test.ts"), "utf-8");
   t.expect(formatted).toContain("const x = 1");
 });
+
+// Error tests
+t.it("returns exit code 1 when attempting to init with existing config", async () => {
+  // Create existing configs
+  fs.writeFileSync(path.join(oursDir, "dprint.json"), "{}");
+  fs.writeFileSync(path.join(theirsDir, "dprint.json"), "{}");
+
+  // Try to init with our implementation
+  process.chdir(oursDir);
+  const ourExitCode = await initCommand();
+
+  // Try to init with rust dprint (use --yes to avoid interactive prompt)
+  process.chdir(theirsDir);
+  const theirResult = await Bun.$`echo "n" | npx dprint init 2>&1`.nothrow().quiet();
+  const theirExitCode = theirResult.exitCode;
+
+  // Both should fail with exit code 1
+  t.expect(ourExitCode).toBe(1);
+  // Note: rust dprint might have different behavior with interactive prompts
+  // We verify our implementation returns 1
+});
+
+t.it("handles invalid custom config path gracefully", async () => {
+  // Try to create config in non-existent directory
+  const invalidPath = "non-existent-dir/dprint.json";
+
+  process.chdir(oursDir);
+  const ourExitCode = await initCommand({ config: invalidPath });
+
+  // Should fail with error exit code
+  t.expect(ourExitCode).toBeGreaterThan(0);
+
+  // Verify config was not created
+  t.expect(fs.existsSync(path.join(oursDir, invalidPath))).toBe(false);
+});
+
+t.it("creates config that rust dprint can use for formatting", async () => {
+  // Init with our implementation
+  process.chdir(oursDir);
+  await initCommand();
+
+  // Verify config was created
+  const ourConfigExists = fs.existsSync(path.join(oursDir, "dprint.json"));
+  t.expect(ourConfigExists).toBe(true);
+
+  // Read our config and convert to URL-based plugins for rust dprint
+  const ourConfig = JSON.parse(fs.readFileSync(path.join(oursDir, "dprint.json"), "utf-8"));
+  ourConfig.plugins = [
+    "https://plugins.dprint.dev/typescript-0.93.0.wasm",
+    "https://plugins.dprint.dev/json-0.19.3.wasm",
+    "https://plugins.dprint.dev/markdown-0.17.8.wasm",
+  ];
+
+  // Write modified config to theirs directory
+  fs.writeFileSync(path.join(theirsDir, "dprint.json"), JSON.stringify(ourConfig, null, 2));
+
+  // Create a test file
+  fs.writeFileSync(path.join(theirsDir, "test.ts"), "const   x=1;");
+
+  // Verify rust dprint can use the config we created
+  process.chdir(theirsDir);
+  const result = await Bun.$`npx dprint fmt --log-level silent`.nothrow().quiet();
+
+  // Should succeed (exit code 0)
+  t.expect(result.exitCode).toBe(0);
+
+  // File should be formatted
+  const formatted = fs.readFileSync(path.join(theirsDir, "test.ts"), "utf-8");
+  t.expect(formatted).toContain("const x = 1");
+});
+
+t.it("handles empty plugins array", async () => {
+  // Create config with empty plugins array
+  const emptyPluginsConfig = {
+    includes: ["**/*.ts"],
+    excludes: ["**/node_modules"],
+    plugins: [],
+  };
+
+  fs.writeFileSync(path.join(oursDir, "test-config.json"), JSON.stringify(emptyPluginsConfig, null, 2));
+  fs.writeFileSync(path.join(theirsDir, "test-config.json"), JSON.stringify(emptyPluginsConfig, null, 2));
+
+  // Create test files
+  fs.writeFileSync(path.join(oursDir, "test.ts"), "const x=1;");
+  fs.writeFileSync(path.join(theirsDir, "test.ts"), "const x=1;");
+
+  // Both should handle empty plugins similarly (likely as error)
+  process.chdir(oursDir);
+  const ourResult = await Bun.$`bun run ${path.join(projectRoot, "bin/dprint-js")} check --config test-config.json --log-level silent`.nothrow().quiet();
+
+  process.chdir(theirsDir);
+  const theirResult = await Bun.$`npx dprint check --config test-config.json --log-level silent`.nothrow().quiet();
+
+  // Both should fail or succeed in the same way
+  t.expect(ourResult.exitCode).toBe(theirResult.exitCode);
+});
