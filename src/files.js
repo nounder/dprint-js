@@ -2,6 +2,7 @@ import fg from "fast-glob";
 import { minimatch } from "minimatch";
 import * as path from "node:path";
 import { normalizeExcludePatterns, normalizeIncludePatterns } from "./glob.js";
+import { loadGitignorePatterns, filterWithGitignore } from "./gitignore.js";
 
 /**
  * Find files matching the patterns specified in the configuration
@@ -48,13 +49,21 @@ export async function findFiles(config, additionalPatterns = [], cwd = process.c
   const normalizedExcludes = normalizeExcludePatterns(excludes);
 
   // Use fast-glob to find files
-  const files = await fg(includes, {
+  let files = await fg(includes, {
     cwd,
     ignore: normalizedExcludes,
     dot: false,
     absolute: false,
     onlyFiles: true,
   });
+
+  // Apply .gitignore patterns unless disabled
+  if (!options.allow_gitignored) {
+    const ig = loadGitignorePatterns(cwd);
+    if (ig) {
+      files = filterWithGitignore(files, ig, cwd);
+    }
+  }
 
   return files.sort();
 }
