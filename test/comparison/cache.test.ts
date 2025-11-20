@@ -89,7 +89,7 @@ t.afterEach(() => {
 
 t.it("both implementations format all files on first run", async () => {
   // Format with our implementation
-  const ourExitCode = await fmtCommand([], { log_level: "info", cwd: oursDir });
+  const ourExitCode = await fmtCommand([], { logLevel: "info", cwd: oursDir });
 
   // Format with rust dprint
   const theirResult = await $`npx dprint fmt`.cwd(theirsDir).nothrow().quiet();
@@ -107,7 +107,7 @@ t.it("both implementations format all files on first run", async () => {
 
 t.it("both implementations skip all files on second run (cache hit)", async () => {
   // First run - format everything
-  await fmtCommand([], { log_level: "silent", cwd: oursDir });
+  await fmtCommand([], { logLevel: "silent", cwd: oursDir });
   await $`npx dprint fmt --log-level silent`.cwd(theirsDir).nothrow().quiet();
 
   // Second run - should skip everything due to cache
@@ -136,7 +136,7 @@ t.it("both implementations skip all files on second run (cache hit)", async () =
 
 t.it("both implementations only format changed files after modification", async () => {
   // First run - format everything
-  await fmtCommand([], { log_level: "silent", cwd: oursDir });
+  await fmtCommand([], { logLevel: "silent", cwd: oursDir });
   await $`npx dprint fmt --log-level silent`.cwd(theirsDir).nothrow().quiet();
 
   // Modify one file in both directories with malformed code
@@ -173,7 +173,7 @@ t.it("both implementations only format changed files after modification", async 
 
 t.it("both implementations invalidate cache when config changes", async () => {
   // First run - format everything
-  await fmtCommand([], { log_level: "silent", cwd: oursDir });
+  await fmtCommand([], { logLevel: "silent", cwd: oursDir });
   await $`npx dprint fmt --log-level silent`.cwd(theirsDir).nothrow().quiet();
 
   // Verify second run with no changes skips files
@@ -230,7 +230,7 @@ t.it("both implementations respect incremental=false in config", async () => {
   fs.writeFileSync(theirConfigPath, JSON.stringify(theirConfig, null, 2));
 
   // First run
-  await fmtCommand([], { log_level: "silent", cwd: oursDir });
+  await fmtCommand([], { logLevel: "silent", cwd: oursDir });
   await $`npx dprint fmt --log-level silent`.cwd(theirsDir).nothrow().quiet();
 
   // Second run - should still format everything (no caching)
@@ -261,7 +261,7 @@ t.it("both implementations respect incremental=false in config", async () => {
 
 t.it("both implementations handle --incremental=false CLI flag", async () => {
   // First run with caching enabled
-  await fmtCommand([], { log_level: "silent", cwd: oursDir });
+  await fmtCommand([], { logLevel: "silent", cwd: oursDir });
   await $`npx dprint fmt --log-level silent`.cwd(theirsDir).nothrow().quiet();
 
   // Second run with incremental disabled via CLI
@@ -292,7 +292,7 @@ t.it("both implementations handle --incremental=false CLI flag", async () => {
 t.it("cache provides significant performance improvement on second run", async () => {
   // First run - measure time
   const ourStart1 = Date.now();
-  await fmtCommand([], { log_level: "silent", cwd: oursDir });
+  await fmtCommand([], { logLevel: "silent", cwd: oursDir });
   const ourTime1 = Date.now() - ourStart1;
 
   const theirStart1 = Date.now();
@@ -301,7 +301,7 @@ t.it("cache provides significant performance improvement on second run", async (
 
   // Second run - measure time (should be much faster)
   const ourStart2 = Date.now();
-  await fmtCommand([], { log_level: "silent", cwd: oursDir });
+  await fmtCommand([], { logLevel: "silent", cwd: oursDir });
   const ourTime2 = Date.now() - ourStart2;
 
   const theirStart2 = Date.now();

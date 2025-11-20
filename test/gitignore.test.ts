@@ -170,7 +170,7 @@ describe("gitignore", () => {
       expect(files).not.toContain("build/app.js");
     });
 
-    test("respects allow_gitignored option", async () => {
+    test("respects allowGitignored option", async () => {
       fs.writeFileSync(
         path.join(testDir, ".gitignore"),
         "*.log\n",
@@ -181,12 +181,12 @@ describe("gitignore", () => {
 
       const config = { includes: ["**/*"] };
 
-      // Without allow_gitignored
+      // Without allowGitignored
       const files1 = await findFiles(config, [], testDir);
       expect(files1).not.toContain("test.log");
 
-      // With allow_gitignored
-      const files2 = await findFiles(config, [], testDir, { allow_gitignored: true });
+      // With allowGitignored
+      const files2 = await findFiles(config, [], testDir, { allowGitignored: true });
       expect(files2).toContain("test.log");
     });
 

@@ -40,7 +40,7 @@ t.describe("exclude patterns", () => {
     };
     fs.writeFileSync(path.join(testDir, "dprint.json"), JSON.stringify(config, null, 2));
 
-    const exitCode = await fmtCommand([], { log_level: "silent", cwd: testDir });
+    const exitCode = await fmtCommand([], { logLevel: "silent", cwd: testDir });
 
     const file1 = fs.readFileSync(path.join(testDir, "file1.ts"), "utf-8");
     const file4 = fs.readFileSync(path.join(testDir, "other", "file4.ts"), "utf-8");
@@ -74,7 +74,7 @@ t.describe("exclude patterns", () => {
     };
     fs.writeFileSync(path.join(testDir, "dprint.json"), JSON.stringify(config, null, 2));
 
-    const exitCode = await fmtCommand([], { log_level: "silent", cwd: testDir });
+    const exitCode = await fmtCommand([], { logLevel: "silent", cwd: testDir });
 
     const src = fs.readFileSync(path.join(testDir, "src.ts"), "utf-8");
     const out = fs.readFileSync(path.join(testDir, "build", "out.ts"), "utf-8");
@@ -104,7 +104,7 @@ t.describe("exclude patterns", () => {
     };
     fs.writeFileSync(path.join(testDir, "dprint.json"), JSON.stringify(config, null, 2));
 
-    const exitCode = await fmtCommand([], { log_level: "silent", cwd: testDir });
+    const exitCode = await fmtCommand([], { logLevel: "silent", cwd: testDir });
 
     const file1 = fs.readFileSync(path.join(testDir, "file1.ts"), "utf-8");
     const file2 = fs.readFileSync(path.join(testDir, "file2.test.ts"), "utf-8");
@@ -136,7 +136,7 @@ t.describe("exclude patterns", () => {
     };
     fs.writeFileSync(path.join(testDir, "dprint.json"), JSON.stringify(config, null, 2));
 
-    const exitCode = await fmtCommand([], { log_level: "silent", cwd: testDir });
+    const exitCode = await fmtCommand([], { logLevel: "silent", cwd: testDir });
 
     const app = fs.readFileSync(path.join(testDir, "src", "app.ts"), "utf-8");
     const external = fs.readFileSync(path.join(testDir, "src", "vendor", "external.ts"), "utf-8");
@@ -170,7 +170,7 @@ t.describe("exclude patterns", () => {
     };
     fs.writeFileSync(path.join(testDir, "dprint.json"), JSON.stringify(config, null, 2));
 
-    const exitCode = await fmtCommand([], { log_level: "silent", cwd: testDir });
+    const exitCode = await fmtCommand([], { logLevel: "silent", cwd: testDir });
 
     const app = fs.readFileSync(path.join(testDir, "src", "app.ts"), "utf-8");
     const appTest = fs.readFileSync(path.join(testDir, "src", "test", "app.test.ts"), "utf-8");
@@ -205,7 +205,7 @@ t.describe("include patterns", () => {
     };
     fs.writeFileSync(path.join(testDir, "dprint.json"), JSON.stringify(config, null, 2));
 
-    const exitCode = await fmtCommand([], { log_level: "silent", cwd: testDir });
+    const exitCode = await fmtCommand([], { logLevel: "silent", cwd: testDir });
 
     const app = fs.readFileSync(path.join(testDir, "src", "app.ts"), "utf-8");
     const util = fs.readFileSync(path.join(testDir, "src", "util.ts"), "utf-8");
@@ -235,7 +235,7 @@ t.describe("include patterns", () => {
     };
     fs.writeFileSync(path.join(testDir, "dprint.json"), JSON.stringify(config, null, 2));
 
-    const exitCode = await fmtCommand([], { log_level: "silent", cwd: testDir });
+    const exitCode = await fmtCommand([], { logLevel: "silent", cwd: testDir });
 
     const index = fs.readFileSync(path.join(testDir, "lib", "index.ts"), "utf-8");
     const helper = fs.readFileSync(path.join(testDir, "lib", "helper.ts"), "utf-8");
@@ -265,7 +265,7 @@ t.describe("include patterns", () => {
     };
     fs.writeFileSync(path.join(testDir, "dprint.json"), JSON.stringify(config, null, 2));
 
-    const exitCode = await fmtCommand([], { log_level: "silent", cwd: testDir });
+    const exitCode = await fmtCommand([], { logLevel: "silent", cwd: testDir });
 
     const app = fs.readFileSync(path.join(testDir, "src", "app.ts"), "utf-8");
     const util = fs.readFileSync(path.join(testDir, "src", "util.ts"), "utf-8");
@@ -296,7 +296,7 @@ t.describe("include patterns", () => {
     };
     fs.writeFileSync(path.join(testDir, "dprint.json"), JSON.stringify(config, null, 2));
 
-    const exitCode = await fmtCommand([], { log_level: "silent", cwd: testDir });
+    const exitCode = await fmtCommand([], { logLevel: "silent", cwd: testDir });
 
     const app = fs.readFileSync(path.join(testDir, "src", "app.ts"), "utf-8");
     const util = fs.readFileSync(path.join(testDir, "src", "util.js"), "utf-8");
@@ -329,7 +329,7 @@ t.describe("include patterns", () => {
     };
     fs.writeFileSync(path.join(testDir, "dprint.json"), JSON.stringify(config, null, 2));
 
-    const exitCode = await fmtCommand([], { log_level: "silent", cwd: testDir });
+    const exitCode = await fmtCommand([], { logLevel: "silent", cwd: testDir });
 
     const app = fs.readFileSync(path.join(testDir, "src", "app.ts"), "utf-8");
     const util = fs.readFileSync(path.join(testDir, "lib", "util.ts"), "utf-8");
@@ -362,7 +362,7 @@ t.describe("combined include and exclude patterns", () => {
     };
     fs.writeFileSync(path.join(testDir, "dprint.json"), JSON.stringify(config, null, 2));
 
-    const exitCode = await fmtCommand([], { log_level: "silent", cwd: testDir });
+    const exitCode = await fmtCommand([], { logLevel: "silent", cwd: testDir });
 
     const app = fs.readFileSync(path.join(testDir, "src", "app.ts"), "utf-8");
     const lib = fs.readFileSync(path.join(testDir, "src", "vendor", "lib.ts"), "utf-8");
@@ -396,7 +396,7 @@ t.describe("combined include and exclude patterns", () => {
     };
     fs.writeFileSync(path.join(testDir, "dprint.json"), JSON.stringify(config, null, 2));
 
-    const exitCode = await fmtCommand([], { log_level: "silent", cwd: testDir });
+    const exitCode = await fmtCommand([], { logLevel: "silent", cwd: testDir });
 
     const button = fs.readFileSync(path.join(testDir, "src", "components", "Button.tsx"), "utf-8");
     const helper = fs.readFileSync(path.join(testDir, "src", "utils", "helper.ts"), "utf-8");
