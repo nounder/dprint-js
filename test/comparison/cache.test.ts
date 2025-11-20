@@ -265,9 +265,8 @@ t.it("both implementations handle --incremental=false CLI flag", async () => {
   await $`npx dprint fmt --log-level silent`.cwd(theirsDir).nothrow().quiet();
 
   // Second run with incremental disabled via CLI
-  const ourResult = await $`bun run ${
-    path.join(projectRoot, "bin/dprint-js")
-  } fmt --incremental=false`.cwd(oursDir).nothrow().quiet();
+  const ourResult = await $`bun run ${path.join(projectRoot, "bin/dprint-js")} fmt --incremental=false`.cwd(oursDir)
+    .nothrow().quiet();
   const theirResult = await $`npx dprint fmt --incremental=false`.cwd(theirsDir).nothrow().quiet();
 
   const ourOutput = ourResult.stdout.toString();
