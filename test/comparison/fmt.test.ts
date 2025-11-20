@@ -209,12 +209,10 @@ t.it("returns same exit code when config file is missing", async () => {
   fs.writeFileSync(path.join(theirsDir, "test.ts"), malformattedTS);
 
   // Format with our implementation (disable config discovery to avoid finding parent config)
-  process.chdir(oursDir);
-  const ourExitCode = await fmtCommand([], { log_level: "silent", config_discovery: false });
+  const ourExitCode = await fmtCommand([], { log_level: "silent", config_discovery: false, cwd: oursDir });
 
   // Format with rust dprint (use --config to specify non-existent config)
-  process.chdir(theirsDir);
-  const theirResult = await Bun.$`npx dprint fmt --log-level silent --config dprint.json`.nothrow().quiet();
+  const theirResult = await $`npx dprint fmt --log-level silent --config dprint.json`.cwd(theirsDir).nothrow().quiet();
   const theirExitCode = theirResult.exitCode;
 
   // Both should return error exit code (11 for config error)
@@ -233,12 +231,10 @@ t.it("returns same exit code when config has invalid JSON", async () => {
   fs.writeFileSync(path.join(theirsDir, "test.ts"), malformattedTS);
 
   // Format with our implementation
-  process.chdir(oursDir);
-  const ourExitCode = await fmtCommand([], { log_level: "silent" });
+  const ourExitCode = await fmtCommand([], { log_level: "silent", cwd: oursDir });
 
   // Format with rust dprint
-  process.chdir(theirsDir);
-  const theirResult = await Bun.$`npx dprint fmt --log-level silent`.nothrow().quiet();
+  const theirResult = await $`npx dprint fmt --log-level silent`.cwd(theirsDir).nothrow().quiet();
   const theirExitCode = theirResult.exitCode;
 
   // Both should return error exit code
@@ -262,12 +258,10 @@ t.it("returns same exit code when config is missing plugins", async () => {
   fs.writeFileSync(path.join(theirsDir, "test.ts"), malformattedTS);
 
   // Format with our implementation
-  process.chdir(oursDir);
-  const ourExitCode = await fmtCommand([], { log_level: "silent" });
+  const ourExitCode = await fmtCommand([], { log_level: "silent", cwd: oursDir });
 
   // Format with rust dprint
-  process.chdir(theirsDir);
-  const theirResult = await Bun.$`npx dprint fmt --log-level silent`.nothrow().quiet();
+  const theirResult = await $`npx dprint fmt --log-level silent`.cwd(theirsDir).nothrow().quiet();
   const theirExitCode = theirResult.exitCode;
 
   // Both should return error exit code
@@ -278,12 +272,10 @@ t.it("returns same exit code when config is missing plugins", async () => {
 
 t.it("returns same exit code for non-existent file argument", async () => {
   // Format with our implementation for a non-existent file
-  process.chdir(oursDir);
-  const ourExitCode = await fmtCommand(["non-existent-file.ts"], { log_level: "silent" });
+  const ourExitCode = await fmtCommand(["non-existent-file.ts"], { log_level: "silent", cwd: oursDir });
 
   // Format with rust dprint for a non-existent file
-  process.chdir(theirsDir);
-  const theirResult = await Bun.$`npx dprint fmt --log-level silent non-existent-file.ts`.nothrow().quiet();
+  const theirResult = await $`npx dprint fmt --log-level silent non-existent-file.ts`.cwd(theirsDir).nothrow().quiet();
   const theirExitCode = theirResult.exitCode;
 
   // Both should return error exit code (14 for no files found)
@@ -294,12 +286,10 @@ t.it("returns same exit code for non-existent file argument", async () => {
 
 t.it("returns same exit code with --allow-no-files for non-existent files", async () => {
   // Format with our implementation for a non-existent file with --allow-no-files
-  process.chdir(oursDir);
-  const ourExitCode = await fmtCommand(["non-existent-file.ts"], { allow_no_files: true, log_level: "silent" });
+  const ourExitCode = await fmtCommand(["non-existent-file.ts"], { allow_no_files: true, log_level: "silent", cwd: oursDir });
 
   // Format with rust dprint for a non-existent file with --allow-no-files
-  process.chdir(theirsDir);
-  const theirResult = await Bun.$`npx dprint fmt --log-level silent --allow-no-files non-existent-file.ts`.nothrow().quiet();
+  const theirResult = await $`npx dprint fmt --log-level silent --allow-no-files non-existent-file.ts`.cwd(theirsDir).nothrow().quiet();
   const theirExitCode = theirResult.exitCode;
 
   // Both should return success with --allow-no-files

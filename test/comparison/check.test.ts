@@ -217,12 +217,10 @@ t.it("returns same exit code when config file is missing", async () => {
   fs.writeFileSync(path.join(theirsDir, "test.ts"), malformattedTS);
 
   // Check with our implementation (disable config discovery to avoid finding parent config)
-  process.chdir(oursDir);
-  const ourExitCode = await checkCommand([], { log_level: "silent", config_discovery: false });
+  const ourExitCode = await checkCommand([], { log_level: "silent", config_discovery: false, cwd: oursDir });
 
   // Check with rust dprint (use --config to specify non-existent config)
-  process.chdir(theirsDir);
-  const theirResult = await Bun.$`npx dprint check --log-level silent --config dprint.json`.nothrow().quiet();
+  const theirResult = await $`npx dprint check --log-level silent --config dprint.json`.cwd(theirsDir).nothrow().quiet();
   const theirExitCode = theirResult.exitCode;
 
   // Both should return error exit code (11 for config error)
@@ -241,12 +239,10 @@ t.it("returns same exit code when config has invalid JSON", async () => {
   fs.writeFileSync(path.join(theirsDir, "test.ts"), malformattedTS);
 
   // Check with our implementation
-  process.chdir(oursDir);
-  const ourExitCode = await checkCommand([], { log_level: "silent" });
+  const ourExitCode = await checkCommand([], { log_level: "silent", cwd: oursDir });
 
   // Check with rust dprint
-  process.chdir(theirsDir);
-  const theirResult = await Bun.$`npx dprint check --log-level silent`.nothrow().quiet();
+  const theirResult = await $`npx dprint check --log-level silent`.cwd(theirsDir).nothrow().quiet();
   const theirExitCode = theirResult.exitCode;
 
   // Both should return error exit code
@@ -270,12 +266,10 @@ t.it("returns same exit code when config is missing plugins", async () => {
   fs.writeFileSync(path.join(theirsDir, "test.ts"), malformattedTS);
 
   // Check with our implementation
-  process.chdir(oursDir);
-  const ourExitCode = await checkCommand([], { log_level: "silent" });
+  const ourExitCode = await checkCommand([], { log_level: "silent", cwd: oursDir });
 
   // Check with rust dprint
-  process.chdir(theirsDir);
-  const theirResult = await Bun.$`npx dprint check --log-level silent`.nothrow().quiet();
+  const theirResult = await $`npx dprint check --log-level silent`.cwd(theirsDir).nothrow().quiet();
   const theirExitCode = theirResult.exitCode;
 
   // Both should return error exit code
@@ -286,12 +280,10 @@ t.it("returns same exit code when config is missing plugins", async () => {
 
 t.it("returns same exit code for non-existent file argument", async () => {
   // Check with our implementation for a non-existent file
-  process.chdir(oursDir);
-  const ourExitCode = await checkCommand(["non-existent-file.ts"], { log_level: "silent" });
+  const ourExitCode = await checkCommand(["non-existent-file.ts"], { log_level: "silent", cwd: oursDir });
 
   // Check with rust dprint for a non-existent file
-  process.chdir(theirsDir);
-  const theirResult = await Bun.$`npx dprint check --log-level silent non-existent-file.ts`.nothrow().quiet();
+  const theirResult = await $`npx dprint check --log-level silent non-existent-file.ts`.cwd(theirsDir).nothrow().quiet();
   const theirExitCode = theirResult.exitCode;
 
   // Both should return error exit code (14 for no files found)

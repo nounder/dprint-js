@@ -162,12 +162,10 @@ t.it("returns exit code 1 when attempting to init with existing config", async (
   fs.writeFileSync(path.join(theirsDir, "dprint.json"), "{}");
 
   // Try to init with our implementation
-  process.chdir(oursDir);
-  const ourExitCode = await initCommand();
+  const ourExitCode = await initCommand({ cwd: oursDir });
 
   // Try to init with rust dprint (use --yes to avoid interactive prompt)
-  process.chdir(theirsDir);
-  const theirResult = await Bun.$`echo "n" | npx dprint init 2>&1`.nothrow().quiet();
+  const theirResult = await $`echo "n" | npx dprint init 2>&1`.cwd(theirsDir).nothrow().quiet();
   const theirExitCode = theirResult.exitCode;
 
   // Both should fail with exit code 1
@@ -180,8 +178,7 @@ t.it("handles invalid custom config path gracefully", async () => {
   // Try to create config in non-existent directory
   const invalidPath = "non-existent-dir/dprint.json";
 
-  process.chdir(oursDir);
-  const ourExitCode = await initCommand({ config: invalidPath });
+  const ourExitCode = await initCommand({ config: invalidPath, cwd: oursDir });
 
   // Should fail with error exit code
   t.expect(ourExitCode).toBeGreaterThan(0);
@@ -192,8 +189,7 @@ t.it("handles invalid custom config path gracefully", async () => {
 
 t.it("creates config that rust dprint can use for formatting", async () => {
   // Init with our implementation
-  process.chdir(oursDir);
-  await initCommand();
+  await initCommand({ cwd: oursDir });
 
   // Verify config was created
   const ourConfigExists = fs.existsSync(path.join(oursDir, "dprint.json"));
@@ -214,8 +210,7 @@ t.it("creates config that rust dprint can use for formatting", async () => {
   fs.writeFileSync(path.join(theirsDir, "test.ts"), "const   x=1;");
 
   // Verify rust dprint can use the config we created
-  process.chdir(theirsDir);
-  const result = await Bun.$`npx dprint fmt --log-level silent`.nothrow().quiet();
+  const result = await $`npx dprint fmt --log-level silent`.cwd(theirsDir).nothrow().quiet();
 
   // Should succeed (exit code 0)
   t.expect(result.exitCode).toBe(0);
@@ -241,11 +236,9 @@ t.it("handles empty plugins array", async () => {
   fs.writeFileSync(path.join(theirsDir, "test.ts"), "const x=1;");
 
   // Both should handle empty plugins similarly (likely as error)
-  process.chdir(oursDir);
-  const ourResult = await Bun.$`bun run ${path.join(projectRoot, "bin/dprint-js")} check --config test-config.json --log-level silent`.nothrow().quiet();
+  const ourResult = await $`bun run ${path.join(projectRoot, "bin/dprint-js")} check --config test-config.json --log-level silent`.cwd(oursDir).nothrow().quiet();
 
-  process.chdir(theirsDir);
-  const theirResult = await Bun.$`npx dprint check --config test-config.json --log-level silent`.nothrow().quiet();
+  const theirResult = await $`npx dprint check --config test-config.json --log-level silent`.cwd(theirsDir).nothrow().quiet();
 
   // Both should fail or succeed in the same way
   t.expect(ourResult.exitCode).toBe(theirResult.exitCode);
