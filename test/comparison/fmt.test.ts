@@ -27,6 +27,7 @@ t.beforeEach(() => {
     lineWidth: 80,
     indentWidth: 2,
     useTabs: false,
+    incremental: false,
     includes: ["**/*.{ts,js,md}", "test.json", "file*.json"],
     excludes: ["**/node_modules", "dprint.json"],
     plugins: ["@dprint/typescript", "@dprint/json", "@dprint/markdown"],
@@ -41,6 +42,7 @@ t.beforeEach(() => {
     lineWidth: 80,
     indentWidth: 2,
     useTabs: false,
+    incremental: false,
     includes: ["**/*.{ts,js,md}", "test.json", "file*.json"],
     excludes: ["**/node_modules", "dprint.json"],
     plugins: [

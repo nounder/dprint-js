@@ -1,4 +1,6 @@
+import * as fs from "node:fs";
 import * as path from "node:path";
+import { computeCacheKey, getCacheDirectory, hashContent, IncrementalCache } from "../cache.js";
 import { findConfigFile, loadConfig } from "../config.js";
 import { findFiles } from "../files.js";
 import { formatFile, loadPlugins } from "../formatter.js";
@@ -69,13 +71,32 @@ export default async function checkCommand(filePatterns = [], options = {}) {
     console.log(`Loaded ${loadedPlugins.length} formatter(s)`);
   }
 
-  // Find files with option overrides
+  let cache = null;
+  const incrementalEnabled = config.incremental !== false && options.incremental !== false;
+
+  if (incrementalEnabled) {
+    cache = new IncrementalCache();
+    const cacheKey = computeCacheKey(config, loadedPlugins);
+    const cacheDir = getCacheDirectory();
+    await cache.load(cacheDir, cacheKey);
+
+    if (shouldLog("debug")) {
+      const stats = cache.getStats();
+      console.log(`[DEBUG] Incremental cache loaded`);
+      console.log(`[DEBUG] Cache entries: ${stats.entries}`);
+      console.log(`[DEBUG] Cache key: ${stats.cacheKey}`);
+    }
+
+    cache.prune();
+  }
+
   const files = await findFiles(config, filePatterns, cwd, options);
 
   if (files.length === 0) {
     if (shouldLog("info")) {
       console.log("No files found to check");
     }
+
     // Exit with 0 if --allow-no-files, otherwise 14
     return options.allow_no_files ? 0 : 14;
   }
@@ -87,9 +108,31 @@ export default async function checkCommand(filePatterns = [], options = {}) {
   // Check files
   const unformattedFiles = [];
   let errorCount = 0;
+  let skippedCount = 0;
+  let cacheHits = 0;
+  let cacheMisses = 0;
 
   for (const file of files) {
     const absolutePath = path.join(cwd, file);
+
+    // Check cache first if enabled
+    if (cache) {
+      const content = fs.readFileSync(absolutePath, "utf-8");
+      const hash = hashContent(content);
+
+      if (cache.hasHash(hash)) {
+        // File already formatted, skip
+        skippedCount++;
+        cacheHits++;
+        if (shouldLog("debug")) {
+          console.log(`[DEBUG] Cache hit: ${file}`);
+        }
+        continue;
+      }
+
+      cacheMisses++;
+    }
+
     const result = await formatFile(absolutePath, loadedPlugins, config, true);
 
     if (result.error) {
@@ -97,6 +140,28 @@ export default async function checkCommand(filePatterns = [], options = {}) {
       errorCount++;
     } else if (result.formatted) {
       unformattedFiles.push(file);
+    } else {
+      // File is properly formatted, add to cache
+      if (cache) {
+        const content = fs.readFileSync(absolutePath, "utf-8");
+        const hash = hashContent(content);
+        cache.addFile(hash, absolutePath);
+      }
+    }
+  }
+
+  // Save cache if enabled (only for files that passed the check)
+  if (cache) {
+    await cache.save();
+
+    if (shouldLog("debug")) {
+      console.log(`[DEBUG] Cache saved`);
+      console.log(`[DEBUG] Cache hits: ${cacheHits}`);
+      console.log(`[DEBUG] Cache misses: ${cacheMisses}`);
+      if (cacheHits + cacheMisses > 0) {
+        const hitRate = ((cacheHits / (cacheHits + cacheMisses)) * 100).toFixed(1);
+        console.log(`[DEBUG] Cache hit rate: ${hitRate}%`);
+      }
     }
   }
 
@@ -126,7 +191,13 @@ export default async function checkCommand(filePatterns = [], options = {}) {
   }
 
   if (shouldLog("info")) {
-    console.log("All files are formatted correctly!");
+    if (skippedCount > 0) {
+      console.log(
+        `All files are formatted correctly! (checked ${cacheMisses} file(s), skipped ${skippedCount} cached file(s))`,
+      );
+    } else {
+      console.log("All files are formatted correctly!");
+    }
   }
   return 0;
 }
