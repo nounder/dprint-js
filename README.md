@@ -11,6 +11,7 @@ A JavaScript implementation of the dprint CLI for code formatting. This tool pro
   - `init` - Initialize a new configuration file
   - `fmt` - Format files and write changes
   - `check` - Check if files are formatted correctly
+- **Rust dprint Compatibility**: Exit codes and behavior match the official Rust dprint CLI
 
 ## Installation
 
@@ -148,14 +149,11 @@ OPTIONS:
     --       Treat all following arguments as file patterns
 ```
 
-## Dependencies
+## Testing
 
-- `@dprint/formatter` - Core formatting engine
-- `@dprint/typescript` - TypeScript/JavaScript formatter
-- `@dprint/json` - JSON formatter
-- `@dprint/markdown` - Markdown formatter
-- `fast-glob` - Fast file globbing
-- `minimatch` - Pattern matching for include/exclude
+```bash
+bun test
+```
 
 ## License
 

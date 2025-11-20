@@ -19,13 +19,24 @@ export default async function fmtCommand(filePatterns = [], options = {}) {
   const configPath = findConfigFile(cwd, options);
 
   if (!configPath) {
-    console.error("Error: No dprint.json configuration file found");
-    console.error("Run 'dprint-js init' to create one");
-    return 1;
+    if (shouldLog("error")) {
+      console.error("Error: No dprint.json configuration file found");
+      console.error("Run 'dprint-js init' to create one");
+    }
+    return 11; // Config error exit code
   }
 
   // Load config with option overrides
-  const config = loadConfig(configPath, options);
+  let config;
+  try {
+    config = loadConfig(configPath, options);
+  } catch (error) {
+    if (shouldLog("error")) {
+      console.error(`Error: ${error.message}`);
+    }
+    return 11; // Config error exit code
+  }
+
   if (shouldLog("info")) {
     console.log(`Using configuration from: ${configPath}`);
   }
@@ -34,12 +45,23 @@ export default async function fmtCommand(filePatterns = [], options = {}) {
   if (shouldLog("info")) {
     console.log("Loading plugins...");
   }
-  const loadedPlugins = await loadPlugins(config, cwd);
+
+  let loadedPlugins;
+  try {
+    loadedPlugins = await loadPlugins(config, cwd);
+  } catch (error) {
+    if (shouldLog("error")) {
+      console.error(`Error: ${error.message}`);
+    }
+    return 13; // Plugin error exit code
+  }
 
   if (loadedPlugins.length === 0) {
-    console.error("Error: No formatters loaded. Make sure plugins are installed:");
-    console.error("  bun install @dprint/typescript @dprint/json @dprint/markdown");
-    return 1;
+    if (shouldLog("error")) {
+      console.error("Error: No formatters loaded. Make sure plugins are installed:");
+      console.error("  bun install @dprint/typescript @dprint/json @dprint/markdown");
+    }
+    return 13; // Plugin error exit code
   }
 
   if (shouldLog("info")) {
