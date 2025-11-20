@@ -1,3 +1,4 @@
+import * as path from "node:path";
 import { findConfigFile, loadConfig } from "../config.js";
 import { findFiles } from "../files.js";
 import { formatFile, loadPlugins } from "../formatter.js";
@@ -6,7 +7,7 @@ import { formatFile, loadPlugins } from "../formatter.js";
  * Format files according to configuration
  */
 export default async function fmtCommand(filePatterns = [], options = {}) {
-  const cwd = process.cwd();
+  const cwd = options.cwd || process.cwd();
   const logLevel = options.log_level || "info";
   const shouldLog = (level) => {
     const levels = ["debug", "info", "warn", "error", "silent"];
@@ -88,7 +89,8 @@ export default async function fmtCommand(filePatterns = [], options = {}) {
   let errorCount = 0;
 
   for (const file of files) {
-    const result = await formatFile(file, loadedPlugins, config, false);
+    const absolutePath = path.join(cwd, file);
+    const result = await formatFile(absolutePath, loadedPlugins, config, false);
 
     if (result.error) {
       console.error(`Error formatting ${file}: ${result.error}`);

@@ -11,8 +11,6 @@ t.beforeEach(() => {
   if (!fs.existsSync(testDir)) {
     fs.mkdirSync(testDir, { recursive: true });
   }
-  // Change to test directory
-  process.chdir(testDir);
 
   // Create a valid dprint.json
   const config = {
@@ -28,8 +26,6 @@ t.beforeEach(() => {
 });
 
 t.afterEach(() => {
-  // Change back to project root
-  process.chdir(projectRoot);
   // Clean up test directory
   if (fs.existsSync(testDir)) {
     fs.rmSync(testDir, { recursive: true, force: true });
@@ -40,7 +36,7 @@ t.it("passes for correctly formatted TypeScript files", async () => {
   const filePath = path.join(testDir, "test.ts");
   fs.writeFileSync(filePath, "const x = 1;\n");
 
-  const exitCode = await checkCommand();
+  const exitCode = await checkCommand([], { cwd: testDir });
 
   t.expect(exitCode).toBe(0);
 });
@@ -49,7 +45,7 @@ t.it("fails for unformatted TypeScript files", async () => {
   const filePath = path.join(testDir, "test.ts");
   fs.writeFileSync(filePath, "const   x=1");
 
-  const exitCode = await checkCommand();
+  const exitCode = await checkCommand([], { cwd: testDir });
 
   t.expect(exitCode).toBe(20);
 });
@@ -58,7 +54,7 @@ t.it("fails for unformatted JSON files", async () => {
   const filePath = path.join(testDir, "test.json");
   fs.writeFileSync(filePath, "{\"a\":1,\"b\":2}");
 
-  const exitCode = await checkCommand();
+  const exitCode = await checkCommand([], { cwd: testDir });
 
   t.expect(exitCode).toBe(20);
 });
@@ -68,7 +64,7 @@ t.it("passes when all files are formatted", async () => {
   fs.writeFileSync(path.join(testDir, "test2.ts"), "const b = 2;\n");
   fs.writeFileSync(path.join(testDir, "test3.ts"), "const c = 3;\n");
 
-  const exitCode = await checkCommand();
+  const exitCode = await checkCommand([], { cwd: testDir });
 
   t.expect(exitCode).toBe(0);
 });
@@ -78,7 +74,7 @@ t.it("fails when any file is unformatted", async () => {
   fs.writeFileSync(path.join(testDir, "test2.ts"), "const   b=2"); // Unformatted
   fs.writeFileSync(path.join(testDir, "test3.ts"), "const c = 3;\n");
 
-  const exitCode = await checkCommand();
+  const exitCode = await checkCommand([], { cwd: testDir });
 
   t.expect(exitCode).toBe(20);
 });
@@ -88,7 +84,7 @@ t.it("does not modify files during check", async () => {
   const unformatted = "const   x=1";
   fs.writeFileSync(filePath, unformatted);
 
-  await checkCommand();
+  await checkCommand([], { cwd: testDir });
 
   // File should remain unchanged
   t.expect(fs.readFileSync(filePath, "utf-8")).toBe(unformatted);
@@ -98,20 +94,20 @@ t.it("checks only specified file patterns", async () => {
   fs.writeFileSync(path.join(testDir, "test.ts"), "const   a=1"); // Unformatted
   fs.writeFileSync(path.join(testDir, "test.json"), "{\"x\":1}"); // Would fail if checked
 
-  const exitCode = await checkCommand(["*.json"]);
+  const exitCode = await checkCommand(["*.json"], { cwd: testDir });
 
   // Should fail because JSON file is not formatted
   t.expect(exitCode).toBe(20);
 });
 
 t.it("returns 14 when no files found", async () => {
-  const exitCode = await checkCommand();
+  const exitCode = await checkCommand([], { cwd: testDir });
 
   t.expect(exitCode).toBe(14);
 });
 
 t.it("returns 0 when no files found with --allow-no-files", async () => {
-  const exitCode = await checkCommand([], { allow_no_files: true });
+  const exitCode = await checkCommand([], { allow_no_files: true, cwd: testDir });
 
   t.expect(exitCode).toBe(0);
 });
@@ -120,13 +116,11 @@ t.it("returns 11 when no config file found", async () => {
   // Use /tmp for truly isolated testing outside project root
   const isolatedDir = path.join("/tmp", "dprint-test-isolated-" + Date.now());
   fs.mkdirSync(isolatedDir, { recursive: true });
-  process.chdir(isolatedDir);
 
   try {
-    const exitCode = await checkCommand();
+    const exitCode = await checkCommand([], { cwd: isolatedDir });
     t.expect(exitCode).toBe(11); // Config error exit code
   } finally {
-    process.chdir(projectRoot);
     if (fs.existsSync(isolatedDir)) {
       fs.rmSync(isolatedDir, { recursive: true, force: true });
     }
@@ -139,7 +133,7 @@ t.it("respects exclude patterns", async () => {
   fs.writeFileSync(path.join(nodeModulesDir, "lib.ts"), "const   x=1"); // Unformatted but excluded
   fs.writeFileSync(path.join(testDir, "src.ts"), "const y = 2;\n"); // Formatted
 
-  const exitCode = await checkCommand();
+  const exitCode = await checkCommand([], { cwd: testDir });
 
   // Should pass because unformatted file is in node_modules (excluded)
   t.expect(exitCode).toBe(0);
@@ -150,7 +144,7 @@ t.it("handles nested directories", async () => {
   fs.mkdirSync(nestedDir, { recursive: true });
   fs.writeFileSync(path.join(nestedDir, "helper.ts"), "const x = 1;\n");
 
-  const exitCode = await checkCommand();
+  const exitCode = await checkCommand([], { cwd: testDir });
 
   t.expect(exitCode).toBe(0);
 });
@@ -160,7 +154,7 @@ t.it("fails for multiple unformatted files", async () => {
   fs.writeFileSync(path.join(testDir, "test2.ts"), "const   b=2");
   fs.writeFileSync(path.join(testDir, "test3.ts"), "const   c=3");
 
-  const exitCode = await checkCommand();
+  const exitCode = await checkCommand([], { cwd: testDir });
 
   t.expect(exitCode).toBe(20);
 });

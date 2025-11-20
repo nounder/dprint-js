@@ -11,11 +11,9 @@ t.beforeEach(() => {
   if (!fs.existsSync(testDir)) {
     fs.mkdirSync(testDir, { recursive: true });
   }
-  process.chdir(testDir);
 });
 
 t.afterEach(() => {
-  process.chdir(projectRoot);
   if (fs.existsSync(testDir)) {
     fs.rmSync(testDir, { recursive: true, force: true });
   }
@@ -35,7 +33,7 @@ t.it("formats files matching includes patterns", async () => {
   fs.writeFileSync(tsFile, "const   x=1");
   fs.writeFileSync(jsFile, "const   y=2");
 
-  await fmtCommand();
+  await fmtCommand([], { cwd: testDir });
 
   // TS file should be formatted
   t.expect(fs.readFileSync(tsFile, "utf-8")).toBe("const x = 1;\n");
@@ -61,7 +59,7 @@ t.it("supports multiple includes patterns", async () => {
   fs.writeFileSync(jsonFile, "{\"a\":1}");
   fs.writeFileSync(mdFile, "#   Title");
 
-  await fmtCommand();
+  await fmtCommand([], { cwd: testDir });
 
   t.expect(fs.readFileSync(tsFile, "utf-8")).toBe("const x = 1;\n");
   t.expect(fs.readFileSync(jsonFile, "utf-8")).toContain("\"a\"");
@@ -85,7 +83,7 @@ t.it("supports glob patterns with braces", async () => {
   fs.writeFileSync(jsFile, "const   y=2");
   fs.writeFileSync(jsonFile, "{\"a\":1}");
 
-  await fmtCommand();
+  await fmtCommand([], { cwd: testDir });
 
   t.expect(fs.readFileSync(tsFile, "utf-8")).toBe("const x = 1;\n");
   t.expect(fs.readFileSync(jsFile, "utf-8")).toBe("const y = 2;\n");
@@ -106,7 +104,7 @@ t.it("matches files in subdirectories with **", async () => {
   const nestedFile = path.join(subDir, "file.ts");
   fs.writeFileSync(nestedFile, "const   x=1");
 
-  await fmtCommand();
+  await fmtCommand([], { cwd: testDir });
 
   t.expect(fs.readFileSync(nestedFile, "utf-8")).toBe("const x = 1;\n");
 });
@@ -123,7 +121,7 @@ t.it("handles empty includes array", async () => {
   const tsFile = path.join(testDir, "test.ts");
   fs.writeFileSync(tsFile, "const   x=1");
 
-  await fmtCommand();
+  await fmtCommand([], { cwd: testDir });
 
   // Should not format anything
   t.expect(fs.readFileSync(tsFile, "utf-8")).toBe("const   x=1");
@@ -145,7 +143,7 @@ t.it("supports single specific file pattern", async () => {
   fs.writeFileSync(indexFile, "const   x=1");
   fs.writeFileSync(otherFile, "const   y=2");
 
-  await fmtCommand();
+  await fmtCommand([], { cwd: testDir });
 
   // Only index.ts should be formatted
   t.expect(fs.readFileSync(indexFile, "utf-8")).toBe("const x = 1;\n");
@@ -168,7 +166,7 @@ t.it("supports wildcard in filename", async () => {
   fs.writeFileSync(test2File, "const   b=2");
   fs.writeFileSync(appFile, "const   c=3");
 
-  await fmtCommand();
+  await fmtCommand([], { cwd: testDir });
 
   t.expect(fs.readFileSync(test1File, "utf-8")).toBe("const a = 1;\n");
   t.expect(fs.readFileSync(test2File, "utf-8")).toBe("const b = 2;\n");
@@ -197,7 +195,7 @@ t.it("supports directory-specific patterns", async () => {
   fs.writeFileSync(libFile, "const   b=2");
   fs.writeFileSync(rootFile, "const   c=3");
 
-  await fmtCommand();
+  await fmtCommand([], { cwd: testDir });
 
   // Only files in src/ should be formatted
   t.expect(fs.readFileSync(srcFile, "utf-8")).toBe("const a = 1;\n");
@@ -225,7 +223,7 @@ t.it("supports complex glob patterns with multiple wildcards", async () => {
   fs.writeFileSync(componentFile, "const   x=1");
   fs.writeFileSync(utilFile, "const   y=2");
 
-  await fmtCommand();
+  await fmtCommand([], { cwd: testDir });
 
   // Only component file should be formatted
   t.expect(fs.readFileSync(componentFile, "utf-8")).toBe("const x = 1;\n");
@@ -252,7 +250,7 @@ t.it("handles multiple overlapping patterns", async () => {
   fs.writeFileSync(jsFile, "const   b=2");
   fs.writeFileSync(rootJsFile, "const   c=3");
 
-  await fmtCommand();
+  await fmtCommand([], { cwd: testDir });
 
   // TS file and src JS file should be formatted
   t.expect(fs.readFileSync(tsFile, "utf-8")).toBe("const a = 1;\n");
@@ -279,7 +277,7 @@ t.it("supports includes patterns without directory prefixes", async () => {
   fs.writeFileSync(rootFile, "const   a=1");
   fs.writeFileSync(nestedFile, "const   b=2");
 
-  await fmtCommand();
+  await fmtCommand([], { cwd: testDir });
 
   // Only root-level file should be formatted
   t.expect(fs.readFileSync(rootFile, "utf-8")).toBe("const a = 1;\n");
@@ -300,7 +298,7 @@ t.it("matches deeply nested files correctly", async () => {
   const deepFile = path.join(deepDir, "file.ts");
   fs.writeFileSync(deepFile, "const   x=1");
 
-  await fmtCommand();
+  await fmtCommand([], { cwd: testDir });
 
   t.expect(fs.readFileSync(deepFile, "utf-8")).toBe("const x = 1;\n");
 });
@@ -321,7 +319,7 @@ t.it("handles includes with dot in directory names", async () => {
   fs.writeFileSync(dotFile, "const   x=1");
   fs.writeFileSync(regularFile, "const   y=2");
 
-  await fmtCommand();
+  await fmtCommand([], { cwd: testDir });
 
   // Both hidden and regular files should be formatted when explicitly included
   t.expect(fs.readFileSync(dotFile, "utf-8")).toBe("const x = 1;\n");

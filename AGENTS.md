@@ -7,6 +7,7 @@ This document provides guidance for AI assistants (like Claude) working on the d
 **dprint-js** is a JavaScript/TypeScript implementation of the dprint CLI for code formatting. It aims to provide feature parity with the official Rust dprint CLI while being npm-installable and JavaScript-native.
 
 ### Key Goals
+
 1. **Compatibility**: Match Rust dprint's behavior, exit codes, and output exactly
 2. **Testing**: Comprehensive test coverage with comparison tests against Rust dprint
 3. **Quality**: Clean, maintainable code with proper error handling
@@ -44,9 +45,11 @@ dprint-js/
 ## Important Standards
 
 ### Testing
+
 For comprehensive testing guidance including exit codes, test requirements, and best practices, see [test/SKILL.md](test/SKILL.md).
 
 ### Code Style
+
 - Use modern ES modules (`import`/`export`)
 - Prefer `const` over `let`
 - Use async/await for async operations
@@ -58,6 +61,7 @@ For comprehensive testing guidance including exit codes, test requirements, and 
 ### Modifying Commands
 
 When changing command behavior:
+
 1. Update the source file in `src/commands/`
 2. Update or add unit tests in `test/`
 3. Add comparison tests if behavior should match Rust dprint
@@ -132,12 +136,16 @@ const files = await fastGlob(includePatterns, {
 ## Git Workflow
 
 ### Branch Naming
+
 Use descriptive branch names:
+
 - `claude/feature-name-<session-id>`
 - `claude/fix-bug-<session-id>`
 
 ### Commit Messages
+
 Follow this format:
+
 ```
 Brief summary (50 chars or less)
 
@@ -153,6 +161,7 @@ More detailed explanation if needed. Explain:
 ```
 
 ### Before Pushing
+
 1. Run all tests: `bun test`
 2. Ensure all tests pass
 3. Check that new code follows style guidelines
@@ -161,6 +170,7 @@ More detailed explanation if needed. Explain:
 ## Common Pitfalls
 
 ### ❌ Don't Do This
+
 ```javascript
 // Wrong: Using console.log instead of return
 console.error("Error occurred");
@@ -175,6 +185,7 @@ const file = "/tmp/test.ts";
 ```
 
 ### ✅ Do This
+
 ```javascript
 // Correct: Return exit codes
 if (error) {
@@ -193,18 +204,21 @@ const file = path.join(testDir, "test.ts");
 ## Key Implementation Details
 
 ### Configuration Discovery
+
 - Walks up directory tree looking for `dprint.json`
 - Stops at first match or root directory
 - Can be disabled with `options.config_discovery = false`
 - Can specify custom path with `options.config`
 
 ### Plugin Loading
+
 - Supports npm packages: `@dprint/typescript`
 - Dynamically imports from node_modules
 - Uses `@dprint/formatter` for WASM loading
 - Caches loaded plugins
 
 ### File Pattern Matching
+
 - Includes patterns are processed with fast-glob
 - Excludes override includes (higher precedence)
 - Supports all standard glob syntax:
@@ -216,6 +230,7 @@ const file = path.join(testDir, "test.ts");
 ## Running the Project
 
 ### Development
+
 ```bash
 # Install dependencies
 bun install
@@ -234,6 +249,7 @@ bun test test/check.test.ts
 ```
 
 ### Testing Against Rust dprint
+
 Comparison tests automatically run Rust dprint via `npx dprint`. The first run will download it.
 
 ## Questions to Ask

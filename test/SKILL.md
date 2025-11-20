@@ -87,6 +87,7 @@ t.it("describes the functionality", async () => {
 ### 1. Always Test Error Cases
 
 For every feature, test:
+
 - Happy path (normal operation)
 - Missing config
 - Invalid config
@@ -114,7 +115,6 @@ When adding new features:
 3. Run Rust dprint to verify expected behavior
 4. Ensure JS implementation matches
 
-
 ## Running Tests
 
 ```bash
@@ -130,7 +130,6 @@ bun test test/check.test.ts
 Comparison tests automatically run Rust dprint via `npx dprint`.
 The first run will download it.
 
-
 ## Exit Codes
 
 The CLI **must** use these exact exit codes to match Rust dprint:
@@ -141,7 +140,6 @@ The CLI **must** use these exact exit codes to match Rust dprint:
 - `13` - Plugin error (missing/failed to load plugins)
 - `14` - No files found (when not using `--allow-no-files`)
 - `20` - Files not formatted (check command only)
-
 
 ## Test Checklist
 
