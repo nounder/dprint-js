@@ -11,6 +11,8 @@ A JavaScript implementation of the dprint CLI for code formatting. This tool pro
   - `init` - Initialize a new configuration file
   - `fmt` - Format files and write changes
   - `check` - Check if files are formatted correctly
+- **Rust dprint Compatibility**: Exit codes and behavior match the official Rust dprint CLI
+- **Comprehensive Testing**: 125+ tests ensuring feature parity and correctness
 
 ## Installation
 
@@ -148,6 +150,66 @@ OPTIONS:
     --       Treat all following arguments as file patterns
 ```
 
+## Testing
+
+The project includes comprehensive test coverage with 125+ tests:
+
+### Run All Tests
+```bash
+bun test
+```
+
+### Run Specific Test Suites
+```bash
+# Comparison tests (JS CLI vs Rust dprint)
+bun test test/comparison/
+
+# Unit tests for specific commands
+bun test test/check.test.ts
+bun test test/fmt.test.ts
+bun test test/init.test.ts
+
+# Configuration tests
+bun test test/config_includes.test.ts
+bun test test/config_excludes.test.ts
+bun test test/config_formatting.test.ts
+```
+
+### Test Coverage
+
+- **Comparison Tests (33 tests)**: Verify JS CLI matches Rust dprint behavior
+  - Exit codes match exactly
+  - Output formatting is identical
+  - Error handling is consistent
+
+- **Unit Tests (81 tests)**: Command-specific functionality
+  - File formatting and checking
+  - Configuration loading and validation
+  - Error handling and edge cases
+
+- **Pattern Tests (27 tests)**: Includes/excludes glob patterns
+  - Single file patterns
+  - Wildcard patterns
+  - Directory-specific patterns
+  - Complex glob patterns with multiple wildcards
+  - Nested directory exclusions
+  - Brace expansion patterns
+
+- **Formatting Option Tests (5 tests)**: Global formatting options
+  - lineWidth
+  - indentWidth
+  - useTabs
+
+### Exit Codes
+
+The CLI uses standard dprint exit codes:
+- `0` - Success
+- `1` - General error
+- `11` - Configuration error (missing/invalid config)
+- `13` - Plugin error (missing/failed to load)
+- `14` - No files found (when not using `--allow-no-files`)
+- `20` - Files not formatted (check command)
+
 ## Dependencies
 
 - `@dprint/formatter` - Core formatting engine
@@ -156,6 +218,10 @@ OPTIONS:
 - `@dprint/markdown` - Markdown formatter
 - `fast-glob` - Fast file globbing
 - `minimatch` - Pattern matching for include/exclude
+
+## Development
+
+See [AGENTS.md](./AGENTS.md) for information about working with AI assistants on this project.
 
 ## License
 
