@@ -101,3 +101,116 @@ t.it("formatting options work together", async () => {
   t.expect(output).toContain("    ");
   t.expect(output.split("\n").length).toBeGreaterThan(1);
 });
+
+t.it("respects newLineKind: lf option", async () => {
+  const config = {
+    plugins: ["@dprint/typescript"],
+    typescript: {
+      newLineKind: "lf",
+    },
+  };
+
+  const loadedPlugins = await loadPlugins(config);
+  const formatter = loadedPlugins[0].formatter;
+
+  const input = "function test(){\nreturn 1;\n}";
+  const output = formatText("test.ts", input, formatter);
+
+  // Should use LF line endings (no CRLF)
+  t.expect(output).not.toContain("\r\n");
+  t.expect(output).toContain("\n");
+});
+
+t.it("respects newLineKind: crlf option", async () => {
+  const config = {
+    plugins: ["@dprint/typescript"],
+    typescript: {
+      newLineKind: "crlf",
+    },
+  };
+
+  const loadedPlugins = await loadPlugins(config);
+  const formatter = loadedPlugins[0].formatter;
+
+  const input = "function test(){\nreturn 1;\n}";
+  const output = formatText("test.ts", input, formatter);
+
+  // Should use CRLF line endings
+  t.expect(output).toContain("\r\n");
+});
+
+// Tests for global-level options (set at root of config, not plugin-specific)
+t.it("respects global lineWidth option", async () => {
+  const config = {
+    lineWidth: 40,
+    plugins: ["@dprint/typescript"],
+    typescript: {},
+  };
+
+  const loadedPlugins = await loadPlugins(config);
+  const formatter = loadedPlugins[0].formatter;
+
+  const input = "const longVariable = \"this is a very long string that should wrap\";";
+  const output = formatText("test.ts", input, formatter);
+
+  // With lineWidth 40, the line should be broken
+  t.expect(output.split("\n").length).toBeGreaterThan(1);
+});
+
+t.it("respects global indentWidth option", async () => {
+  const config = {
+    indentWidth: 4,
+    plugins: ["@dprint/typescript"],
+    typescript: {},
+  };
+
+  const loadedPlugins = await loadPlugins(config);
+  const formatter = loadedPlugins[0].formatter;
+
+  const input = "function test(){return 1}";
+  const output = formatText("test.ts", input, formatter);
+
+  // Should use 4 spaces for indentation
+  t.expect(output).toContain("    return");
+});
+
+t.it("respects global newLineKind option", async () => {
+  const config = {
+    newLineKind: "crlf",
+    plugins: ["@dprint/typescript"],
+    typescript: {},
+  };
+
+  const loadedPlugins = await loadPlugins(config);
+  const formatter = loadedPlugins[0].formatter;
+
+  const input = "function test(){\nreturn 1;\n}";
+  const output = formatText("test.ts", input, formatter);
+
+  // Should use CRLF line endings from global config
+  t.expect(output).toContain("\r\n");
+});
+
+t.it("plugin-specific options override global options", async () => {
+  const config = {
+    lineWidth: 80,
+    indentWidth: 2,
+    plugins: ["@dprint/typescript"],
+    typescript: {
+      lineWidth: 40, // Should override global
+      indentWidth: 4, // Should override global
+    },
+  };
+
+  const loadedPlugins = await loadPlugins(config);
+  const formatter = loadedPlugins[0].formatter;
+
+  const input = "function test(){const longVariable = \"this is a very long string that should wrap\"; return 1;}";
+  const output = formatText("test.ts", input, formatter);
+
+  // Should use plugin-specific indentWidth (4)
+  t.expect(output).toContain("    ");
+  // Should use plugin-specific lineWidth (40) causing more wrapping
+  const lines = output.split("\n");
+  t.expect(lines.length).toBeGreaterThan(2);
+});
