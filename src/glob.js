@@ -29,14 +29,20 @@ export function normalizeExcludePatterns(patterns) {
       return pattern.slice(0, -1) + "/**";
     }
 
+    // Pattern already ending with /** is normalized
+    if (pattern.endsWith("/**")) {
+      return pattern;
+    }
+
     // Bare directory name: "dir" → "dir/**"
-    // Only normalize if it doesn't already have wildcards or look like a file pattern
-    if (!pattern.includes("**") && !pattern.includes(".") && !pattern.includes("*")) {
+    // Directory pattern without trailing **: "**/node_modules" → "**/node_modules/**"
+    // Only normalize if it doesn't look like a file pattern (no extension)
+    if (!pattern.includes(".") && !pattern.endsWith("*")) {
       return pattern + "/**";
     }
 
     // Already a proper glob pattern, leave unchanged
-    // Examples: "*.test.ts", "**/*.ts", "**/node_modules/**"
+    // Examples: "*.test.ts", "**/*.ts", "**/*"
     return pattern;
   });
 }
