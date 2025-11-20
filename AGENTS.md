@@ -371,16 +371,6 @@ When working on this project, consider:
 
 ## Recent Changes
 
-### Latest Commits
-- **3ed6c2c**: Add exhaustive includes/excludes pattern tests (17 new tests)
+- **3ed6c2c**: Add exhaustive includes/excludes pattern tests
 - **fbe94e4**: Merge global formatting option tests into single file
-- **5e001a9**: Add comprehensive error tests for ours & theirs comparison (11 error tests)
-
-### Test Statistics
-- Total: 125 tests
-- Comparison tests: 33 (11 per command)
-- Unit tests: 81
-- Pattern tests: 27 (14 includes + 13 excludes)
-- Formatting tests: 5
-
-All tests passing ✅
+- **5e001a9**: Add comprehensive error tests for ours & theirs comparison
