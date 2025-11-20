@@ -4,22 +4,37 @@ import * as path from "node:path";
 
 /**
  * Normalize exclude patterns for fast-glob compatibility
- * Converts patterns like "dir/" to "dir/**" to properly exclude directories
- * @param {string[]} patterns - Array of glob patterns
- * @returns {string[]} Normalized patterns
+ *
+ * This normalization is ONLY applied to exclude patterns, not include patterns.
+ *
+ * Why only excludes?
+ * - Original dprint behavior:
+ *   - EXCLUDES: "tree/" and "tree" both exclude the entire directory and contents
+ *   - INCLUDES: "src/" and "src" find NO files (you must use explicit patterns like "src/**")
+ *
+ * - fast-glob's ignore option doesn't handle bare directory names like dprint's globset
+ * - We need to convert directory patterns to "dir/**" format for excludes to work
+ * - Include patterns don't need this because original dprint already requires explicit globs
+ *
+ * @param {string[]} patterns - Array of exclude glob patterns
+ * @returns {string[]} Normalized patterns compatible with fast-glob
  */
 function normalizeExcludePatterns(patterns) {
   return patterns.map((pattern) => {
-    // If pattern ends with /, it's a directory exclusion
-    // Convert "dir/" to "dir/**" to exclude the directory and all contents
+    // Directory with trailing slash: "dir/" → "dir/**"
+    // Excludes the directory and all its contents
     if (pattern.endsWith("/")) {
       return pattern.slice(0, -1) + "/**";
     }
-    // If pattern doesn't contain ** and doesn't end with an extension,
-    // it might be a directory name, add /** to exclude directory contents
+
+    // Bare directory name: "dir" → "dir/**"
+    // Only normalize if it doesn't already have wildcards or look like a file pattern
     if (!pattern.includes("**") && !pattern.includes(".") && !pattern.includes("*")) {
       return pattern + "/**";
     }
+
+    // Already a proper glob pattern, leave unchanged
+    // Examples: "*.test.ts", "**/*.ts", "**/node_modules/**"
     return pattern;
   });
 }
