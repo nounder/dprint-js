@@ -3,6 +3,28 @@ import { minimatch } from "minimatch";
 import * as path from "node:path";
 
 /**
+ * Normalize exclude patterns for fast-glob compatibility
+ * Converts patterns like "dir/" to "dir/**" to properly exclude directories
+ * @param {string[]} patterns - Array of glob patterns
+ * @returns {string[]} Normalized patterns
+ */
+function normalizeExcludePatterns(patterns) {
+  return patterns.map((pattern) => {
+    // If pattern ends with /, it's a directory exclusion
+    // Convert "dir/" to "dir/**" to exclude the directory and all contents
+    if (pattern.endsWith("/")) {
+      return pattern.slice(0, -1) + "/**";
+    }
+    // If pattern doesn't contain ** and doesn't end with an extension,
+    // it might be a directory name, add /** to exclude directory contents
+    if (!pattern.includes("**") && !pattern.includes(".") && !pattern.includes("*")) {
+      return pattern + "/**";
+    }
+    return pattern;
+  });
+}
+
+/**
  * Find files matching the patterns specified in the configuration
  * @param {object} config - The dprint configuration object
  * @param {string[]} additionalPatterns - Additional file patterns from command line
@@ -43,10 +65,13 @@ export async function findFiles(config, additionalPatterns = [], cwd = process.c
     excludes = [...excludes, "**/node_modules"];
   }
 
+  // Normalize exclude patterns for fast-glob compatibility
+  const normalizedExcludes = normalizeExcludePatterns(excludes);
+
   // Use fast-glob to find files
   const files = await fg(includes, {
     cwd,
-    ignore: excludes,
+    ignore: normalizedExcludes,
     dot: false,
     absolute: false,
     onlyFiles: true,
