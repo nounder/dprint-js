@@ -1,3 +1,4 @@
+import * as path from "node:path";
 import { findConfigFile, loadConfig } from "../config.js";
 import { findFiles } from "../files.js";
 import { formatFile, loadPlugins } from "../formatter.js";
@@ -88,7 +89,8 @@ export default async function checkCommand(filePatterns = [], options = {}) {
   let errorCount = 0;
 
   for (const file of files) {
-    const result = await formatFile(file, loadedPlugins, config, true);
+    const absolutePath = path.join(cwd, file);
+    const result = await formatFile(absolutePath, loadedPlugins, config, true);
 
     if (result.error) {
       console.error(`Error checking ${file}: ${result.error}`);

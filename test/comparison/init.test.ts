@@ -1,7 +1,7 @@
+import { $ } from "bun";
 import * as t from "bun:test";
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { $ } from "bun";
 import initCommand from "../../src/commands/init.js";
 
 const projectRoot = process.cwd();
@@ -237,9 +237,12 @@ t.it("handles empty plugins array", async () => {
   fs.writeFileSync(path.join(theirsDir, "test.ts"), "const x=1;");
 
   // Both should handle empty plugins similarly (likely as error)
-  const ourResult = await $`bun run ${path.join(projectRoot, "bin/dprint-js")} check --config test-config.json --log-level silent`.cwd(oursDir).nothrow().quiet();
+  const ourResult = await $`bun run ${
+    path.join(projectRoot, "bin/dprint-js")
+  } check --config test-config.json --log-level silent`.cwd(oursDir).nothrow().quiet();
 
-  const theirResult = await $`npx dprint check --config test-config.json --log-level silent`.cwd(theirsDir).nothrow().quiet();
+  const theirResult = await $`npx dprint check --config test-config.json --log-level silent`.cwd(theirsDir).nothrow()
+    .quiet();
 
   // Both should fail or succeed in the same way
   t.expect(ourResult.exitCode).toBe(theirResult.exitCode);

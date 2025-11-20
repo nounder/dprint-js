@@ -1,7 +1,7 @@
+import { $ } from "bun";
 import * as t from "bun:test";
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { $ } from "bun";
 import checkCommand from "../../src/commands/check.js";
 
 const projectRoot = process.cwd();
@@ -180,7 +180,9 @@ t.it("list-different outputs same file paths", async () => {
   fs.writeFileSync(path.join(theirsDir, "file2.json"), malformattedJSON);
 
   // Check with our implementation using --list-different
-  const ourResult = await $`bun run ${path.join(projectRoot, "bin/dprint-js")} check --list-different --log-level silent 2>&1`.cwd(oursDir).nothrow().quiet();
+  const ourResult = await $`bun run ${
+    path.join(projectRoot, "bin/dprint-js")
+  } check --list-different --log-level silent 2>&1`.cwd(oursDir).nothrow().quiet();
 
   // Check with rust dprint using --list-different (outputs to stderr, so capture with 2>&1)
   const theirResult = await $`npx dprint check --list-different 2>&1`.cwd(theirsDir).nothrow().quiet();
@@ -221,7 +223,8 @@ t.it("returns same exit code when config file is missing", async () => {
   const ourExitCode = await checkCommand([], { log_level: "silent", config_discovery: false, cwd: oursDir });
 
   // Check with rust dprint (use --config to specify non-existent config)
-  const theirResult = await $`npx dprint check --log-level silent --config dprint.json`.cwd(theirsDir).nothrow().quiet();
+  const theirResult = await $`npx dprint check --log-level silent --config dprint.json`.cwd(theirsDir).nothrow()
+    .quiet();
   const theirExitCode = theirResult.exitCode;
 
   // Both should return error exit code (11 for config error)
@@ -284,7 +287,8 @@ t.it("returns same exit code for non-existent file argument", async () => {
   const ourExitCode = await checkCommand(["non-existent-file.ts"], { log_level: "silent", cwd: oursDir });
 
   // Check with rust dprint for a non-existent file
-  const theirResult = await $`npx dprint check --log-level silent non-existent-file.ts`.cwd(theirsDir).nothrow().quiet();
+  const theirResult = await $`npx dprint check --log-level silent non-existent-file.ts`.cwd(theirsDir).nothrow()
+    .quiet();
   const theirExitCode = theirResult.exitCode;
 
   // Both should return error exit code (14 for no files found)

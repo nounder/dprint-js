@@ -1,7 +1,7 @@
+import { $ } from "bun";
 import * as t from "bun:test";
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { $ } from "bun";
 import fmtCommand from "../../src/commands/fmt.js";
 
 const projectRoot = process.cwd();
@@ -287,10 +287,15 @@ t.it("returns same exit code for non-existent file argument", async () => {
 
 t.it("returns same exit code with --allow-no-files for non-existent files", async () => {
   // Format with our implementation for a non-existent file with --allow-no-files
-  const ourExitCode = await fmtCommand(["non-existent-file.ts"], { allow_no_files: true, log_level: "silent", cwd: oursDir });
+  const ourExitCode = await fmtCommand(["non-existent-file.ts"], {
+    allow_no_files: true,
+    log_level: "silent",
+    cwd: oursDir,
+  });
 
   // Format with rust dprint for a non-existent file with --allow-no-files
-  const theirResult = await $`npx dprint fmt --log-level silent --allow-no-files non-existent-file.ts`.cwd(theirsDir).nothrow().quiet();
+  const theirResult = await $`npx dprint fmt --log-level silent --allow-no-files non-existent-file.ts`.cwd(theirsDir)
+    .nothrow().quiet();
   const theirExitCode = theirResult.exitCode;
 
   // Both should return success with --allow-no-files

@@ -160,7 +160,7 @@ t.it("excludes hidden directories starting with dot", async () => {
   fs.writeFileSync(hiddenFile, "const   x=1");
   fs.writeFileSync(normalFile, "const   y=2");
 
-  await fmtCommand();
+  await fmtCommand([], { cwd: testDir });
 
   // Hidden dir file should not be formatted
   t.expect(fs.readFileSync(hiddenFile, "utf-8")).toBe("const   x=1");
@@ -197,7 +197,7 @@ t.it("excludes build output directories", async () => {
   fs.writeFileSync(outFile, "const   c=3");
   fs.writeFileSync(srcFile, "const   d=4");
 
-  await fmtCommand();
+  await fmtCommand([], { cwd: testDir });
 
   // Build output files should not be formatted
   t.expect(fs.readFileSync(distFile, "utf-8")).toBe("const   a=1");
@@ -224,7 +224,7 @@ t.it("excludes lock files and generated files", async () => {
   fs.writeFileSync(bundleLock, "{\"b\":2}");
   fs.writeFileSync(configFile, "{\"c\":3}");
 
-  await fmtCommand();
+  await fmtCommand([], { cwd: testDir });
 
   // Lock files should not be formatted
   t.expect(fs.readFileSync(lockFile, "utf-8")).toBe("{\"a\":1}");
@@ -262,7 +262,7 @@ t.it("excludes coverage and test output directories", async () => {
   fs.writeFileSync(testFile, "const   c=3");
   fs.writeFileSync(srcFile, "const   d=4");
 
-  await fmtCommand();
+  await fmtCommand([], { cwd: testDir });
 
   // Coverage files should not be formatted
   t.expect(fs.readFileSync(coverageFile, "utf-8")).toBe("const   a=1");
@@ -291,7 +291,7 @@ t.it("excludes with wildcard in filename", async () => {
   fs.writeFileSync(dtsFile, "const   c=3");
   fs.writeFileSync(srcFile, "const   d=4");
 
-  await fmtCommand();
+  await fmtCommand([], { cwd: testDir });
 
   // Test/spec/definition files should not be formatted
   t.expect(fs.readFileSync(testFile, "utf-8")).toBe("const   a=1");
@@ -326,7 +326,7 @@ t.it("excludes nested directories at any level", async () => {
   fs.writeFileSync(thirdPartyFile, "const   b=2");
   fs.writeFileSync(srcFile, "const   c=3");
 
-  await fmtCommand();
+  await fmtCommand([], { cwd: testDir });
 
   // Vendor files should not be formatted
   t.expect(fs.readFileSync(vendorFile, "utf-8")).toBe("const   a=1");
@@ -354,7 +354,7 @@ t.it("excludes with brace expansion patterns", async () => {
   fs.writeFileSync(mockFile, "const   c=3");
   fs.writeFileSync(srcFile, "const   d=4");
 
-  await fmtCommand();
+  await fmtCommand([], { cwd: testDir });
 
   // Test/spec/mock files should not be formatted
   t.expect(fs.readFileSync(testFile, "utf-8")).toBe("const   a=1");
@@ -381,7 +381,7 @@ t.it("excludes with single directory name without wildcards", async () => {
   fs.writeFileSync(tempFile, "const   a=1");
   fs.writeFileSync(rootFile, "const   b=2");
 
-  await fmtCommand();
+  await fmtCommand([], { cwd: testDir });
 
   // Temp file should not be formatted
   t.expect(fs.readFileSync(tempFile, "utf-8")).toBe("const   a=1");
@@ -414,7 +414,7 @@ t.it("excludes deeply nested paths correctly", async () => {
   fs.writeFileSync(fixtureFile, "const   b=2");
   fs.writeFileSync(srcFile, "const   c=3");
 
-  await fmtCommand();
+  await fmtCommand([], { cwd: testDir });
 
   // Excluded files should not be formatted
   t.expect(fs.readFileSync(nestedFile, "utf-8")).toBe("const   a=1");
