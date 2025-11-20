@@ -1,43 +1,7 @@
 import fg from "fast-glob";
 import { minimatch } from "minimatch";
 import * as path from "node:path";
-
-/**
- * Normalize exclude patterns for fast-glob compatibility
- *
- * This normalization is ONLY applied to exclude patterns, not include patterns.
- *
- * Why only excludes?
- * - Original dprint behavior:
- *   - EXCLUDES: "tree/" and "tree" both exclude the entire directory and contents
- *   - INCLUDES: "src/" and "src" find NO files (you must use explicit patterns like "src/**")
- *
- * - fast-glob's ignore option doesn't handle bare directory names like dprint's globset
- * - We need to convert directory patterns to "dir/**" format for excludes to work
- * - Include patterns don't need this because original dprint already requires explicit globs
- *
- * @param {string[]} patterns - Array of exclude glob patterns
- * @returns {string[]} Normalized patterns compatible with fast-glob
- */
-function normalizeExcludePatterns(patterns) {
-  return patterns.map((pattern) => {
-    // Directory with trailing slash: "dir/" → "dir/**"
-    // Excludes the directory and all its contents
-    if (pattern.endsWith("/")) {
-      return pattern.slice(0, -1) + "/**";
-    }
-
-    // Bare directory name: "dir" → "dir/**"
-    // Only normalize if it doesn't already have wildcards or look like a file pattern
-    if (!pattern.includes("**") && !pattern.includes(".") && !pattern.includes("*")) {
-      return pattern + "/**";
-    }
-
-    // Already a proper glob pattern, leave unchanged
-    // Examples: "*.test.ts", "**/*.ts", "**/node_modules/**"
-    return pattern;
-  });
-}
+import { normalizeExcludePatterns, normalizeIncludePatterns } from "./glob.js";
 
 /**
  * Find files matching the patterns specified in the configuration
@@ -102,17 +66,17 @@ export async function findFiles(config, additionalPatterns = [], cwd = process.c
  * @returns {boolean} True if the file should be processed
  */
 export function shouldProcessFile(filePath, config) {
-  const includes = config.includes || ["**/*"];
-  const excludes = config.excludes || [];
+  const includes = normalizeIncludePatterns(config.includes || ["**/*"]);
+  const excludes = normalizeExcludePatterns(config.excludes || []);
 
-  // Check excludes first
+  // Check excludes first (normalized to match directory contents)
   for (const pattern of excludes) {
     if (minimatch(filePath, pattern, { dot: true })) {
       return false;
     }
   }
 
-  // Check includes
+  // Check includes (not normalized - users must use explicit patterns)
   for (const pattern of includes) {
     if (minimatch(filePath, pattern, { dot: true })) {
       return true;
