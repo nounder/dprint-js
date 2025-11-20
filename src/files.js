@@ -48,9 +48,7 @@ export async function findFiles(config, additionalPatterns = [], cwd = process.c
 
   // Determine if we need to scan dot files
   // If any include pattern explicitly references dot files/directories, enable dot scanning
-  const needsDotFiles = includes.some((pattern) =>
-    pattern.startsWith(".") || pattern.includes("/.")
-  );
+  const needsDotFiles = includes.some((pattern) => pattern.startsWith(".") || pattern.includes("/."));
 
   // Use Bun.Glob to find files
   const allFiles = new Set();

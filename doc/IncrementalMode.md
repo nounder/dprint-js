@@ -122,4 +122,3 @@ To prevent unbounded cache growth:
 1. **LRU Eviction**: Remove least recently used entries when cache exceeds limit
 2. **Age-Based Pruning**: Remove entries older than 30 days
 3. **Smart Limits**: Keep cache under 10MB in size
-
