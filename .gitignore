@@ -10,3 +10,4 @@ coverage/
 test-dprint/
 test-*.js
 tree/
+test/comparison-tmp-*/
