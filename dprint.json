@@ -10,8 +10,7 @@
     "**/dist",
     "**/build",
     "**/coverage",
-    "test/fixtures/**",
-    "tree"
+    "test/fixtures/**"
   ],
   "plugins": [
     "@dprint/typescript",

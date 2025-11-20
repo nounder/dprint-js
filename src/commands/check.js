@@ -71,6 +71,7 @@ export default async function checkCommand(filePatterns = [], options = {}) {
     console.log(`Loaded ${loadedPlugins.length} formatter(s)`);
   }
 
+  // Initialize incremental cache if enabled
   let cache = null;
   const incrementalEnabled = config.incremental !== false && options.incremental !== false;
 
@@ -87,16 +88,17 @@ export default async function checkCommand(filePatterns = [], options = {}) {
       console.log(`[DEBUG] Cache key: ${stats.cacheKey}`);
     }
 
+    // Prune old entries
     cache.prune();
   }
 
+  // Find files with option overrides
   const files = await findFiles(config, filePatterns, cwd, options);
 
   if (files.length === 0) {
     if (shouldLog("info")) {
       console.log("No files found to check");
     }
-
     // Exit with 0 if --allow-no-files, otherwise 14
     return options.allow_no_files ? 0 : 14;
   }

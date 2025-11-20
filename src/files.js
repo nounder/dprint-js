@@ -1,6 +1,7 @@
 import fg from "fast-glob";
 import { minimatch } from "minimatch";
 import * as path from "node:path";
+import { normalizeExcludePatterns, normalizeIncludePatterns } from "./glob.js";
 
 /**
  * Find files matching the patterns specified in the configuration
@@ -43,10 +44,13 @@ export async function findFiles(config, additionalPatterns = [], cwd = process.c
     excludes = [...excludes, "**/node_modules"];
   }
 
+  // Normalize exclude patterns for fast-glob compatibility
+  const normalizedExcludes = normalizeExcludePatterns(excludes);
+
   // Use fast-glob to find files
   const files = await fg(includes, {
     cwd,
-    ignore: excludes,
+    ignore: normalizedExcludes,
     dot: false,
     absolute: false,
     onlyFiles: true,
@@ -62,17 +66,17 @@ export async function findFiles(config, additionalPatterns = [], cwd = process.c
  * @returns {boolean} True if the file should be processed
  */
 export function shouldProcessFile(filePath, config) {
-  const includes = config.includes || ["**/*"];
-  const excludes = config.excludes || [];
+  const includes = normalizeIncludePatterns(config.includes || ["**/*"]);
+  const excludes = normalizeExcludePatterns(config.excludes || []);
 
-  // Check excludes first
+  // Check excludes first (normalized to match directory contents)
   for (const pattern of excludes) {
     if (minimatch(filePath, pattern, { dot: true })) {
       return false;
     }
   }
 
-  // Check includes
+  // Check includes (not normalized - users must use explicit patterns)
   for (const pattern of includes) {
     if (minimatch(filePath, pattern, { dot: true })) {
       return true;
