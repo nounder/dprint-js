@@ -2,6 +2,7 @@ import * as crypto from "node:crypto";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
+import packageJson from "../package.json" with { type: "json" };
 
 /**
  * Get the platform-specific cache directory for dprint-js
@@ -59,8 +60,8 @@ export function computeCacheKey(config, plugins) {
       name: p.name,
       // Note: We could extract version from package.json if needed
     })),
-    // Include dprint-js version
-    version: "0.1.0", // Should be imported from package.json
+    // Include dprint-js version - automatically updates when package version changes
+    version: packageJson.version,
   };
 
   const keyString = JSON.stringify(keyComponents, null, 0);
@@ -286,4 +287,3 @@ export class IncrementalCache {
     };
   }
 }
-// test comment
