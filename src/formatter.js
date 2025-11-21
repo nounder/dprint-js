@@ -66,6 +66,51 @@ function loadCacheManifest() {
 }
 
 /**
+ * Find package.json in the same directory as the config file
+ * @param {string} configDir - Directory containing the config file
+ * @returns {string|null} Path to package.json or null if not found
+ */
+function findPackageJson(configDir) {
+  const packagePath = path.join(configDir, "package.json");
+  if (fs.existsSync(packagePath)) {
+    return packagePath;
+  }
+  return null;
+}
+
+/**
+ * Discover dprint plugins from package.json dependencies
+ * @param {string} configDir - Directory containing the config file
+ * @returns {string[]} Array of discovered plugin names
+ */
+function discoverPluginsFromPackageJson(configDir) {
+  const packagePath = findPackageJson(configDir);
+  if (!packagePath) {
+    return [];
+  }
+
+  try {
+    const packageContent = fs.readFileSync(packagePath, "utf-8");
+    const packageJson = JSON.parse(packageContent);
+
+    const plugins = [];
+    const dependencies = { ...packageJson.dependencies, ...packageJson.devDependencies };
+
+    for (const [name] of Object.entries(dependencies)) {
+      // Include packages starting with @dprint/ but exclude @dprint/formatter (the base library)
+      if (name.startsWith("@dprint/") && name !== "@dprint/formatter") {
+        plugins.push(name);
+      }
+    }
+
+    return plugins;
+  } catch (error) {
+    // If we can't read or parse package.json, return empty array
+    return [];
+  }
+}
+
+/**
  * Save the cache manifest
  * @param {object} manifest - The cache manifest to save
  */
@@ -307,10 +352,25 @@ export async function loadPlugin(pluginName, cwd = process.cwd()) {
  * Load all plugins specified in the configuration
  * @param {object} config - The dprint configuration
  * @param {string} cwd - Current working directory
+ * @param {string} configPath - Optional path to config file (used for auto-discovery)
  * @returns {Promise<Array<{name: string, formatter: object, extensions: string[], fileNames: string[]}>>}
  */
-export async function loadPlugins(config, cwd = process.cwd()) {
-  const plugins = config.plugins || [];
+export async function loadPlugins(config, cwd = process.cwd(), configPath = null) {
+  let plugins = config.plugins;
+
+  // If no plugins specified in config, auto-discover from package.json
+  if (!plugins || plugins.length === 0) {
+    // Use config directory if available, otherwise use cwd
+    const searchDir = configPath ? path.dirname(configPath) : cwd;
+    plugins = discoverPluginsFromPackageJson(searchDir);
+    if (plugins.length > 0) {
+      console.log(`[INFO] No plugins specified in config, auto-discovered from package.json:`);
+      for (const plugin of plugins) {
+        console.log(`  - ${plugin}`);
+      }
+    }
+  }
+
   const loadedPlugins = [];
 
   for (const pluginName of plugins) {
