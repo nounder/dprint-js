@@ -10,7 +10,7 @@ import { formatFile, loadPlugins } from "../formatter.js";
  */
 export default async function fmtCommand(filePatterns = [], options = {}) {
   const cwd = options.cwd || process.cwd();
-  const logLevel = options.log_level || "info";
+  const logLevel = options.logLevel || "info";
   const shouldLog = (level) => {
     const levels = ["debug", "info", "warn", "error", "silent"];
     const currentLevel = levels.indexOf(logLevel);
@@ -100,7 +100,7 @@ export default async function fmtCommand(filePatterns = [], options = {}) {
       console.log("No files found to format");
     }
     // Exit with 0 if --allow-no-files, otherwise 14
-    return options.allow_no_files ? 0 : 14;
+    return options.allowNoFiles ? 0 : 14;
   }
 
   if (shouldLog("info")) {

@@ -41,7 +41,7 @@ export function parseArgs(args) {
     if (arg.startsWith("--") && arg.includes("=")) {
       const [flag, ...valueParts] = arg.split("=");
       const value = valueParts.join("=");
-      const key = flag.slice(2).replace(/-/g, "_");
+      const key = kebabToCamel(flag.slice(2));
       result.options[key] = parseValue(value);
       i++;
       continue;
@@ -66,10 +66,10 @@ export function parseArgs(args) {
     // Handle long flags (--config, --includes-override)
     if (arg.startsWith("--")) {
       const flag = arg.slice(2);
-      const key = flag.replace(/-/g, "_");
+      const key = kebabToCamel(flag);
 
       // Check if this is a variadic flag (takes multiple values)
-      const variadicFlags = ["includes_override", "excludes", "excludes_override", "plugins"];
+      const variadicFlags = ["includesOverride", "excludes", "excludesOverride", "plugins"];
 
       if (variadicFlags.includes(key)) {
         result.options[key] = result.options[key] || [];
@@ -107,10 +107,17 @@ export function parseArgs(args) {
 function flagToKey(flag) {
   const mapping = {
     "c": "config",
-    "L": "log_level",
+    "L": "logLevel",
     "h": "help",
   };
   return mapping[flag] || flag;
+}
+
+/**
+ * Convert kebab-case to camelCase
+ */
+function kebabToCamel(str) {
+  return str.replace(/-([a-z])/g, (_, letter) => letter.toUpperCase());
 }
 
 /**
@@ -178,6 +185,8 @@ Options:
           List of file patterns or directories in quotes to exclude when formatting. This overrides what is specified in the config file.
       --allow-node-modules
           Allows traversing node module directories (unstable - This flag will be renamed to be non-node specific in the future).
+      --allow-gitignored
+          Allows formatting files that are ignored by .gitignore. By default, dprint respects .gitignore patterns.
       --incremental[=<incremental>]
           Only format files when they change. This may alternatively be specified in the configuration file. [possible values: true, false]
       --stdin <extension/file-name/file-path>
@@ -221,6 +230,8 @@ Options:
           List of file patterns or directories in quotes to exclude when formatting. This overrides what is specified in the config file.
       --allow-node-modules
           Allows traversing node module directories (unstable - This flag will be renamed to be non-node specific in the future).
+      --allow-gitignored
+          Allows checking files that are ignored by .gitignore. By default, dprint respects .gitignore patterns.
       --incremental[=<incremental>]
           Only format files when they change. This may alternatively be specified in the configuration file. [possible values: true, false]
       --allow-no-files

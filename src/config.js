@@ -7,7 +7,7 @@ import * as path from "node:path";
  */
 export function findConfigFile(startDir = process.cwd(), options = {}) {
   // If config discovery is disabled, don't search
-  if (options.config_discovery === false) {
+  if (options.configDiscovery === false) {
     return null;
   }
 

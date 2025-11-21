@@ -107,7 +107,7 @@ t.it("returns 14 when no files found", async () => {
 });
 
 t.it("returns 0 when no files found with --allow-no-files", async () => {
-  const exitCode = await checkCommand([], { allow_no_files: true, cwd: testDir });
+  const exitCode = await checkCommand([], { allowNoFiles: true, cwd: testDir });
 
   t.expect(exitCode).toBe(0);
 });

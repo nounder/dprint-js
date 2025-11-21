@@ -1,6 +1,7 @@
 import { Glob } from "bun";
 import * as path from "node:path";
 import { normalizeExcludePatterns, normalizeIncludePatterns } from "./glob.js";
+import { loadGitignorePatterns, filterWithGitignore } from "./gitignore.js";
 
 /**
  * Find files matching the patterns specified in the configuration
@@ -13,9 +14,9 @@ import { normalizeExcludePatterns, normalizeIncludePatterns } from "./glob.js";
 export async function findFiles(config, additionalPatterns = [], cwd = process.cwd(), options = {}) {
   // Determine includes patterns
   let includes;
-  if (options.includes_override && options.includes_override.length > 0) {
+  if (options.includesOverride && options.includesOverride.length > 0) {
     // --includes-override completely replaces config includes
-    includes = options.includes_override;
+    includes = options.includesOverride;
   } else if (additionalPatterns.length > 0) {
     // Command line patterns subset config includes
     includes = additionalPatterns;
@@ -26,9 +27,9 @@ export async function findFiles(config, additionalPatterns = [], cwd = process.c
 
   // Determine excludes patterns
   let excludes;
-  if (options.excludes_override && options.excludes_override.length > 0) {
+  if (options.excludesOverride && options.excludesOverride.length > 0) {
     // --excludes-override completely replaces config excludes
-    excludes = options.excludes_override;
+    excludes = options.excludesOverride;
   } else {
     // Start with config excludes
     excludes = config.excludes || [];
@@ -39,7 +40,7 @@ export async function findFiles(config, additionalPatterns = [], cwd = process.c
   }
 
   // Add node_modules to excludes unless --allow-node-modules is set
-  if (!options.allow_node_modules && !excludes.includes("**/node_modules")) {
+  if (!options.allowNodeModules && !excludes.includes("**/node_modules")) {
     excludes = [...excludes, "**/node_modules"];
   }
 
@@ -80,7 +81,17 @@ export async function findFiles(config, additionalPatterns = [], cwd = process.c
     }
   }
 
-  return Array.from(allFiles).sort();
+  let files = Array.from(allFiles);
+
+  // Apply .gitignore patterns unless disabled
+  if (!options.allowGitignored) {
+    const ig = loadGitignorePatterns(cwd);
+    if (ig) {
+      files = filterWithGitignore(files, ig, cwd);
+    }
+  }
+
+  return files.sort();
 }
 
 /**

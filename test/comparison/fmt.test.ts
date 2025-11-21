@@ -73,7 +73,7 @@ t.it("formats TypeScript identically to rust dprint", async () => {
   fs.writeFileSync(path.join(theirsDir, filename), malformattedTS);
 
   // Format with our implementation
-  await fmtCommand([], { log_level: "silent", cwd: oursDir });
+  await fmtCommand([], { logLevel: "silent", cwd: oursDir });
 
   // Format with rust dprint
   await $`npx dprint fmt --log-level silent`.cwd(theirsDir).quiet();
@@ -92,7 +92,7 @@ t.it("formats JSON identically to rust dprint", async () => {
   fs.writeFileSync(path.join(theirsDir, filename), malformattedJSON);
 
   // Format with our implementation
-  await fmtCommand([], { log_level: "silent", cwd: oursDir });
+  await fmtCommand([], { logLevel: "silent", cwd: oursDir });
 
   // Format with rust dprint
   await $`npx dprint fmt --log-level silent`.cwd(theirsDir).quiet();
@@ -111,7 +111,7 @@ t.it("formats Markdown identically to rust dprint", async () => {
   fs.writeFileSync(path.join(theirsDir, filename), malformattedMD);
 
   // Format with our implementation
-  await fmtCommand([], { log_level: "silent", cwd: oursDir });
+  await fmtCommand([], { logLevel: "silent", cwd: oursDir });
 
   // Format with rust dprint
   await $`npx dprint fmt --log-level silent`.cwd(theirsDir).quiet();
@@ -134,7 +134,7 @@ t.it("handles multiple files identically to rust dprint", async () => {
   fs.writeFileSync(path.join(theirsDir, "file3.md"), malformattedMD);
 
   // Format with our implementation
-  await fmtCommand([], { log_level: "silent", cwd: oursDir });
+  await fmtCommand([], { logLevel: "silent", cwd: oursDir });
 
   // Format with rust dprint
   await $`npx dprint fmt --log-level silent`.cwd(theirsDir).quiet();
@@ -156,7 +156,7 @@ t.it("respects file patterns identically to rust dprint", async () => {
   fs.writeFileSync(path.join(theirsDir, "skip.json"), malformattedJSON);
 
   // Format only .ts files with our implementation
-  await fmtCommand(["*.ts"], { log_level: "silent", cwd: oursDir });
+  await fmtCommand(["*.ts"], { logLevel: "silent", cwd: oursDir });
 
   // Format only .ts files with rust dprint
   await $`npx dprint fmt --log-level silent *.ts`.cwd(theirsDir).quiet();
@@ -187,7 +187,7 @@ t.it("respects excludes option identically to rust dprint", async () => {
   fs.writeFileSync(path.join(theirsDir, "excluded", "code.ts"), malformattedTS);
 
   // Format with excludes using our implementation
-  await fmtCommand([], { excludes: ["**/excluded/**"], log_level: "silent", cwd: oursDir });
+  await fmtCommand([], { excludes: ["**/excluded/**"], logLevel: "silent", cwd: oursDir });
 
   // Format with excludes using rust dprint
   await $`npx dprint fmt --log-level silent --excludes "**/excluded/**"`.cwd(theirsDir).quiet();
@@ -215,7 +215,7 @@ t.it("returns same exit code when config file is missing", async () => {
   fs.writeFileSync(path.join(theirsDir, "test.ts"), malformattedTS);
 
   // Format with our implementation (disable config discovery to avoid finding parent config)
-  const ourExitCode = await fmtCommand([], { log_level: "silent", config_discovery: false, cwd: oursDir });
+  const ourExitCode = await fmtCommand([], { logLevel: "silent", configDiscovery: false, cwd: oursDir });
 
   // Format with rust dprint (use --config to specify non-existent config)
   const theirResult = await $`npx dprint fmt --log-level silent --config dprint.json`.cwd(theirsDir).nothrow().quiet();
@@ -237,7 +237,7 @@ t.it("returns same exit code when config has invalid JSON", async () => {
   fs.writeFileSync(path.join(theirsDir, "test.ts"), malformattedTS);
 
   // Format with our implementation
-  const ourExitCode = await fmtCommand([], { log_level: "silent", cwd: oursDir });
+  const ourExitCode = await fmtCommand([], { logLevel: "silent", cwd: oursDir });
 
   // Format with rust dprint
   const theirResult = await $`npx dprint fmt --log-level silent`.cwd(theirsDir).nothrow().quiet();
@@ -264,7 +264,7 @@ t.it("returns same exit code when config is missing plugins", async () => {
   fs.writeFileSync(path.join(theirsDir, "test.ts"), malformattedTS);
 
   // Format with our implementation
-  const ourExitCode = await fmtCommand([], { log_level: "silent", cwd: oursDir });
+  const ourExitCode = await fmtCommand([], { logLevel: "silent", cwd: oursDir });
 
   // Format with rust dprint
   const theirResult = await $`npx dprint fmt --log-level silent`.cwd(theirsDir).nothrow().quiet();
@@ -278,7 +278,7 @@ t.it("returns same exit code when config is missing plugins", async () => {
 
 t.it("returns same exit code for non-existent file argument", async () => {
   // Format with our implementation for a non-existent file
-  const ourExitCode = await fmtCommand(["non-existent-file.ts"], { log_level: "silent", cwd: oursDir });
+  const ourExitCode = await fmtCommand(["non-existent-file.ts"], { logLevel: "silent", cwd: oursDir });
 
   // Format with rust dprint for a non-existent file
   const theirResult = await $`npx dprint fmt --log-level silent non-existent-file.ts`.cwd(theirsDir).nothrow().quiet();
@@ -293,8 +293,8 @@ t.it("returns same exit code for non-existent file argument", async () => {
 t.it("returns same exit code with --allow-no-files for non-existent files", async () => {
   // Format with our implementation for a non-existent file with --allow-no-files
   const ourExitCode = await fmtCommand(["non-existent-file.ts"], {
-    allow_no_files: true,
-    log_level: "silent",
+    allowNoFiles: true,
+    logLevel: "silent",
     cwd: oursDir,
   });
 
