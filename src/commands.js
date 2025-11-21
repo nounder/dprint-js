@@ -47,7 +47,7 @@ export async function fmtCommand(filePatterns = [], options = {}) {
 
   if (loadedPlugins.length === 0) {
     console.error("Error: No formatters loaded. Make sure plugins are installed:");
-    console.error("  bun install @dprint/typescript @dprint/json @dprint/markdown");
+    console.error("  @dprint/typescript @dprint/json @dprint/markdown");
     return 1;
   }
 
@@ -111,7 +111,7 @@ export async function checkCommand(filePatterns = [], options = {}) {
 
   if (loadedPlugins.length === 0) {
     console.error("Error: No formatters loaded. Make sure plugins are installed:");
-    console.error("  bun install @dprint/typescript @dprint/json @dprint/markdown");
+    console.error("  @dprint/typescript @dprint/json @dprint/markdown");
     return 1;
   }
 
