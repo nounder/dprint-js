@@ -12,12 +12,19 @@
     "fmt": "bun run bin/dprint-js.js fmt",
     "check": "bun run bin/dprint-js.js check"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nounder/dprint-js.git"
+  },
   "keywords": [
     "dprint",
     "formatter"
   ],
   "author": "nounder",
   "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
   "dependencies": {
     "@dprint/formatter": "^0.4.1"
   },

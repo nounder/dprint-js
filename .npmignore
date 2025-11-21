@@ -1,0 +1,26 @@
+# Logs
+*.log
+npm-debug.log*
+
+# Tests
+test/
+*.test.js
+*.test.ts
+coverage/
+
+# Tools
+tsconfig.json
+.vscode/
+.github/
+
+# Junk
+.DS_Store
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Docs
+AGENTS.md
+CLAUDE.md
