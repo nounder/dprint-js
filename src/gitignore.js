@@ -129,13 +129,26 @@ function parseGitignoreContent(content, relativeDir = "") {
       patterns.push("!/" + path.join(relativeDir, line.slice(2)));
     } else if (relativeDir && line.startsWith("!")) {
       // Negation without rooted pattern in nested .gitignore
-      // !important.log in src/.gitignore should become !src/important.log
       const negatedPattern = line.slice(1);
       if (negatedPattern.startsWith("/")) {
         // This shouldn't happen (!/...) but handle it anyway
         patterns.push("!/" + path.join(relativeDir, negatedPattern.slice(1)));
       } else {
-        patterns.push("!" + path.join(relativeDir, negatedPattern));
+        // Check if negated pattern is recursive (no slash, or only trailing slash)
+        const patternWithoutTrailingSlash = negatedPattern.endsWith('/')
+          ? negatedPattern.slice(0, -1)
+          : negatedPattern;
+        const hasSlash = patternWithoutTrailingSlash.includes('/');
+
+        if (hasSlash) {
+          // Pattern with slash - anchored
+          // !build/dist in src/.gitignore should become !src/build/dist
+          patterns.push("!" + path.join(relativeDir, negatedPattern));
+        } else {
+          // Pattern without slash - recursive
+          // !important.log in src/.gitignore should become !src/**/important.log
+          patterns.push("!" + path.join(relativeDir, '**', negatedPattern));
+        }
       }
     } else if (relativeDir && line.startsWith("/")) {
       // Rooted pattern in nested .gitignore
@@ -143,8 +156,23 @@ function parseGitignoreContent(content, relativeDir = "") {
       patterns.push("/" + path.join(relativeDir, line.slice(1)));
     } else if (relativeDir) {
       // Non-rooted pattern in nested .gitignore
-      // *.log in src/.gitignore should become src/*.log
-      patterns.push(path.join(relativeDir, line));
+      // Check if pattern is recursive (no slash, or only trailing slash)
+      const patternWithoutTrailingSlash = line.endsWith('/')
+        ? line.slice(0, -1)
+        : line;
+      const hasSlash = patternWithoutTrailingSlash.includes('/');
+
+      if (hasSlash) {
+        // Pattern with slash - anchored, not recursive
+        // build/dist in src/.gitignore should become src/build/dist
+        patterns.push(path.join(relativeDir, line));
+      } else {
+        // Pattern without slash - recursive at any depth
+        // *.log in src/.gitignore should become src/**/*.log
+        // temp in src/.gitignore should become src/**/temp
+        // build/ in src/.gitignore should become src/**/build/
+        patterns.push(path.join(relativeDir, '**', line));
+      }
     } else {
       // Root .gitignore patterns - use as-is
       patterns.push(line);
