@@ -12,11 +12,6 @@
     "**/coverage",
     "test/fixtures/**"
   ],
-  "plugins": [
-    "@dprint/typescript",
-    "@dprint/json",
-    "@dprint/markdown"
-  ],
   "typescript": {},
   "json": {},
   "markdown": {}
