@@ -56,7 +56,7 @@ t.it("auto-loads plugins from package.json when config has no plugins property",
   fs.writeFileSync(jsonFile, "{\"a\":1,\"b\":2}");
 
   // Run format command - should auto-discover plugins
-  const exitCode = await fmtCommand([], { cwd: testDir });
+  const exitCode = await fmtCommand([], { cwd: testDir, allowGitignored: true });
 
   t.expect(exitCode).toBe(0);
 
@@ -99,7 +99,7 @@ t.it("auto-loads plugins from package.json when config has empty plugins array",
   fs.writeFileSync(tsFile, "const   y=2");
 
   // Run check command - should auto-discover plugins
-  const exitCode = await checkCommand([], { cwd: testDir });
+  const exitCode = await checkCommand([], { cwd: testDir, allowGitignored: true });
 
   // Should exit with 20 because file needs formatting
   t.expect(exitCode).toBe(20);
@@ -129,7 +129,7 @@ t.it("does not auto-load @dprint/formatter package", async () => {
   fs.writeFileSync(tsFile, "const x = 1;");
 
   // Run format command - should not find any plugins
-  const exitCode = await fmtCommand([], { cwd: testDir });
+  const exitCode = await fmtCommand([], { cwd: testDir, allowGitignored: true });
 
   // Should exit with 13 (no formatters loaded)
   t.expect(exitCode).toBe(13);
@@ -167,7 +167,7 @@ t.it("prefers explicit plugins config over auto-discovery", async () => {
   fs.writeFileSync(jsonFile, "{\"a\":1}");
 
   // Run format command - should use explicit config, not auto-discover
-  const exitCode = await fmtCommand([], { cwd: testDir });
+  const exitCode = await fmtCommand([], { cwd: testDir, allowGitignored: true });
 
   t.expect(exitCode).toBe(0);
 
