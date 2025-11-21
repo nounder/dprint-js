@@ -333,6 +333,8 @@ export async function loadPlugin(pluginName, cwd = process.cwd()) {
       // For plugins that haven't updated to getPath yet
       const buffer = pluginModule.getBuffer();
       const formatter = createFromBuffer(buffer);
+      // Must call setConfig before getFileMatchingInfo
+      formatter.setConfig({}, {});
       return { formatter, fileMatchingInfo: formatter.getFileMatchingInfo() };
     } else {
       throw new Error(`Plugin ${pluginName} does not export getPath() or getBuffer()`);
@@ -341,6 +343,9 @@ export async function loadPlugin(pluginName, cwd = process.cwd()) {
     // Read the WASM file
     const buffer = fs.readFileSync(wasmPath);
     const formatter = createFromBuffer(buffer);
+
+    // Must call setConfig before getFileMatchingInfo
+    formatter.setConfig({}, {});
 
     return { formatter, fileMatchingInfo: formatter.getFileMatchingInfo() };
   } catch (error) {
