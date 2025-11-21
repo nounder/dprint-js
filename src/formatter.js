@@ -79,11 +79,90 @@ function findPackageJson(configDir) {
 }
 
 /**
+ * Check if a package is a valid dprint plugin
+ * @param {string} packageName - Name of the package
+ * @param {string} packageDir - Directory where package.json is located (unused but kept for future use)
+ * @returns {Promise<boolean>} True if the package is a valid plugin
+ */
+async function isValidDprintPlugin(packageName, packageDir) {
+  try {
+    // Try to import and verify the module shape
+    // This checks if it has getPath() or getBuffer() methods
+    // The import will resolve from node_modules (local or parent directories)
+    const pluginModule = await import(packageName);
+
+    // Check if the module has the expected dprint plugin interface
+    const hasValidInterface =
+      typeof pluginModule.getPath === "function" ||
+      typeof pluginModule.getBuffer === "function";
+
+    if (!hasValidInterface) {
+      return false;
+    }
+
+    // Additional check: try to get the WASM path/buffer to verify it's accessible
+    try {
+      if (typeof pluginModule.getPath === "function") {
+        const wasmPath = pluginModule.getPath();
+        // Check if the WASM file exists
+        if (!fs.existsSync(wasmPath)) {
+          return false;
+        }
+      } else if (typeof pluginModule.getBuffer === "function") {
+        const buffer = pluginModule.getBuffer();
+        // Check if buffer is valid
+        if (!buffer || !Buffer.isBuffer(buffer)) {
+          return false;
+        }
+      }
+    } catch (accessError) {
+      // If we can't access the WASM, it's not a valid plugin
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    // If anything fails during validation (e.g., package doesn't exist), treat as invalid
+    return false;
+  }
+}
+
+/**
+ * Check if a package name matches dprint plugin patterns
+ * @param {string} name - Package name
+ * @returns {boolean} True if name matches dprint plugin patterns
+ */
+function matchesDprintPattern(name) {
+  // Exclude the base @dprint/formatter library
+  if (name === "@dprint/formatter") {
+    return false;
+  }
+
+  // Match @dprint/* packages
+  if (name.startsWith("@dprint/")) {
+    return true;
+  }
+
+  // Match non-scoped dprint-* packages
+  if (!name.startsWith("@") && name.startsWith("dprint-")) {
+    return true;
+  }
+
+  // Match scoped packages like @org/dprint-*
+  const scopedMatch = name.match(/^@[^/]+\/dprint-/);
+  if (scopedMatch) {
+    return true;
+  }
+
+  return false;
+}
+
+/**
  * Discover dprint plugins from package.json dependencies
  * @param {string} configDir - Directory containing the config file
- * @returns {string[]} Array of discovered plugin names
+ * @returns {Promise<string[]>} Array of discovered plugin names
  */
-function discoverPluginsFromPackageJson(configDir) {
+async function discoverPluginsFromPackageJson(configDir) {
   const packagePath = findPackageJson(configDir);
   if (!packagePath) {
     return [];
@@ -93,17 +172,23 @@ function discoverPluginsFromPackageJson(configDir) {
     const packageContent = fs.readFileSync(packagePath, "utf-8");
     const packageJson = JSON.parse(packageContent);
 
-    const plugins = [];
     const dependencies = { ...packageJson.dependencies, ...packageJson.devDependencies };
+    const candidateNames = Object.keys(dependencies).filter(matchesDprintPattern);
 
-    for (const [name] of Object.entries(dependencies)) {
-      // Include packages starting with @dprint/ but exclude @dprint/formatter (the base library)
-      if (name.startsWith("@dprint/") && name !== "@dprint/formatter") {
-        plugins.push(name);
-      }
-    }
+    // Validate all candidates in parallel for performance
+    const validationResults = await Promise.all(
+      candidateNames.map(async (name) => ({
+        name,
+        isValid: await isValidDprintPlugin(name, configDir),
+      }))
+    );
 
-    return plugins;
+    // Filter to only valid plugins
+    const validPlugins = validationResults
+      .filter((result) => result.isValid)
+      .map((result) => result.name);
+
+    return validPlugins;
   } catch (error) {
     // If we can't read or parse package.json, return empty array
     return [];
@@ -388,7 +473,7 @@ export async function loadPlugins(config, cwd = process.cwd(), configPath = null
   if (!plugins || plugins.length === 0) {
     // Use config directory if available, otherwise use cwd
     const searchDir = configPath ? path.dirname(configPath) : cwd;
-    plugins = discoverPluginsFromPackageJson(searchDir);
+    plugins = await discoverPluginsFromPackageJson(searchDir);
     if (plugins.length > 0) {
       console.log(`[INFO] No plugins specified in config, auto-discovered from package.json:`);
       for (const plugin of plugins) {
@@ -412,7 +497,12 @@ export async function loadPlugins(config, cwd = process.cwd(), configPath = null
       if (configKey) {
         pluginConfigKey = configKey;
       } else {
-        pluginConfigKey = pluginName.split("/")[1]; // e.g., '@dprint/typescript' -> 'typescript'
+        // Extract config key from package name
+        // @dprint/typescript -> typescript
+        // @org/dprint-markup -> dprint-markup
+        // dprint-json -> dprint-json
+        const parts = pluginName.split("/");
+        pluginConfigKey = parts.length > 1 ? parts[1] : pluginName;
       }
 
       const pluginConfig = config[pluginConfigKey] || {};
