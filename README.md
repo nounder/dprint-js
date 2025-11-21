@@ -1,4 +1,4 @@
-# dprint-js
+# dprint
 
 A JavaScript implementation of the dprint CLI for code formatting. This tool provides the core functionality of dprint, allowing you to format source code files using dprint's plugin system.
 
@@ -24,7 +24,7 @@ npm install
 Make the CLI executable:
 
 ```bash
-chmod +x bin/dprint-js.js
+chmod +x bin/dprint
 ```
 
 Optionally, link it globally:
@@ -40,7 +40,7 @@ npm link
 Create a new `dprint.json` configuration file in the current directory:
 
 ```bash
-node bin/dprint-js.js init
+node bin/dprint init
 ```
 
 ### Format Files
@@ -48,14 +48,14 @@ node bin/dprint-js.js init
 Format all files according to the configuration:
 
 ```bash
-node bin/dprint-js.js fmt
+node bin/dprint fmt
 ```
 
 Format specific files or patterns:
 
 ```bash
-node bin/dprint-js.js fmt src/**/*.ts
-node bin/dprint-js.js fmt -- src/**/*.ts test/**/*.js
+node bin/dprint fmt src/**/*.ts
+node bin/dprint fmt -- src/**/*.ts test/**/*.js
 ```
 
 ### Check Formatting
@@ -63,13 +63,13 @@ node bin/dprint-js.js fmt -- src/**/*.ts test/**/*.js
 Check if files are formatted correctly without modifying them:
 
 ```bash
-node bin/dprint-js.js check
+node bin/dprint check
 ```
 
 Check specific files:
 
 ```bash
-node bin/dprint-js.js check src/**/*.ts
+node bin/dprint check src/**/*.ts
 ```
 
 ## Configuration
@@ -121,23 +121,23 @@ The plugins in `dprint.json` should match npm package names installed in your pr
 
 ```bash
 # 1. Initialize project
-node bin/dprint-js.js init
+node bin/dprint init
 
 # 2. Install formatter plugins
 npm install @dprint/typescript @dprint/json @dprint/markdown
 
 # 3. Format your code
-node bin/dprint-js.js fmt
+node bin/dprint fmt
 
 # 4. Check formatting in CI
-node bin/dprint-js.js check
+node bin/dprint check
 ```
 
 ## CLI Options
 
 ```
 USAGE:
-    dprint-js <SUBCOMMAND> [OPTIONS] [--] [file patterns]...
+    dprint <SUBCOMMAND> [OPTIONS] [--] [file patterns]...
 
 SUBCOMMANDS:
     init     Initializes a configuration file in the current directory

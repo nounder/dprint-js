@@ -1,26 +1,25 @@
 {
-  "name": "dprint-js",
+  "name": "dprint-cli",
   "version": "0.1.0",
-  "description": "JavaScript implementation of dprint CLI for code formatting",
+  "description": "JavaScript implementation of dprint CLI for formatter",
   "type": "module",
-  "main": "src/cli.js",
   "bin": {
-    "dprint-js": "./bin/dprint-js"
+    "dprint": "./bin/dprint"
   },
   "scripts": {
     "test": "bun test ./test",
-    "fmt": "bun run bin/dprint-js.js fmt",
-    "check": "bun run bin/dprint-js.js check"
+    "format": "bun run ./bin/dprint fmt",
+    "check": "bun run ./bin/dprint check",
+    "publish": "bunx npm publish"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/nounder/dprint-js.git"
+    "url": "git+https://github.com/nounder/dprint-cli.git"
   },
   "keywords": [
     "dprint",
-    "formatter"
+    "formatting"
   ],
-  "author": "nounder",
   "license": "MIT",
   "publishConfig": {
     "access": "public"

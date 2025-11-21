@@ -1,4 +1,5 @@
 import { checkCommand, fmtCommand, initCommand } from "./commands.js";
+import { DPRINT } from "./constants.js";
 
 /**
  * Parse command line arguments
@@ -94,7 +95,7 @@ export async function main(args = process.argv.slice(2)) {
 
       default:
         console.error(`Error: Unknown command '${parsed.command}'`);
-        console.error("Run 'dprint-js help' for usage information");
+        console.error(`Run '${DPRINT} help' for usage information`);
         return 1;
     }
   } catch (error) {

@@ -27,9 +27,9 @@ The original dprint uses **xxHash** (via the `twox-hash` Rust crate) for fast, n
 
 The cache is stored in the system's standard cache directory:
 
-- **Linux**: `~/.cache/dprint-js/`
-- **macOS**: `~/Library/Caches/dprint-js/`
-- **Windows**: `%LOCALAPPDATA%\dprint-js\`
+- **Linux**: `~/.cache/dprint/`
+- **macOS**: `~/Library/Caches/dprint/`
+- **Windows**: `%LOCALAPPDATA%\dprint\`
 
 Users can override this by setting the `DPRINT_CACHE_DIR` environment variable.
 
@@ -38,7 +38,7 @@ Users can override this by setting the `DPRINT_CACHE_DIR` environment variable.
 The cache directory contains:
 
 ```
-~/.cache/dprint-js/
+~/.cache/dprint/
 ├── incremental/
 │   └── cache-manifest.json
 └── plugins/
@@ -73,7 +73,7 @@ The cache key is computed from configuration that affects formatting:
 
 1. **Config file content**: Hash of `dprint.json` (excluding `includes`/`excludes`)
 2. **Plugin versions**: Versions of loaded formatter plugins
-3. **dprint-js version**: Version of this tool
+3. **dprint version**: Version of this tool
 
 If any of these change, the cache is automatically invalidated and rebuilt.
 
@@ -81,8 +81,8 @@ If any of these change, the cache is automatically invalidated and rebuilt.
 
 1. **Configuration changes**: Any formatting-related config option changes
 2. **Plugin updates**: Any formatter plugin is updated
-3. **Tool updates**: dprint-js itself is updated
-4. **Manual clear**: User runs `dprint-js clear-cache` or deletes cache directory
+3. **Tool updates**: dprint itself is updated
+4. **Manual clear**: User runs `dprint clear-cache` or deletes cache directory
 5. **Cache version mismatch**: Cache manifest schema version doesn't match
 
 ## Cache Structure

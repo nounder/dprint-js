@@ -1,3 +1,5 @@
+import { DPRINT } from "./constants.js";
+
 /**
  * Argument parser for dprint-js CLI
  */
@@ -133,10 +135,10 @@ function parseValue(value) {
  * Show general help message
  */
 export function showHelp() {
-  console.log(`dprint-js - JavaScript implementation of dprint CLI
+  console.log(`${DPRINT} - JavaScript implementation of dprint CLI
 
 USAGE:
-    dprint-js <SUBCOMMAND> [OPTIONS] [--] [file patterns]...
+    ${DPRINT} <SUBCOMMAND> [OPTIONS] [--] [file patterns]...
 
 SUBCOMMANDS:
     init     Initializes a configuration file in the current directory
@@ -144,7 +146,7 @@ SUBCOMMANDS:
     check    Checks for any files that haven't been formatted
     help     Shows this help message
 
-Use 'dprint-js <subcommand> --help' for more information on a specific command.
+Use '${DPRINT} <subcommand> --help' for more information on a specific command.
 `);
 }
 

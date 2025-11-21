@@ -1,10 +1,10 @@
-# AI Agent Guide for dprint-js
+# AI Agent Guide for dprint
 
-This document provides guidance for AI assistants (like Claude) working on the dprint-js project.
+This document provides guidance for AI assistants (like Claude) working on the dprint project.
 
 ## Project Overview
 
-**dprint-js** is a JavaScript/TypeScript implementation of the dprint CLI for code formatting. It aims to provide feature parity with the official Rust dprint CLI while being npm-installable and JavaScript-native.
+**dprint** is a JavaScript/TypeScript implementation of the dprint CLI for code formatting. It aims to provide feature parity with the official Rust dprint CLI while being npm-installable and JavaScript-native.
 
 ### Key Goals
 
@@ -37,7 +37,7 @@ dprint-js/
 │   ├── config_excludes.test.ts   # 13 tests for exclude patterns
 │   └── config_formatting.test.ts # 5 tests for formatting options
 ├── bin/
-│   └── dprint-js           # Executable entry point
+│   └── dprint              # Executable entry point
 ├── dprint.json             # Project's own config
 └── package.json
 ```

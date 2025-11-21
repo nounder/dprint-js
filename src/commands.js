@@ -3,6 +3,7 @@ import * as path from "node:path";
 import { findConfigFile, getDefaultConfig, loadConfig } from "./config.js";
 import { findFiles } from "./files.js";
 import { formatFile, loadPlugins } from "./formatter.js";
+import { DPRINT } from "./constants.js";
 
 /**
  * Initialize a new dprint.json configuration file
@@ -33,7 +34,7 @@ export async function fmtCommand(filePatterns = [], options = {}) {
 
   if (!configPath) {
     console.error("Error: No dprint.json configuration file found");
-    console.error("Run 'dprint-js init' to create one");
+    console.error(`Run '${DPRINT} init' to create one`);
     return 1;
   }
 
@@ -97,7 +98,7 @@ export async function checkCommand(filePatterns = [], options = {}) {
 
   if (!configPath) {
     console.error("Error: No dprint.json configuration file found");
-    console.error("Run 'dprint-js init' to create one");
+    console.error(`Run '${DPRINT} init' to create one`);
     return 1;
   }
 
@@ -146,7 +147,7 @@ export async function checkCommand(filePatterns = [], options = {}) {
     for (const file of unformattedFiles) {
       console.error(`  ${file}`);
     }
-    console.error("\nRun 'dprint-js fmt' to format them");
+    console.error(`\nRun '${DPRINT} fmt' to format them`);
     return 1;
   }
 

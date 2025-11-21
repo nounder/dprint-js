@@ -1,6 +1,6 @@
-# Testing Guide for dprint-js
+# Testing Guide for dprint
 
-This skill provides comprehensive testing guidance for the dprint-js project.
+This skill provides comprehensive testing guidance for the dprint project.
 
 ## Test Requirements
 

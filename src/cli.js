@@ -2,6 +2,7 @@ import { parseArgs, showCheckHelp, showFmtHelp, showHelp, showInitHelp } from ".
 import checkCommand from "./commands/check.js";
 import fmtCommand from "./commands/fmt.js";
 import initCommand from "./commands/init.js";
+import { DPRINT } from "./constants.js";
 
 /**
  * Main CLI function
@@ -46,7 +47,7 @@ export async function main(args = process.argv.slice(2)) {
 
       default:
         console.error(`Error: Unknown command '${parsed.command}'`);
-        console.error("Run 'dprint-js help' for usage information");
+        console.error(`Run '${DPRINT} help' for usage information`);
         return 1;
     }
   } catch (error) {

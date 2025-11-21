@@ -4,6 +4,7 @@ import { computeCacheKey, getCacheDirectory, hashContent, IncrementalCache } fro
 import { findConfigFile, loadConfig } from "../config.js";
 import { findFiles } from "../files.js";
 import { formatFile, loadPlugins } from "../formatter.js";
+import { DPRINT } from "../constants.js";
 
 /**
  * Check if files are formatted correctly
@@ -24,7 +25,7 @@ export default async function checkCommand(filePatterns = [], options = {}) {
   if (!configPath) {
     if (shouldLog("error")) {
       console.error("Error: No dprint.json configuration file found");
-      console.error("Run 'dprint-js init' to create one");
+      console.error(`Run '${DPRINT} init' to create one`);
     }
     return 11; // Config error exit code
   }
@@ -180,7 +181,7 @@ export default async function checkCommand(filePatterns = [], options = {}) {
         for (const file of unformattedFiles) {
           console.error(`  ${file}`);
         }
-        console.error("\nRun 'dprint-js fmt' to format them");
+        console.error(`\nRun '${DPRINT} fmt' to format them`);
       }
     }
     // Return exit code 20 to match dprint standard (20 = unformatted files)
