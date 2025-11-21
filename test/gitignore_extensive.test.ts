@@ -287,9 +287,11 @@ describe("gitignore - extensive tests", () => {
       const config = { includes: ["**/*"] };
       const files = await findFiles(config, [], testDir);
 
-      // build/important should be un-ignored
-      expect(files).toContain("build/important/config.js");
-      // Other build files should be ignored
+      // Git limitation: Once a directory is ignored, you cannot un-ignore
+      // a subdirectory. The negation !build/important/ has no effect because
+      // git doesn't descend into build/ at all.
+      // All build files should be ignored
+      expect(files).not.toContain("build/important/config.js");
       expect(files).not.toContain("build/app.js");
       expect(files).not.toContain("build/temp/cache.js");
     });
@@ -480,10 +482,10 @@ describe("gitignore - extensive tests", () => {
       const config = { includes: ["**/*"] };
       const files = await findFiles(config, [], testDir);
 
-      // * should ignore all files in root
+      // * matches everything including directory names
+      // Since it matches "src", everything under src/ is also ignored
       expect(files).not.toContain("test.js");
-      // But not in subdirectories
-      expect(files).toContain("src/app.js");
+      expect(files).not.toContain("src/app.js");
     });
 
     test("multiple nested .gitignore files with complex patterns", async () => {
