@@ -5,6 +5,8 @@
  * regardless of the underlying library being used.
  */
 
+import { Glob } from "bun";
+
 /**
  * Normalize exclude patterns for glob matching
  *
@@ -79,4 +81,70 @@ export function normalizePattern(pattern, type = "exclude") {
   } else {
     return normalizeIncludePatterns([pattern])[0];
   }
+}
+
+/**
+ * Find files matching include patterns while excluding specified patterns
+ *
+ * @param {string[]} includePatterns - Array of glob patterns to include
+ * @param {string[]} excludePatterns - Array of glob patterns to exclude (normalized)
+ * @param {string} cwd - Current working directory
+ * @returns {string[]} Array of matching file paths
+ */
+export function findMatchingFiles(includePatterns, excludePatterns, cwd) {
+  // Determine if we need to scan dot files
+  // If any include pattern explicitly references dot files/directories, enable dot scanning
+  const needsDotFiles = includePatterns.some((pattern) => pattern.startsWith(".") || pattern.includes("/."));
+
+  const allFiles = new Set();
+  const excludeGlobs = excludePatterns.map((pattern) => new Glob(pattern));
+
+  for (const pattern of includePatterns) {
+    const glob = new Glob(pattern);
+
+    try {
+      const iterator = glob.scanSync({
+        cwd,
+        dot: needsDotFiles,
+        absolute: false,
+        onlyFiles: true,
+        followSymlinks: false, // Prevent following symlinks to avoid circular references
+      });
+
+      // Process each file from the iterator
+      for (const file of iterator) {
+        // Security: Filter out paths that escape cwd (Bun glob bug defense)
+        // https://github.com/oven-sh/bun/issues/24936
+        // Paths starting with ../ or containing /../ are outside the working directory
+        if (file.startsWith("../") || file.includes("/../")) {
+          continue;
+        }
+
+        // Check if file matches any exclude pattern
+        let shouldExclude = false;
+        for (const excludeGlob of excludeGlobs) {
+          if (excludeGlob.match(file)) {
+            shouldExclude = true;
+            break;
+          }
+        }
+
+        if (!shouldExclude) {
+          allFiles.add(file);
+        }
+      }
+    } catch (error) {
+      // Skip patterns that cause filesystem errors
+      // ENAMETOOLONG: filename too long (from circular symlinks)
+      // ELOOP: too many symlink levels
+      // EPERM: permission denied
+      if (error.code === "ENAMETOOLONG" || error.code === "ELOOP" || error.code === "EPERM") {
+        console.warn(`Warning: Skipping pattern '${pattern}' due to filesystem error: ${error.message}`);
+        continue;
+      }
+      throw error;
+    }
+  }
+
+  return Array.from(allFiles);
 }

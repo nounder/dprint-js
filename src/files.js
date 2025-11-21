@@ -1,7 +1,7 @@
-import { Glob } from "bun";
 import * as path from "node:path";
 import * as fs from "node:fs";
-import { normalizeExcludePatterns, normalizeIncludePatterns } from "./glob.js";
+import { Glob } from "bun";
+import { normalizeExcludePatterns, normalizeIncludePatterns, findMatchingFiles } from "./glob.js";
 import ignore from "./gitignore.js";
 
 /**
@@ -48,52 +48,8 @@ export async function findFiles(config, additionalPatterns = [], cwd = process.c
   // Normalize exclude patterns
   const normalizedExcludes = normalizeExcludePatterns(excludes);
 
-  // Determine if we need to scan dot files
-  // If any include pattern explicitly references dot files/directories, enable dot scanning
-  const needsDotFiles = includes.some((pattern) => pattern.startsWith(".") || pattern.includes("/."));
-
-  // Use Bun.Glob to find files
-  const allFiles = new Set();
-  const excludeGlobs = normalizedExcludes.map((pattern) => new Glob(pattern));
-
-  for (const pattern of includes) {
-    const glob = new Glob(pattern);
-
-    try {
-      const iterator = glob.scanSync({
-        cwd,
-        dot: needsDotFiles,
-        absolute: false,
-        onlyFiles: true,
-        followSymlinks: false, // Prevent following symlinks to avoid circular references
-      });
-
-      // Process each file from the iterator
-      for (const file of iterator) {
-        // Check if file matches any exclude pattern
-        let shouldExclude = false;
-        for (const excludeGlob of excludeGlobs) {
-          if (excludeGlob.match(file)) {
-            shouldExclude = true;
-            break;
-          }
-        }
-
-        if (!shouldExclude) {
-          allFiles.add(file);
-        }
-      }
-    } catch (error) {
-      // Skip patterns that cause filesystem errors (e.g., ENAMETOOLONG from circular symlinks)
-      if (error.code === 'ENAMETOOLONG' || error.code === 'ELOOP') {
-        console.error(`Warning: Skipping pattern '${pattern}' due to filesystem error: ${error.message}`);
-        continue;
-      }
-      throw error;
-    }
-  }
-
-  let files = Array.from(allFiles);
+  // Find matching files using glob patterns
+  let files = findMatchingFiles(includes, normalizedExcludes, cwd);
 
   // Apply .gitignore patterns unless disabled
   if (!options.allowGitignored) {
