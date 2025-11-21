@@ -12,6 +12,11 @@ coverage/
 tsconfig.json
 .vscode/
 .github/
+package-lock.json
+bun.lock
+bunfig.toml
+dprint.json
+.claude/
 
 # Junk
 .DS_Store
@@ -24,3 +29,4 @@ tsconfig.json
 # Docs
 AGENTS.md
 CLAUDE.md
+doc/
