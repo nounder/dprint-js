@@ -1,13 +1,15 @@
 import { $ } from "bun";
 import * as t from "bun:test";
 import * as fs from "node:fs";
+import * as os from "node:os";
 import * as path from "node:path";
 import checkCommand from "../../src/commands/check.js";
 
 const projectRoot = process.cwd();
-const testDir = path.join(projectRoot, "test/comparison-tmp-check");
-const oursDir = path.join(testDir, "ours");
-const theirsDir = path.join(testDir, "theirs");
+
+let testDir;
+let oursDir;
+let theirsDir;
 
 // Sample malformatted and formatted code
 const malformattedTS = `const   x=1;const    y={a:1,b:2};`;
@@ -15,10 +17,12 @@ const formattedTS = `const x = 1;\nconst y = { a: 1, b: 2 };\n`;
 const malformattedJSON = `{"a":1,"b":2}`;
 
 t.beforeEach(() => {
+  // Create unique test directory in /tmp
+  testDir = fs.mkdtempSync(path.join(os.tmpdir(), "dprint-test-comparison-check-"));
+  oursDir = path.join(testDir, "ours");
+  theirsDir = path.join(testDir, "theirs");
+
   // Create test directories
-  if (fs.existsSync(testDir)) {
-    fs.rmSync(testDir, { recursive: true, force: true });
-  }
   fs.mkdirSync(oursDir, { recursive: true });
   fs.mkdirSync(theirsDir, { recursive: true });
 
@@ -58,7 +62,8 @@ t.beforeEach(() => {
 });
 
 t.afterEach(() => {
-  if (fs.existsSync(testDir)) {
+  // Clean up test directory
+  if (testDir && fs.existsSync(testDir)) {
     fs.rmSync(testDir, { recursive: true, force: true });
   }
 });
@@ -69,7 +74,7 @@ t.it("returns same exit code for formatted files", async () => {
   fs.writeFileSync(path.join(theirsDir, "test.ts"), formattedTS);
 
   // Check with our implementation
-  const ourExitCode = await checkCommand([], { log_level: "silent", cwd: oursDir });
+  const ourExitCode = await checkCommand([], { logLevel: "silent", cwd: oursDir });
 
   // Check with rust dprint
   const theirResult = await $`npx dprint check --log-level silent`.cwd(theirsDir).nothrow().quiet();
@@ -87,7 +92,7 @@ t.it("returns same exit code for unformatted files", async () => {
   fs.writeFileSync(path.join(theirsDir, "test.ts"), malformattedTS);
 
   // Check with our implementation
-  const ourExitCode = await checkCommand([], { log_level: "silent", cwd: oursDir });
+  const ourExitCode = await checkCommand([], { logLevel: "silent", cwd: oursDir });
 
   // Check with rust dprint
   const theirResult = await $`npx dprint check --log-level silent`.cwd(theirsDir).nothrow().quiet();
@@ -103,7 +108,7 @@ t.it("returns same exit code for no files found", async () => {
   // No files created
 
   // Check with our implementation
-  const ourExitCode = await checkCommand([], { log_level: "silent", cwd: oursDir });
+  const ourExitCode = await checkCommand([], { logLevel: "silent", cwd: oursDir });
 
   // Check with rust dprint
   const theirResult = await $`npx dprint check --log-level silent`.cwd(theirsDir).nothrow().quiet();
@@ -119,7 +124,7 @@ t.it("returns same exit code with --allow-no-files", async () => {
   // No files created
 
   // Check with our implementation
-  const ourExitCode = await checkCommand([], { allow_no_files: true, log_level: "silent", cwd: oursDir });
+  const ourExitCode = await checkCommand([], { allowNoFiles: true, logLevel: "silent", cwd: oursDir });
 
   // Check with rust dprint
   const theirResult = await $`npx dprint check --log-level silent --allow-no-files`.cwd(theirsDir).nothrow().quiet();
@@ -140,7 +145,7 @@ t.it("handles mixed formatted/unformatted files identically", async () => {
   fs.writeFileSync(path.join(theirsDir, "unformatted.ts"), malformattedTS);
 
   // Check with our implementation
-  const ourExitCode = await checkCommand([], { log_level: "silent", cwd: oursDir });
+  const ourExitCode = await checkCommand([], { logLevel: "silent", cwd: oursDir });
 
   // Check with rust dprint
   const theirResult = await $`npx dprint check --log-level silent`.cwd(theirsDir).nothrow().quiet();
@@ -161,7 +166,7 @@ t.it("respects file patterns identically", async () => {
   fs.writeFileSync(path.join(theirsDir, "test.json"), malformattedJSON);
 
   // Check only test.json files with our implementation
-  const ourExitCode = await checkCommand(["test.json"], { log_level: "silent", cwd: oursDir });
+  const ourExitCode = await checkCommand(["test.json"], { logLevel: "silent", cwd: oursDir });
 
   // Check only test.json files with rust dprint
   const theirResult = await $`npx dprint check --log-level silent test.json`.cwd(theirsDir).nothrow().quiet();
@@ -222,7 +227,7 @@ t.it("returns same exit code when config file is missing", async () => {
   fs.writeFileSync(path.join(theirsDir, "test.ts"), malformattedTS);
 
   // Check with our implementation (disable config discovery to avoid finding parent config)
-  const ourExitCode = await checkCommand([], { log_level: "silent", config_discovery: false, cwd: oursDir });
+  const ourExitCode = await checkCommand([], { logLevel: "silent", configDiscovery: false, cwd: oursDir });
 
   // Check with rust dprint (use --config to specify non-existent config)
   const theirResult = await $`npx dprint check --log-level silent --config dprint.json`.cwd(theirsDir).nothrow()
@@ -245,7 +250,7 @@ t.it("returns same exit code when config has invalid JSON", async () => {
   fs.writeFileSync(path.join(theirsDir, "test.ts"), malformattedTS);
 
   // Check with our implementation
-  const ourExitCode = await checkCommand([], { log_level: "silent", cwd: oursDir });
+  const ourExitCode = await checkCommand([], { logLevel: "silent", cwd: oursDir });
 
   // Check with rust dprint
   const theirResult = await $`npx dprint check --log-level silent`.cwd(theirsDir).nothrow().quiet();
@@ -272,7 +277,7 @@ t.it("returns same exit code when config is missing plugins", async () => {
   fs.writeFileSync(path.join(theirsDir, "test.ts"), malformattedTS);
 
   // Check with our implementation
-  const ourExitCode = await checkCommand([], { log_level: "silent", cwd: oursDir });
+  const ourExitCode = await checkCommand([], { logLevel: "silent", cwd: oursDir });
 
   // Check with rust dprint
   const theirResult = await $`npx dprint check --log-level silent`.cwd(theirsDir).nothrow().quiet();
@@ -286,7 +291,7 @@ t.it("returns same exit code when config is missing plugins", async () => {
 
 t.it("returns same exit code for non-existent file argument", async () => {
   // Check with our implementation for a non-existent file
-  const ourExitCode = await checkCommand(["non-existent-file.ts"], { log_level: "silent", cwd: oursDir });
+  const ourExitCode = await checkCommand(["non-existent-file.ts"], { logLevel: "silent", cwd: oursDir });
 
   // Check with rust dprint for a non-existent file
   const theirResult = await $`npx dprint check --log-level silent non-existent-file.ts`.cwd(theirsDir).nothrow()

@@ -1,16 +1,16 @@
 import * as t from "bun:test";
 import * as fs from "node:fs";
+import * as os from "node:os";
 import * as path from "node:path";
 import fmtCommand from "../src/commands/fmt.js";
 
-const projectRoot = process.cwd();
-const testDir = path.join(projectRoot, "test-tmp-fmt");
-const configPath = path.join(testDir, "dprint.json");
+let testDir;
+let configPath;
+
 t.beforeEach(() => {
-  // Create test directory
-  if (!fs.existsSync(testDir)) {
-    fs.mkdirSync(testDir, { recursive: true });
-  }
+  // Create unique test directory in /tmp
+  testDir = fs.mkdtempSync(path.join(os.tmpdir(), "dprint-test-fmt-"));
+  configPath = path.join(testDir, "dprint.json");
 
   // Create a valid dprint.json
   const config = {
@@ -27,7 +27,7 @@ t.beforeEach(() => {
 
 t.afterEach(() => {
   // Clean up test directory
-  if (fs.existsSync(testDir)) {
+  if (testDir && fs.existsSync(testDir)) {
     fs.rmSync(testDir, { recursive: true, force: true });
   }
 });
@@ -114,15 +114,14 @@ t.it("returns 14 when no files found", async () => {
 });
 
 t.it("returns 0 when no files found with --allow-no-files", async () => {
-  const exitCode = await fmtCommand([], { allow_no_files: true, cwd: testDir });
+  const exitCode = await fmtCommand([], { allowNoFiles: true, cwd: testDir });
 
   t.expect(exitCode).toBe(0);
 });
 
 t.it("returns 11 when no config file found", async () => {
-  // Use /tmp for truly isolated testing outside project root
-  const isolatedDir = path.join("/tmp", "dprint-test-isolated-" + Date.now());
-  fs.mkdirSync(isolatedDir, { recursive: true });
+  // Use isolated directory without config
+  const isolatedDir = fs.mkdtempSync(path.join(os.tmpdir(), "dprint-test-noconfig-"));
 
   try {
     const exitCode = await fmtCommand([], { cwd: isolatedDir });

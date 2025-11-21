@@ -1,0 +1,5 @@
+[test]
+# `bun test` discovers tests from ALL git worktrees (tree/*, claude/*),
+# running tests from multiple branches simultaneously and polluting fixture files.
+# we need to scope it.
+root = "./test"

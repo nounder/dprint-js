@@ -1,5 +1,6 @@
 import * as t from "bun:test";
 import * as fs from "node:fs";
+import * as os from "node:os";
 import * as path from "node:path";
 import { formatFile, formatText, getFormatterForFile, loadPlugin, loadPlugins } from "../src/formatter.js";
 
@@ -71,18 +72,31 @@ t.it("handles missing plugin gracefully", async () => {
   t.expect(plugins.length).toBe(2);
 });
 
-t.it("returns empty array when no plugins specified", async () => {
+t.it("returns empty array when no plugins specified and no package.json", async () => {
+  // Create a unique temp directory without package.json
+  const uniqueTempDir = path.join(process.cwd(), "test-tmp-no-plugins-" + Date.now());
+  if (!fs.existsSync(uniqueTempDir)) {
+    fs.mkdirSync(uniqueTempDir, { recursive: true });
+  }
+  const configPath = path.join(uniqueTempDir, "dprint.json");
+  fs.writeFileSync(configPath, JSON.stringify({ plugins: [] }));
+
   const config = { plugins: [] };
-  const plugins = await loadPlugins(config);
+  const plugins = await loadPlugins(config, uniqueTempDir, configPath);
 
   t.expect(plugins.length).toBe(0);
+
+  // Cleanup
+  fs.rmSync(uniqueTempDir, { recursive: true, force: true });
 });
 
-t.it("returns empty array when plugins key missing", async () => {
+t.it("auto-loads plugins from package.json when plugins key missing", async () => {
+  // When no plugins specified, should auto-discover from package.json
   const config = {};
   const plugins = await loadPlugins(config);
 
-  t.expect(plugins.length).toBe(0);
+  // Should find the plugins from the project's package.json
+  t.expect(plugins.length).toBeGreaterThan(0);
 });
 
 t.it("returns typescript formatter for .ts files", async () => {
@@ -227,8 +241,9 @@ t.it("returns same text if already formatted", async () => {
 });
 
 const projectRoot = process.cwd();
-const testDir = path.join(projectRoot, "test-tmp-formatter");
 const dataDir = path.join(projectRoot, "test/fixtures");
+
+let testDir: string;
 let loadedPlugins: any[];
 const config = {
   plugins: ["@dprint/typescript", "@dprint/json", "@dprint/markdown"],
@@ -238,14 +253,14 @@ const config = {
 };
 
 t.beforeAll(async () => {
+  // Create unique test directory in /tmp
+  testDir = fs.mkdtempSync(path.join(os.tmpdir(), "dprint-test-formatter-"));
   loadedPlugins = await loadPlugins(config);
-  if (!fs.existsSync(testDir)) {
-    fs.mkdirSync(testDir, { recursive: true });
-  }
 });
 
 t.afterAll(() => {
-  if (fs.existsSync(testDir)) {
+  // Clean up test directory
+  if (testDir && fs.existsSync(testDir)) {
     fs.rmSync(testDir, { recursive: true, force: true });
   }
 });

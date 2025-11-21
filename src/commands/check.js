@@ -10,7 +10,7 @@ import { formatFile, loadPlugins } from "../formatter.js";
  */
 export default async function checkCommand(filePatterns = [], options = {}) {
   const cwd = options.cwd || process.cwd();
-  const logLevel = options.log_level || "info";
+  const logLevel = options.logLevel || "info";
   const shouldLog = (level) => {
     const levels = ["debug", "info", "warn", "error", "silent"];
     const currentLevel = levels.indexOf(logLevel);
@@ -51,7 +51,7 @@ export default async function checkCommand(filePatterns = [], options = {}) {
 
   let loadedPlugins;
   try {
-    loadedPlugins = await loadPlugins(config, cwd);
+    loadedPlugins = await loadPlugins(config, cwd, configPath);
   } catch (error) {
     if (shouldLog("error")) {
       console.error(`Error: ${error.message}`);
@@ -100,7 +100,7 @@ export default async function checkCommand(filePatterns = [], options = {}) {
       console.log("No files found to check");
     }
     // Exit with 0 if --allow-no-files, otherwise 14
-    return options.allow_no_files ? 0 : 14;
+    return options.allowNoFiles ? 0 : 14;
   }
 
   if (shouldLog("info")) {
@@ -168,7 +168,7 @@ export default async function checkCommand(filePatterns = [], options = {}) {
   }
 
   if (unformattedFiles.length > 0) {
-    if (options.list_different) {
+    if (options.listDifferent) {
       // Just output file paths, no extra text
       for (const file of unformattedFiles) {
         console.log(file);
