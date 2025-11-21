@@ -2,9 +2,87 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { computeCacheKey, getCacheDirectory, hashContent, IncrementalCache } from "../cache.js";
 import { findConfigFile, loadConfig } from "../config.js";
-import { findFiles } from "../files.js";
-import { formatFile, loadPlugins } from "../formatter.js";
 import { DPRINT } from "../constants.js";
+import { findFiles } from "../files.js";
+import { formatFile, formatText, getFormatterForFile, loadPlugins } from "../formatter.js";
+
+/**
+ * Read all data from stdin
+ * @returns {Promise<string>} The stdin content
+ */
+async function readStdin() {
+  return new Promise((resolve, reject) => {
+    const chunks = [];
+    process.stdin.setEncoding("utf-8");
+
+    process.stdin.on("data", (chunk) => {
+      chunks.push(chunk);
+    });
+
+    process.stdin.on("end", () => {
+      resolve(chunks.join(""));
+    });
+
+    process.stdin.on("error", (error) => {
+      reject(error);
+    });
+  });
+}
+
+/**
+ * Handle stdin formatting
+ * @param {string} stdinValue - The value of --stdin (extension, filename, or filepath)
+ * @param {Array} loadedPlugins - Array of loaded plugin objects
+ * @param {string} cwd - Current working directory
+ * @param {Function} shouldLog - Function to check if a log level should be output
+ * @returns {Promise<number>} Exit code
+ */
+async function handleStdin(stdinValue, loadedPlugins, cwd, shouldLog) {
+  try {
+    // Read content from stdin
+    const content = await readStdin();
+
+    // Determine the file path to use for formatter selection
+    // If it's an absolute path, use it as-is
+    // If it's a relative path or just an extension/filename, resolve it
+    let filePath;
+    if (path.isAbsolute(stdinValue)) {
+      filePath = stdinValue;
+    } else if (stdinValue.includes("/") || stdinValue.includes("\\")) {
+      // Relative path
+      filePath = path.join(cwd, stdinValue);
+    } else if (stdinValue.includes(".")) {
+      // Filename with extension (e.g., "test.ts" or just ".ts")
+      filePath = stdinValue.startsWith(".") ? `file${stdinValue}` : stdinValue;
+    } else {
+      // Just an extension (e.g., "ts")
+      filePath = `file.${stdinValue}`;
+    }
+
+    // Get the appropriate formatter
+    const formatter = getFormatterForFile(filePath, loadedPlugins);
+
+    if (!formatter) {
+      if (shouldLog("error")) {
+        console.error(`Error: No formatter found for ${stdinValue}`);
+      }
+      return 13; // Plugin error exit code
+    }
+
+    // Format the content
+    const formatted = formatText(filePath, content, formatter);
+
+    // Output ONLY the formatted content to stdout
+    process.stdout.write(formatted);
+
+    return 0;
+  } catch (error) {
+    if (shouldLog("error")) {
+      console.error(`Error: ${error.message}`);
+    }
+    return 1;
+  }
+}
 
 /**
  * Format files according to configuration
@@ -70,6 +148,11 @@ export default async function fmtCommand(filePatterns = [], options = {}) {
 
   if (shouldLog("info")) {
     console.log(`Loaded ${loadedPlugins.length} formatter(s)`);
+  }
+
+  // Handle stdin mode
+  if (options.stdin) {
+    return await handleStdin(options.stdin, loadedPlugins, cwd, shouldLog);
   }
 
   // Initialize incremental cache if enabled
