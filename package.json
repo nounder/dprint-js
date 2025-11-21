@@ -8,7 +8,7 @@
     "dprint-js": "./bin/dprint-js"
   },
   "scripts": {
-    "test": "bun test",
+    "test": "bun test ./test",
     "fmt": "bun run bin/dprint-js.js fmt",
     "check": "bun run bin/dprint-js.js check"
   },

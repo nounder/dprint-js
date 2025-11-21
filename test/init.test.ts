@@ -1,22 +1,21 @@
 import * as t from "bun:test";
 import * as fs from "node:fs";
+import * as os from "node:os";
 import * as path from "node:path";
 import initCommand from "../src/commands/init.js";
 
-const projectRoot = process.cwd();
-const testDir = path.join(projectRoot, "test-tmp-init");
-const configPath = path.join(testDir, "dprint.json");
+let testDir;
+let configPath;
 
 t.beforeEach(() => {
-  // Create test directory
-  if (!fs.existsSync(testDir)) {
-    fs.mkdirSync(testDir, { recursive: true });
-  }
+  // Create unique test directory in /tmp
+  testDir = fs.mkdtempSync(path.join(os.tmpdir(), "dprint-test-init-"));
+  configPath = path.join(testDir, "dprint.json");
 });
 
 t.afterEach(() => {
   // Clean up test directory
-  if (fs.existsSync(testDir)) {
+  if (testDir && fs.existsSync(testDir)) {
     fs.rmSync(testDir, { recursive: true, force: true });
   }
 });

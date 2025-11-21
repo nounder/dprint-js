@@ -1,14 +1,16 @@
 import { $ } from "bun";
 import * as t from "bun:test";
 import * as fs from "node:fs";
+import * as os from "node:os";
 import * as path from "node:path";
 import fmtCommand from "../../src/commands/fmt.js";
 
 const projectRoot = process.cwd();
-const testDir = path.join(projectRoot, "test/comparison-tmp-cache");
-const oursDir = path.join(testDir, "ours");
-const theirsDir = path.join(testDir, "theirs");
 const fixturesDir = path.join(projectRoot, "test/fixtures");
+
+let testDir;
+let oursDir;
+let theirsDir;
 
 // Helper to copy fixtures to test directory
 function copyFixtures(targetDir: string) {
@@ -35,10 +37,12 @@ function countSkippedFiles(output: string): number {
 }
 
 t.beforeEach(() => {
+  // Create unique test directory in /tmp
+  testDir = fs.mkdtempSync(path.join(os.tmpdir(), "dprint-test-comparison-cache-"));
+  oursDir = path.join(testDir, "ours");
+  theirsDir = path.join(testDir, "theirs");
+
   // Create test directories
-  if (fs.existsSync(testDir)) {
-    fs.rmSync(testDir, { recursive: true, force: true });
-  }
   fs.mkdirSync(oursDir, { recursive: true });
   fs.mkdirSync(theirsDir, { recursive: true });
 
@@ -82,7 +86,8 @@ t.beforeEach(() => {
 });
 
 t.afterEach(() => {
-  if (fs.existsSync(testDir)) {
+  // Clean up test directory
+  if (testDir && fs.existsSync(testDir)) {
     fs.rmSync(testDir, { recursive: true, force: true });
   }
 });

@@ -1,16 +1,16 @@
 import * as t from "bun:test";
 import * as fs from "node:fs";
+import * as os from "node:os";
 import * as path from "node:path";
 import checkCommand from "../src/commands/check.js";
 
-const projectRoot = process.cwd();
-const testDir = path.join(projectRoot, "test-tmp-check");
-const configPath = path.join(testDir, "dprint.json");
+let testDir;
+let configPath;
+
 t.beforeEach(() => {
-  // Create test directory
-  if (!fs.existsSync(testDir)) {
-    fs.mkdirSync(testDir, { recursive: true });
-  }
+  // Create unique test directory in /tmp
+  testDir = fs.mkdtempSync(path.join(os.tmpdir(), "dprint-test-check-"));
+  configPath = path.join(testDir, "dprint.json");
 
   // Create a valid dprint.json
   const config = {
@@ -27,7 +27,7 @@ t.beforeEach(() => {
 
 t.afterEach(() => {
   // Clean up test directory
-  if (fs.existsSync(testDir)) {
+  if (testDir && fs.existsSync(testDir)) {
     fs.rmSync(testDir, { recursive: true, force: true });
   }
 });
@@ -113,9 +113,8 @@ t.it("returns 0 when no files found with --allow-no-files", async () => {
 });
 
 t.it("returns 11 when no config file found", async () => {
-  // Use /tmp for truly isolated testing outside project root
-  const isolatedDir = path.join("/tmp", "dprint-test-isolated-" + Date.now());
-  fs.mkdirSync(isolatedDir, { recursive: true });
+  // Use isolated directory without config
+  const isolatedDir = fs.mkdtempSync(path.join(os.tmpdir(), "dprint-test-noconfig-"));
 
   try {
     const exitCode = await checkCommand([], { cwd: isolatedDir });
