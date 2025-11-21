@@ -122,18 +122,62 @@ function parseGitignoreContent(content, relativeDir = "") {
       continue;
     }
 
-    // If this .gitignore is in a subdirectory, prefix patterns with the directory
-    if (relativeDir && !line.startsWith("!") && !line.startsWith("/")) {
-      patterns.push(path.join(relativeDir, line));
-    } else if (relativeDir && line.startsWith("!")) {
-      // Handle negation patterns
-      patterns.push("!" + path.join(relativeDir, line.slice(1)));
-    } else {
-      patterns.push(line);
-    }
+    // Normalize the pattern(s) for the relative directory
+    const normalizedPatterns = normalizePatternForDirectory(line, relativeDir);
+    patterns.push(...normalizedPatterns);
   }
 
   return patterns;
+}
+
+/**
+ * Normalize a gitignore pattern for a specific directory
+ * @param {string} pattern - The pattern from .gitignore
+ * @param {string} relativeDir - Relative directory path from git root
+ * @returns {string[]} Array of normalized patterns (usually 1, sometimes 2)
+ */
+function normalizePatternForDirectory(pattern, relativeDir) {
+  if (!relativeDir) {
+    return [pattern];
+  }
+
+  // Normalize relative directory to use forward slashes
+  const normalizedDir = relativeDir.replace(/\\/g, "/");
+
+  // Handle negation patterns
+  const isNegation = pattern.startsWith("!");
+  const cleanPattern = isNegation ? pattern.slice(1) : pattern;
+
+  // Handle root-anchored patterns (starting with /)
+  if (cleanPattern.startsWith("/")) {
+    // Root-anchored pattern in subdirectory should be anchored to that subdirectory
+    // /temp in src/.gitignore becomes src/temp
+    const result = normalizedDir + cleanPattern;
+    return [isNegation ? "!" + result : result];
+  }
+
+  // Non-root-anchored patterns need special handling
+  // A pattern like "temp" in src/.gitignore should match:
+  // - src/temp
+  // - src/foo/temp
+  // - src/foo/bar/temp
+  if (cleanPattern.includes("/")) {
+    // Pattern already has a slash, so it's a path pattern
+    // Just prefix with directory
+    const result = normalizedDir + "/" + cleanPattern;
+    return [isNegation ? "!" + result : result];
+  } else {
+    // Pattern without slash - should match anywhere in the subtree
+    // We need to add it twice: once for the directory itself, once for subdirectories
+    const directMatch = normalizedDir + "/" + cleanPattern;
+    const subMatch = normalizedDir + "/**/" + cleanPattern;
+
+    if (isNegation) {
+      return ["!" + directMatch, "!" + subMatch];
+    } else {
+      return [directMatch, subMatch];
+    }
+  }
 }
 
 /**
