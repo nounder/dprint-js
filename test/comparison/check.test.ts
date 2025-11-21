@@ -1,13 +1,15 @@
 import { $ } from "bun";
 import * as t from "bun:test";
 import * as fs from "node:fs";
+import * as os from "node:os";
 import * as path from "node:path";
 import checkCommand from "../../src/commands/check.js";
 
 const projectRoot = process.cwd();
-const testDir = path.join(projectRoot, "test/comparison-tmp-check");
-const oursDir = path.join(testDir, "ours");
-const theirsDir = path.join(testDir, "theirs");
+
+let testDir;
+let oursDir;
+let theirsDir;
 
 // Sample malformatted and formatted code
 const malformattedTS = `const   x=1;const    y={a:1,b:2};`;
@@ -15,10 +17,12 @@ const formattedTS = `const x = 1;\nconst y = { a: 1, b: 2 };\n`;
 const malformattedJSON = `{"a":1,"b":2}`;
 
 t.beforeEach(() => {
+  // Create unique test directory in /tmp
+  testDir = fs.mkdtempSync(path.join(os.tmpdir(), "dprint-test-comparison-check-"));
+  oursDir = path.join(testDir, "ours");
+  theirsDir = path.join(testDir, "theirs");
+
   // Create test directories
-  if (fs.existsSync(testDir)) {
-    fs.rmSync(testDir, { recursive: true, force: true });
-  }
   fs.mkdirSync(oursDir, { recursive: true });
   fs.mkdirSync(theirsDir, { recursive: true });
 
@@ -58,7 +62,8 @@ t.beforeEach(() => {
 });
 
 t.afterEach(() => {
-  if (fs.existsSync(testDir)) {
+  // Clean up test directory
+  if (testDir && fs.existsSync(testDir)) {
     fs.rmSync(testDir, { recursive: true, force: true });
   }
 });

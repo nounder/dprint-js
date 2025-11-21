@@ -1,5 +1,6 @@
 import * as t from "bun:test";
 import * as fs from "node:fs";
+import * as os from "node:os";
 import * as path from "node:path";
 import { formatFile, formatText, getFormatterForFile, loadPlugin, loadPlugins } from "../src/formatter.js";
 
@@ -240,8 +241,9 @@ t.it("returns same text if already formatted", async () => {
 });
 
 const projectRoot = process.cwd();
-const testDir = path.join(projectRoot, "test-tmp-formatter");
 const dataDir = path.join(projectRoot, "test/fixtures");
+
+let testDir: string;
 let loadedPlugins: any[];
 const config = {
   plugins: ["@dprint/typescript", "@dprint/json", "@dprint/markdown"],
@@ -251,14 +253,14 @@ const config = {
 };
 
 t.beforeAll(async () => {
+  // Create unique test directory in /tmp
+  testDir = fs.mkdtempSync(path.join(os.tmpdir(), "dprint-test-formatter-"));
   loadedPlugins = await loadPlugins(config);
-  if (!fs.existsSync(testDir)) {
-    fs.mkdirSync(testDir, { recursive: true });
-  }
 });
 
 t.afterAll(() => {
-  if (fs.existsSync(testDir)) {
+  // Clean up test directory
+  if (testDir && fs.existsSync(testDir)) {
     fs.rmSync(testDir, { recursive: true, force: true });
   }
 });
