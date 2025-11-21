@@ -349,6 +349,29 @@ export async function loadPlugin(pluginName, cwd = process.cwd()) {
 }
 
 /**
+ * Extract global formatting options from config
+ * @param {object} config - The dprint configuration
+ * @returns {object} Global formatting options
+ */
+function extractGlobalConfig(config) {
+  const globalOptions = [
+    "lineWidth",
+    "indentWidth",
+    "newLineKind",
+    "useTabs",
+  ];
+
+  const globalConfig = {};
+  for (const option of globalOptions) {
+    if (config[option] !== undefined) {
+      globalConfig[option] = config[option];
+    }
+  }
+
+  return globalConfig;
+}
+
+/**
  * Load all plugins specified in the configuration
  * @param {object} config - The dprint configuration
  * @param {string} cwd - Current working directory
@@ -373,6 +396,9 @@ export async function loadPlugins(config, cwd = process.cwd(), configPath = null
 
   const loadedPlugins = [];
 
+  // Extract global formatting options
+  const globalConfig = extractGlobalConfig(config);
+
   for (const pluginName of plugins) {
     try {
       const { formatter, fileMatchingInfo, configKey } = await loadPlugin(pluginName, cwd);
@@ -388,8 +414,9 @@ export async function loadPlugins(config, cwd = process.cwd(), configPath = null
 
       const pluginConfig = config[pluginConfigKey] || {};
 
-      // Call setConfig with the plugin-specific configuration
-      formatter.setConfig({}, pluginConfig);
+      // Call setConfig with global config and plugin-specific configuration
+      // Plugin-specific options will override global options
+      formatter.setConfig(globalConfig, pluginConfig);
 
       loadedPlugins.push({
         name: pluginName,
