@@ -72,18 +72,31 @@ t.it("handles missing plugin gracefully", async () => {
   t.expect(plugins.length).toBe(2);
 });
 
-t.it("returns empty array when no plugins specified", async () => {
+t.it("returns empty array when no plugins specified and no package.json", async () => {
+  // Create a unique temp directory without package.json
+  const uniqueTempDir = path.join(process.cwd(), "test-tmp-no-plugins-" + Date.now());
+  if (!fs.existsSync(uniqueTempDir)) {
+    fs.mkdirSync(uniqueTempDir, { recursive: true });
+  }
+  const configPath = path.join(uniqueTempDir, "dprint.json");
+  fs.writeFileSync(configPath, JSON.stringify({ plugins: [] }));
+
   const config = { plugins: [] };
-  const plugins = await loadPlugins(config);
+  const plugins = await loadPlugins(config, uniqueTempDir, configPath);
 
   t.expect(plugins.length).toBe(0);
+
+  // Cleanup
+  fs.rmSync(uniqueTempDir, { recursive: true, force: true });
 });
 
-t.it("returns empty array when plugins key missing", async () => {
+t.it("auto-loads plugins from package.json when plugins key missing", async () => {
+  // When no plugins specified, should auto-discover from package.json
   const config = {};
   const plugins = await loadPlugins(config);
 
-  t.expect(plugins.length).toBe(0);
+  // Should find the plugins from the project's package.json
+  t.expect(plugins.length).toBeGreaterThan(0);
 });
 
 t.it("returns typescript formatter for .ts files", async () => {
