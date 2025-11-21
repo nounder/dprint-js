@@ -1,16 +1,328 @@
-import { createFromBuffer } from "@dprint/formatter";
+import { createFromBuffer, createStreaming } from "@dprint/formatter";
 import * as fs from "node:fs";
 import * as path from "node:path";
+import * as crypto from "node:crypto";
+import * as os from "node:os";
 
 /**
- * Load a plugin from node_modules
- * @param {string} pluginName - Name of the plugin package (e.g., "@dprint/typescript")
+ * Get the cache directory path for remote plugins
+ * @returns {string} Path to the cache directory
+ */
+function getRemotePluginCacheDir() {
+  // Check for custom cache directory from environment
+  if (process.env.DPRINT_CACHE_DIR) {
+    return path.join(process.env.DPRINT_CACHE_DIR, "cache");
+  }
+
+  // Platform-specific cache directories (matching dprint conventions)
+  const platform = os.platform();
+  const homeDir = os.homedir();
+
+  if (platform === "win32") {
+    // Windows: %LOCALAPPDATA%/dprint/cache
+    const localAppData = process.env.LOCALAPPDATA || path.join(homeDir, "AppData", "Local");
+    return path.join(localAppData, "dprint", "cache");
+  } else if (platform === "darwin") {
+    // macOS: ~/Library/Caches/dprint/cache
+    return path.join(homeDir, "Library", "Caches", "dprint", "cache");
+  } else {
+    // Linux and others: ~/.cache/dprint/cache
+    return path.join(homeDir, ".cache", "dprint", "cache");
+  }
+}
+
+/**
+ * Get the cache manifest file path
+ * @returns {string} Path to the cache manifest
+ */
+function getCacheManifestPath() {
+  return path.join(getRemotePluginCacheDir(), "plugin-cache-manifest.json");
+}
+
+/**
+ * Load the cache manifest
+ * @returns {object} The cache manifest
+ */
+function loadCacheManifest() {
+  const manifestPath = getCacheManifestPath();
+
+  if (!fs.existsSync(manifestPath)) {
+    return {
+      schemaVersion: 8,
+      plugins: {},
+    };
+  }
+
+  try {
+    const content = fs.readFileSync(manifestPath, "utf-8");
+    return JSON.parse(content);
+  } catch (error) {
+    // If manifest is corrupted, return empty manifest
+    return {
+      schemaVersion: 8,
+      plugins: {},
+    };
+  }
+}
+
+/**
+ * Find package.json in the same directory as the config file
+ * @param {string} configDir - Directory containing the config file
+ * @returns {string|null} Path to package.json or null if not found
+ */
+function findPackageJson(configDir) {
+  const packagePath = path.join(configDir, "package.json");
+  if (fs.existsSync(packagePath)) {
+    return packagePath;
+  }
+  return null;
+}
+
+/**
+ * Discover dprint plugins from package.json dependencies
+ * @param {string} configDir - Directory containing the config file
+ * @returns {string[]} Array of discovered plugin names
+ */
+function discoverPluginsFromPackageJson(configDir) {
+  const packagePath = findPackageJson(configDir);
+  if (!packagePath) {
+    return [];
+  }
+
+  try {
+    const packageContent = fs.readFileSync(packagePath, "utf-8");
+    const packageJson = JSON.parse(packageContent);
+
+    const plugins = [];
+    const dependencies = { ...packageJson.dependencies, ...packageJson.devDependencies };
+
+    for (const [name] of Object.entries(dependencies)) {
+      // Include packages starting with @dprint/ but exclude @dprint/formatter (the base library)
+      if (name.startsWith("@dprint/") && name !== "@dprint/formatter") {
+        plugins.push(name);
+      }
+    }
+
+    return plugins;
+  } catch (error) {
+    // If we can't read or parse package.json, return empty array
+    return [];
+  }
+}
+
+/**
+ * Save the cache manifest
+ * @param {object} manifest - The cache manifest to save
+ */
+function saveCacheManifest(manifest) {
+  const manifestPath = getCacheManifestPath();
+  const cacheDir = getRemotePluginCacheDir();
+
+  // Ensure cache directory exists
+  fs.mkdirSync(cacheDir, { recursive: true });
+
+  fs.writeFileSync(manifestPath, JSON.stringify(manifest), "utf-8");
+}
+
+/**
+ * Get plugin info from a remote URL
+ * @param {string} url - The plugin URL
+ * @returns {object} Plugin info including name, version, and configKey
+ */
+function getPluginInfoFromUrl(url) {
+  // Extract plugin name and version from URL
+  // Examples:
+  // - https://plugins.dprint.dev/typescript-0.95.11.wasm
+  // - https://plugins.dprint.dev/g-plane/markup_fmt-v0.24.0.wasm
+  const urlObj = new URL(url);
+  const filename = path.basename(urlObj.pathname);
+
+  // Try to match pattern with optional 'v' prefix before version
+  // Matches: name-version.wasm or name-vversion.wasm
+  const match = filename.match(/^(.+?)-v?([\d.]+)\.wasm$/);
+
+  if (!match) {
+    throw new Error(`Unable to parse plugin name and version from URL: ${url}`);
+  }
+
+  const [, name, version] = match;
+
+  // The config key is typically the plugin name without the dprint-plugin- prefix
+  let configKey = name;
+  if (configKey.startsWith("dprint-plugin-")) {
+    configKey = configKey.replace("dprint-plugin-", "");
+  }
+
+  return {
+    name: `dprint-plugin-${name}`,
+    version,
+    configKey,
+  };
+}
+
+/**
+ * Generate a cache file path for a plugin
+ * @param {string} pluginName - The plugin name
+ * @param {string} version - The plugin version
+ * @returns {string} Path to the cached plugin file
+ */
+function getCachedPluginPath(pluginName, version) {
+  const pluginsDir = path.join(getRemotePluginCacheDir(), "plugins");
+
+  // Generate a hash for the file (simplified version)
+  const hash = crypto
+    .createHash("sha256")
+    .update(`${pluginName}-${version}`)
+    .digest("hex")
+    .substring(0, 16);
+
+  const filename = `${version}-${hash}`;
+  return path.join(pluginsDir, pluginName, filename);
+}
+
+/**
+ * Get a cached plugin path if it exists
+ * @param {string} url - The plugin URL
+ * @returns {string|null} Path to the cached plugin file, or null if not cached
+ */
+function getCachedPluginForUrl(url) {
+  const cacheKey = `remote:${url}`;
+  const manifest = loadCacheManifest();
+
+  const cachedEntry = manifest.plugins[cacheKey];
+  if (!cachedEntry) {
+    return null;
+  }
+
+  const pluginPath = getCachedPluginPath(cachedEntry.info.name, cachedEntry.info.version);
+
+  // Check if the file actually exists
+  if (!fs.existsSync(pluginPath)) {
+    return null;
+  }
+
+  return { path: pluginPath, info: cachedEntry.info };
+}
+
+/**
+ * Download a file from a URL
+ * @param {string} url - The URL to download from
+ * @returns {Promise<Buffer>} The downloaded file content
+ */
+async function downloadFile(url) {
+  const response = await fetch(url);
+
+  if (!response.ok) {
+    throw new Error(`Failed to download ${url}: ${response.status} ${response.statusText}`);
+  }
+
+  const arrayBuffer = await response.arrayBuffer();
+  return Buffer.from(arrayBuffer);
+}
+
+/**
+ * Cache a remote plugin
+ * @param {string} url - The plugin URL
+ * @param {Buffer} content - The plugin content
+ * @param {object} info - Plugin info
+ * @returns {string} Path to the cached plugin file
+ */
+function cacheRemotePlugin(url, content, info) {
+  const cacheKey = `remote:${url}`;
+  const pluginPath = getCachedPluginPath(info.name, info.version);
+
+  // Ensure plugin directory exists
+  fs.mkdirSync(path.dirname(pluginPath), { recursive: true });
+
+  // Write plugin content
+  fs.writeFileSync(pluginPath, content);
+
+  // Update cache manifest
+  const manifest = loadCacheManifest();
+  manifest.plugins[cacheKey] = {
+    createdTime: Math.floor(Date.now() / 1000),
+    info,
+  };
+  saveCacheManifest(manifest);
+
+  return pluginPath;
+}
+
+/**
+ * Check if a plugin name is a remote URL
+ * @param {string} pluginName - The plugin name/URL
+ * @returns {boolean} True if it's a remote URL
+ */
+function isRemotePlugin(pluginName) {
+  return pluginName.startsWith("http://") || pluginName.startsWith("https://");
+}
+
+/**
+ * Load a remote plugin from URL
+ * @param {string} url - The plugin URL
+ * @returns {Promise<object>} The loaded formatter with file matching info and config key
+ */
+async function loadRemotePlugin(url) {
+  // Get plugin info
+  const info = getPluginInfoFromUrl(url);
+
+  // Check if already cached
+  const cached = getCachedPluginForUrl(url);
+  if (cached) {
+    // Load from cache using streaming API
+    const buffer = fs.readFileSync(cached.path);
+    const response = new Response(buffer);
+    const formatter = await createStreaming(response);
+    // Must call setConfig before getFileMatchingInfo
+    formatter.setConfig({}, {});
+    return {
+      formatter,
+      fileMatchingInfo: formatter.getFileMatchingInfo(),
+      configKey: cached.info.configKey,
+    };
+  }
+
+  // Download and cache the plugin
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`Failed to download ${url}: ${response.status} ${response.statusText}`);
+  }
+
+  // Get the content as buffer for caching
+  const content = Buffer.from(await response.arrayBuffer());
+
+  // Cache the plugin
+  const pluginPath = cacheRemotePlugin(url, content, info);
+
+  // Load the plugin using streaming API
+  const cachedBuffer = fs.readFileSync(pluginPath);
+  const cachedResponse = new Response(cachedBuffer);
+  const formatter = await createStreaming(cachedResponse);
+
+  // Must call setConfig before getFileMatchingInfo
+  formatter.setConfig({}, {});
+
+  return {
+    formatter,
+    fileMatchingInfo: formatter.getFileMatchingInfo(),
+    configKey: info.configKey,
+  };
+}
+
+/**
+ * Load a plugin from node_modules or remote URL
+ * @param {string} pluginName - Name of the plugin package or URL (e.g., "@dprint/typescript" or "https://...")
  * @param {string} cwd - Current working directory
- * @returns {Promise<object>} The loaded formatter with file matching info
+ * @returns {Promise<object>} The loaded formatter with file matching info and optional configKey
  */
 export async function loadPlugin(pluginName, cwd = process.cwd()) {
   try {
-    // Dynamically import the plugin
+    // Check if this is a remote plugin
+    if (isRemotePlugin(pluginName)) {
+      return await loadRemotePlugin(pluginName);
+    }
+
+    // Dynamically import the plugin from node_modules
     const pluginModule = await import(pluginName);
 
     // Get the path to the WASM file
@@ -40,18 +352,40 @@ export async function loadPlugin(pluginName, cwd = process.cwd()) {
  * Load all plugins specified in the configuration
  * @param {object} config - The dprint configuration
  * @param {string} cwd - Current working directory
+ * @param {string} configPath - Optional path to config file (used for auto-discovery)
  * @returns {Promise<Array<{name: string, formatter: object, extensions: string[], fileNames: string[]}>>}
  */
-export async function loadPlugins(config, cwd = process.cwd()) {
-  const plugins = config.plugins || [];
+export async function loadPlugins(config, cwd = process.cwd(), configPath = null) {
+  let plugins = config.plugins;
+
+  // If no plugins specified in config, auto-discover from package.json
+  if (!plugins || plugins.length === 0) {
+    // Use config directory if available, otherwise use cwd
+    const searchDir = configPath ? path.dirname(configPath) : cwd;
+    plugins = discoverPluginsFromPackageJson(searchDir);
+    if (plugins.length > 0) {
+      console.log(`[INFO] No plugins specified in config, auto-discovered from package.json:`);
+      for (const plugin of plugins) {
+        console.log(`  - ${plugin}`);
+      }
+    }
+  }
+
   const loadedPlugins = [];
 
   for (const pluginName of plugins) {
     try {
-      const { formatter, fileMatchingInfo } = await loadPlugin(pluginName, cwd);
+      const { formatter, fileMatchingInfo, configKey } = await loadPlugin(pluginName, cwd);
 
       // Set configuration for the formatter
-      const pluginConfigKey = pluginName.split("/")[1]; // e.g., '@dprint/typescript' -> 'typescript'
+      // For remote plugins, configKey is provided. For npm plugins, extract from name
+      let pluginConfigKey;
+      if (configKey) {
+        pluginConfigKey = configKey;
+      } else {
+        pluginConfigKey = pluginName.split("/")[1]; // e.g., '@dprint/typescript' -> 'typescript'
+      }
+
       const pluginConfig = config[pluginConfigKey] || {};
 
       // Call setConfig with the plugin-specific configuration

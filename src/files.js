@@ -1,5 +1,4 @@
-import fg from "fast-glob";
-import { minimatch } from "minimatch";
+import { Glob } from "bun";
 import * as path from "node:path";
 import { normalizeExcludePatterns, normalizeIncludePatterns } from "./glob.js";
 import { loadGitignorePatterns, filterWithGitignore } from "./gitignore.js";
@@ -45,17 +44,44 @@ export async function findFiles(config, additionalPatterns = [], cwd = process.c
     excludes = [...excludes, "**/node_modules"];
   }
 
-  // Normalize exclude patterns for fast-glob compatibility
+  // Normalize exclude patterns
   const normalizedExcludes = normalizeExcludePatterns(excludes);
 
-  // Use fast-glob to find files
-  let files = await fg(includes, {
-    cwd,
-    ignore: normalizedExcludes,
-    dot: false,
-    absolute: false,
-    onlyFiles: true,
-  });
+  // Determine if we need to scan dot files
+  // If any include pattern explicitly references dot files/directories, enable dot scanning
+  const needsDotFiles = includes.some((pattern) => pattern.startsWith(".") || pattern.includes("/."));
+
+  // Use Bun.Glob to find files
+  const allFiles = new Set();
+  const excludeGlobs = normalizedExcludes.map((pattern) => new Glob(pattern));
+
+  for (const pattern of includes) {
+    const glob = new Glob(pattern);
+    const iterator = glob.scanSync({
+      cwd,
+      dot: needsDotFiles,
+      absolute: false,
+      onlyFiles: true,
+    });
+
+    // Process each file from the iterator
+    for (const file of iterator) {
+      // Check if file matches any exclude pattern
+      let shouldExclude = false;
+      for (const excludeGlob of excludeGlobs) {
+        if (excludeGlob.match(file)) {
+          shouldExclude = true;
+          break;
+        }
+      }
+
+      if (!shouldExclude) {
+        allFiles.add(file);
+      }
+    }
+  }
+
+  let files = Array.from(allFiles);
 
   // Apply .gitignore patterns unless disabled
   if (!options.allowGitignored) {
@@ -80,14 +106,16 @@ export function shouldProcessFile(filePath, config) {
 
   // Check excludes first (normalized to match directory contents)
   for (const pattern of excludes) {
-    if (minimatch(filePath, pattern, { dot: true })) {
+    const glob = new Glob(pattern);
+    if (glob.match(filePath)) {
       return false;
     }
   }
 
   // Check includes (not normalized - users must use explicit patterns)
   for (const pattern of includes) {
-    if (minimatch(filePath, pattern, { dot: true })) {
+    const glob = new Glob(pattern);
+    if (glob.match(filePath)) {
       return true;
     }
   }

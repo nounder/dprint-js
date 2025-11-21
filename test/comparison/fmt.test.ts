@@ -1,13 +1,13 @@
 import { $ } from "bun";
 import * as t from "bun:test";
 import * as fs from "node:fs";
+import * as os from "node:os";
 import * as path from "node:path";
 import fmtCommand from "../../src/commands/fmt.js";
 
-const projectRoot = process.cwd();
-const testDir = path.join(projectRoot, "test/comparison-tmp-fmt");
-const oursDir = path.join(testDir, "ours");
-const theirsDir = path.join(testDir, "theirs");
+let testDir;
+let oursDir;
+let theirsDir;
 
 // Sample malformatted code to test
 const malformattedTS = `const   x=1;const    y={a:1,b:2};function    foo(){return    x+y.a;}`;
@@ -15,10 +15,12 @@ const malformattedJSON = `{"name":"test","nested":{"value":1,"items":["a","b","c
 const malformattedMD = `# Title\n\n\n-  Item 1\n-  Item 2\n\n\n**Bold**and*italic*`;
 
 t.beforeEach(() => {
+  // Create unique test directory in /tmp
+  testDir = fs.mkdtempSync(path.join(os.tmpdir(), "dprint-test-comparison-fmt-"));
+  oursDir = path.join(testDir, "ours");
+  theirsDir = path.join(testDir, "theirs");
+
   // Create test directories
-  if (fs.existsSync(testDir)) {
-    fs.rmSync(testDir, { recursive: true, force: true });
-  }
   fs.mkdirSync(oursDir, { recursive: true });
   fs.mkdirSync(theirsDir, { recursive: true });
 
@@ -58,7 +60,8 @@ t.beforeEach(() => {
 });
 
 t.afterEach(() => {
-  if (fs.existsSync(testDir)) {
+  // Clean up test directory
+  if (testDir && fs.existsSync(testDir)) {
     fs.rmSync(testDir, { recursive: true, force: true });
   }
 });

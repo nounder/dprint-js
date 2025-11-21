@@ -8,7 +8,7 @@
     "dprint-js": "./bin/dprint-js"
   },
   "scripts": {
-    "test": "bun test",
+    "test": "bun test ./test",
     "fmt": "bun run bin/dprint-js.js fmt",
     "check": "bun run bin/dprint-js.js check"
   },
@@ -19,9 +19,7 @@
   "author": "nounder",
   "license": "MIT",
   "dependencies": {
-    "fast-glob": "^3.3.2",
-    "ignore": "^7.0.5",
-    "minimatch": "^10.0.1"
+    "ignore": "^7.0.5"
   },
   "devDependencies": {
     "@types/bun": "latest",

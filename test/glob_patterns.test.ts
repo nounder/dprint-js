@@ -1,20 +1,19 @@
 import * as t from "bun:test";
 import * as fs from "node:fs";
+import * as os from "node:os";
 import * as path from "node:path";
 import fmtCommand from "../src/commands/fmt.js";
 
-const projectRoot = process.cwd();
-const testDir = path.join(projectRoot, "test-tmp-glob-patterns");
+let testDir;
 
 t.beforeEach(() => {
-  if (fs.existsSync(testDir)) {
-    fs.rmSync(testDir, { recursive: true, force: true });
-  }
-  fs.mkdirSync(testDir, { recursive: true });
+  // Create unique test directory in /tmp
+  testDir = fs.mkdtempSync(path.join(os.tmpdir(), "dprint-test-glob-patterns-"));
 });
 
 t.afterEach(() => {
-  if (fs.existsSync(testDir)) {
+  // Clean up test directory
+  if (testDir && fs.existsSync(testDir)) {
     fs.rmSync(testDir, { recursive: true, force: true });
   }
 });

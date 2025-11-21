@@ -51,7 +51,7 @@ export default async function checkCommand(filePatterns = [], options = {}) {
 
   let loadedPlugins;
   try {
-    loadedPlugins = await loadPlugins(config, cwd);
+    loadedPlugins = await loadPlugins(config, cwd, configPath);
   } catch (error) {
     if (shouldLog("error")) {
       console.error(`Error: ${error.message}`);
