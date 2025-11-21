@@ -1,6 +1,18 @@
-# dprint
+# dprint-cli
 
 A JavaScript implementation of the dprint CLI for code formatting. This tool provides the core functionality of dprint, allowing you to format source code files using dprint's plugin system.
+
+## Usage
+
+```
+# install with your package manager
+bun add -D dprint-cli @dprint/{typescript,json}
+npm install -D dprint-cli @dprint/{typescript,json}
+
+# or run directly
+bunx dprint-cli
+npx dprint-cli
+```
 
 ## Features
 
