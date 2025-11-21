@@ -342,6 +342,16 @@ export async function loadPlugin(pluginName, cwd = process.cwd()) {
 
     // Read the WASM file
     const buffer = fs.readFileSync(wasmPath);
+
+    // Check if this is a Git LFS pointer file instead of actual WASM
+    if (buffer.length < 1024 && buffer.toString('utf8').startsWith('version https://git-lfs.github.com')) {
+      throw new Error(
+        `Plugin WASM file is a Git LFS pointer, not the actual binary. ` +
+        `This happens when installing from a GitHub repository that uses Git LFS. ` +
+        `Workarounds: (1) Use a remote plugin URL instead, or (2) Publish the package to npm with the actual WASM file`
+      );
+    }
+
     const formatter = createFromBuffer(buffer);
 
     // Must call setConfig before getFileMatchingInfo
