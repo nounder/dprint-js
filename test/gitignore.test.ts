@@ -1,8 +1,7 @@
 import { describe, test, expect, beforeEach, afterEach } from "bun:test";
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { findFiles } from "../src/files.js";
-import { loadGitignorePatterns, filterWithGitignore } from "../src/gitignore.js";
+import { findFiles, loadGitignorePatterns, filterWithGitignore } from "../src/files.js";
 
 describe("gitignore", () => {
   let testDir: string;
