@@ -18,9 +18,7 @@
   ],
   "author": "nounder",
   "license": "MIT",
-  "dependencies": {
-    "ignore": "^7.0.5"
-  },
+  "dependencies": {},
   "devDependencies": {
     "@types/bun": "latest",
     "typescript": "^5.9.3",

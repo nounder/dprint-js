@@ -329,4 +329,323 @@ describe("gitignore", () => {
       expect(files).not.toContain("error.log");
     });
   });
+
+  describe("gitignore edge cases", () => {
+    test("handles rooted patterns (leading slash)", () => {
+      fs.writeFileSync(
+        path.join(testDir, ".gitignore"),
+        "/root.log\n",
+      );
+
+      const ig = loadGitignorePatterns(testDir);
+      expect(ig).not.toBeNull();
+      expect(ig!.ignores("root.log")).toBe(true);
+      expect(ig!.ignores("subdir/root.log")).toBe(false);
+    });
+
+    test("handles double asterisk at start (**/ pattern)", () => {
+      fs.writeFileSync(
+        path.join(testDir, ".gitignore"),
+        "**/foo\n",
+      );
+
+      const ig = loadGitignorePatterns(testDir);
+      expect(ig).not.toBeNull();
+      expect(ig!.ignores("foo")).toBe(true);
+      expect(ig!.ignores("bar/foo")).toBe(true);
+      expect(ig!.ignores("bar/baz/foo")).toBe(true);
+    });
+
+    test("handles double asterisk in middle (a/**/b pattern)", () => {
+      fs.writeFileSync(
+        path.join(testDir, ".gitignore"),
+        "a/**/b\n",
+      );
+
+      const ig = loadGitignorePatterns(testDir);
+      expect(ig).not.toBeNull();
+      expect(ig!.ignores("a/b")).toBe(true);
+      expect(ig!.ignores("a/x/b")).toBe(true);
+      expect(ig!.ignores("a/x/y/b")).toBe(true);
+      expect(ig!.ignores("x/a/b")).toBe(false);
+    });
+
+    test("handles trailing double asterisk (foo/** pattern)", () => {
+      fs.writeFileSync(
+        path.join(testDir, ".gitignore"),
+        "foo/**\n",
+      );
+
+      const ig = loadGitignorePatterns(testDir);
+      expect(ig).not.toBeNull();
+      expect(ig!.ignores("foo/bar")).toBe(true);
+      expect(ig!.ignores("foo/bar/baz")).toBe(true);
+      expect(ig!.ignores("foo")).toBe(false);
+    });
+
+    test("handles escaped exclamation mark (\\!pattern)", () => {
+      fs.writeFileSync(
+        path.join(testDir, ".gitignore"),
+        "\\!important.txt\n",
+      );
+
+      const ig = loadGitignorePatterns(testDir);
+      expect(ig).not.toBeNull();
+      expect(ig!.ignores("!important.txt")).toBe(true);
+    });
+
+    test("handles escaped hash (\\#comment)", () => {
+      fs.writeFileSync(
+        path.join(testDir, ".gitignore"),
+        "\\#hashtag.txt\n",
+      );
+
+      const ig = loadGitignorePatterns(testDir);
+      expect(ig).not.toBeNull();
+      expect(ig!.ignores("#hashtag.txt")).toBe(true);
+    });
+
+    test("handles trailing spaces (should be ignored)", () => {
+      fs.writeFileSync(
+        path.join(testDir, ".gitignore"),
+        "test.log   \n",
+      );
+
+      const ig = loadGitignorePatterns(testDir);
+      expect(ig).not.toBeNull();
+      expect(ig!.ignores("test.log")).toBe(true);
+      expect(ig!.ignores("test.log   ")).toBe(false);
+    });
+
+    test("handles escaped trailing spaces (\\ pattern)", () => {
+      fs.writeFileSync(
+        path.join(testDir, ".gitignore"),
+        "test.log\\ \n",
+      );
+
+      const ig = loadGitignorePatterns(testDir);
+      expect(ig).not.toBeNull();
+      // The ignore package handles escaped trailing spaces
+      // Note: This behavior may vary - just verify pattern is loaded
+      expect(ig!.ignores("test.log")).toBe(false);
+    });
+
+    test("handles Windows line endings (\\r\\n)", () => {
+      fs.writeFileSync(
+        path.join(testDir, ".gitignore"),
+        "*.log\r\nnode_modules/\r\n",
+      );
+
+      const ig = loadGitignorePatterns(testDir);
+      expect(ig).not.toBeNull();
+      expect(ig!.ignores("test.log")).toBe(true);
+      expect(ig!.ignores("node_modules/package.json")).toBe(true);
+    });
+
+    test("handles character ranges ([a-z] pattern)", () => {
+      fs.writeFileSync(
+        path.join(testDir, ".gitignore"),
+        "test[0-9].log\n",
+      );
+
+      const ig = loadGitignorePatterns(testDir);
+      expect(ig).not.toBeNull();
+      expect(ig!.ignores("test0.log")).toBe(true);
+      expect(ig!.ignores("test5.log")).toBe(true);
+      expect(ig!.ignores("test9.log")).toBe(true);
+      expect(ig!.ignores("testa.log")).toBe(false);
+    });
+
+    test("handles question mark wildcard (? pattern)", () => {
+      fs.writeFileSync(
+        path.join(testDir, ".gitignore"),
+        "test?.log\n",
+      );
+
+      const ig = loadGitignorePatterns(testDir);
+      expect(ig).not.toBeNull();
+      expect(ig!.ignores("test1.log")).toBe(true);
+      expect(ig!.ignores("testa.log")).toBe(true);
+      expect(ig!.ignores("test.log")).toBe(false);
+      expect(ig!.ignores("test12.log")).toBe(false);
+    });
+
+    test("handles directory-only patterns (trailing /)", () => {
+      fs.writeFileSync(
+        path.join(testDir, ".gitignore"),
+        "build/\n",
+      );
+
+      const ig = loadGitignorePatterns(testDir);
+      expect(ig).not.toBeNull();
+      // Directory pattern should match paths inside the directory
+      expect(ig!.ignores("build/file.js")).toBe(true);
+      expect(ig!.ignores("build/nested/file.js")).toBe(true);
+    });
+
+    test("handles multiple negations (pattern priority)", () => {
+      fs.writeFileSync(
+        path.join(testDir, ".gitignore"),
+        "*.log\n!important.log\nimportant.log\n",
+      );
+
+      const ig = loadGitignorePatterns(testDir);
+      expect(ig).not.toBeNull();
+      // Last pattern wins
+      expect(ig!.ignores("test.log")).toBe(true);
+      expect(ig!.ignores("important.log")).toBe(true);
+    });
+
+    test("handles complex negation with subdirectories", () => {
+      fs.writeFileSync(
+        path.join(testDir, ".gitignore"),
+        "logs/\n!logs/important/\n",
+      );
+
+      const ig = loadGitignorePatterns(testDir);
+      expect(ig).not.toBeNull();
+      // Parent directory ignored, cannot re-include subdirectory
+      expect(ig!.ignores("logs/test.log")).toBe(true);
+      expect(ig!.ignores("logs/important/keep.log")).toBe(true);
+    });
+
+    test("handles patterns without slash (matches at any level)", () => {
+      fs.writeFileSync(
+        path.join(testDir, ".gitignore"),
+        "test.log\n",
+      );
+
+      const ig = loadGitignorePatterns(testDir);
+      expect(ig).not.toBeNull();
+      expect(ig!.ignores("test.log")).toBe(true);
+      expect(ig!.ignores("foo/test.log")).toBe(true);
+      expect(ig!.ignores("foo/bar/test.log")).toBe(true);
+    });
+
+    test("handles patterns with slash in middle (relative to gitignore)", () => {
+      fs.writeFileSync(
+        path.join(testDir, ".gitignore"),
+        "foo/bar.log\n",
+      );
+
+      const ig = loadGitignorePatterns(testDir);
+      expect(ig).not.toBeNull();
+      // Patterns with slash are relative to .gitignore location
+      // They match that specific path structure from the gitignore directory
+      expect(ig!.ignores("foo/bar.log")).toBe(true);
+      // But do NOT match at arbitrary deeper levels
+      expect(ig!.ignores("sub/foo/bar.log")).toBe(false);
+      // Does not match without the exact directory structure
+      expect(ig!.ignores("bar.log")).toBe(false);
+      expect(ig!.ignores("foo/baz.log")).toBe(false);
+    });
+
+    test("handles BOM character at start of file", () => {
+      // UTF-8 BOM: \uFEFF
+      fs.writeFileSync(
+        path.join(testDir, ".gitignore"),
+        "\uFEFF*.log\n",
+      );
+
+      const ig = loadGitignorePatterns(testDir);
+      expect(ig).not.toBeNull();
+      expect(ig!.ignores("test.log")).toBe(true);
+    });
+
+    test("handles invalid trailing backslash (should be ignored)", () => {
+      fs.writeFileSync(
+        path.join(testDir, ".gitignore"),
+        "test.log\\\n*.tmp\n",
+      );
+
+      const ig = loadGitignorePatterns(testDir);
+      expect(ig).not.toBeNull();
+      // Pattern with invalid trailing backslash should be ignored
+      expect(ig!.ignores("test.log")).toBe(false);
+      // But valid pattern should still work
+      expect(ig!.ignores("file.tmp")).toBe(true);
+    });
+
+    test("handles blank lines (should be ignored)", () => {
+      fs.writeFileSync(
+        path.join(testDir, ".gitignore"),
+        "\n\n*.log\n\n\nnode_modules/\n\n",
+      );
+
+      const ig = loadGitignorePatterns(testDir);
+      expect(ig).not.toBeNull();
+      expect(ig!.ignores("test.log")).toBe(true);
+      expect(ig!.ignores("node_modules/pkg.json")).toBe(true);
+    });
+
+    test("handles whitespace-only lines (should be ignored)", () => {
+      fs.writeFileSync(
+        path.join(testDir, ".gitignore"),
+        "*.log\n   \n\t\t\nnode_modules/\n",
+      );
+
+      const ig = loadGitignorePatterns(testDir);
+      expect(ig).not.toBeNull();
+      expect(ig!.ignores("test.log")).toBe(true);
+    });
+
+    test("handles asterisk patterns (*)", () => {
+      fs.writeFileSync(
+        path.join(testDir, ".gitignore"),
+        "*.log\ntest-*.js\n*-debug.*\n",
+      );
+
+      const ig = loadGitignorePatterns(testDir);
+      expect(ig).not.toBeNull();
+      expect(ig!.ignores("error.log")).toBe(true);
+      expect(ig!.ignores("test-foo.js")).toBe(true);
+      expect(ig!.ignores("app-debug.log")).toBe(true);
+      expect(ig!.ignores("test.js")).toBe(false);
+    });
+
+    test("handles negation at subdirectory level", async () => {
+      fs.writeFileSync(
+        path.join(testDir, ".gitignore"),
+        "*.log\n",
+      );
+
+      const subdir = path.join(testDir, "src");
+      fs.mkdirSync(subdir);
+      fs.writeFileSync(
+        path.join(subdir, ".gitignore"),
+        "!important.log\n",
+      );
+
+      const ig = loadGitignorePatterns(subdir);
+      expect(ig).not.toBeNull();
+      // Root level ignores *.log
+      expect(ig!.ignores("test.log")).toBe(true);
+      // Subdirectory negation applies (last rule wins within combined patterns)
+      expect(ig!.ignores("src/important.log")).toBe(false);
+    });
+
+    test("handles consecutive asterisks (treated as single *)", () => {
+      fs.writeFileSync(
+        path.join(testDir, ".gitignore"),
+        "test***.log\n",
+      );
+
+      const ig = loadGitignorePatterns(testDir);
+      expect(ig).not.toBeNull();
+      expect(ig!.ignores("testfoo.log")).toBe(true);
+      expect(ig!.ignores("testfoobar.log")).toBe(true);
+    });
+
+    test("handles escaped asterisk (\\*)", () => {
+      fs.writeFileSync(
+        path.join(testDir, ".gitignore"),
+        "test\\*.log\n",
+      );
+
+      const ig = loadGitignorePatterns(testDir);
+      expect(ig).not.toBeNull();
+      expect(ig!.ignores("test*.log")).toBe(true);
+      expect(ig!.ignores("testfoo.log")).toBe(false);
+    });
+  });
 });
