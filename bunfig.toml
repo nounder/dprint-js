@@ -1,3 +1,5 @@
-# IMPORTANT: `bun test` discovers tests from ALL git worktrees (tree/*, claude/*),
+[test]
+# `bun test` discovers tests from ALL git worktrees (tree/*, claude/*),
 # running tests from multiple branches simultaneously and polluting fixture files.
-# Always use: bun test ./test
+# we need to scope it.
+root = "./test"
