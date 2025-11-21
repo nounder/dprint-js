@@ -25,12 +25,12 @@
     "access": "public"
   },
   "dependencies": {
-    "@dprint/formatter": "^0.4.1",
-    "@dprint/json": "^0.21.0",
-    "@dprint/markdown": "^0.20.0",
-    "@dprint/typescript": "^0.95.12"
+    "@dprint/formatter": "^0.4.1"
   },
   "devDependencies": {
+    "@dprint/json": "^0.21.0",
+    "@dprint/markdown": "^0.20.0",
+    "@dprint/typescript": "^0.95.12",
     "@types/bun": "latest",
     "dprint": "^0.50.2",
     "typescript": "^5.9.3"

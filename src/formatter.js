@@ -79,17 +79,56 @@ function findPackageJson(configDir) {
 }
 
 /**
+ * Resolve a package path from the specified directory's node_modules
+ * @param {string} packageName - Name of the package
+ * @param {string} searchDir - Directory to search from (usually CWD)
+ * @returns {string|null} Absolute path to the package, or null if not found
+ */
+function resolvePackageFromDir(packageName, searchDir) {
+  // For scoped packages like @dprint/typescript, split into scope and name
+  const parts = packageName.split("/");
+  let packagePath;
+
+  if (packageName.startsWith("@")) {
+    // Scoped package: @scope/name
+    packagePath = path.join(searchDir, "node_modules", parts[0], parts[1]);
+  } else {
+    // Regular package
+    packagePath = path.join(searchDir, "node_modules", packageName);
+  }
+
+  // Check if package.json exists in this location
+  const packageJsonPath = path.join(packagePath, "package.json");
+  if (fs.existsSync(packageJsonPath)) {
+    return packagePath;
+  }
+
+  return null;
+}
+
+/**
  * Check if a package is a valid dprint plugin
  * @param {string} packageName - Name of the package
- * @param {string} packageDir - Directory where package.json is located (unused but kept for future use)
+ * @param {string} packageDir - Directory where package.json is located
  * @returns {Promise<boolean>} True if the package is a valid plugin
  */
 async function isValidDprintPlugin(packageName, packageDir) {
   try {
-    // Try to import and verify the module shape
-    // This checks if it has getPath() or getBuffer() methods
-    // The import will resolve from node_modules (local or parent directories)
-    const pluginModule = await import(packageName);
+    // First, try to resolve from the package directory (CWD's node_modules)
+    const packagePath = resolvePackageFromDir(packageName, packageDir);
+
+    let pluginModule;
+    if (packagePath) {
+      // Import from the resolved path in CWD's node_modules
+      const packageJsonPath = path.join(packagePath, "package.json");
+      const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf-8"));
+      const mainFile = packageJson.main || "index.js";
+      const modulePath = path.join(packagePath, mainFile);
+      pluginModule = await import(modulePath);
+    } else {
+      // Fallback to regular import (for development/testing)
+      pluginModule = await import(packageName);
+    }
 
     // Check if the module has the expected dprint plugin interface
     const hasValidInterface =
@@ -407,8 +446,21 @@ export async function loadPlugin(pluginName, cwd = process.cwd()) {
       return await loadRemotePlugin(pluginName);
     }
 
-    // Dynamically import the plugin from node_modules
-    const pluginModule = await import(pluginName);
+    // Try to resolve from CWD's node_modules first
+    const packagePath = resolvePackageFromDir(pluginName, cwd);
+
+    let pluginModule;
+    if (packagePath) {
+      // Import from the resolved path in CWD's node_modules
+      const packageJsonPath = path.join(packagePath, "package.json");
+      const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf-8"));
+      const mainFile = packageJson.main || "index.js";
+      const modulePath = path.join(packagePath, mainFile);
+      pluginModule = await import(modulePath);
+    } else {
+      // Fallback to regular import (for development/testing)
+      pluginModule = await import(pluginName);
+    }
 
     // Get the path to the WASM file
     let wasmPath;
