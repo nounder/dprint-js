@@ -57,27 +57,38 @@ export async function findFiles(config, additionalPatterns = [], cwd = process.c
 
   for (const pattern of includes) {
     const glob = new Glob(pattern);
-    const iterator = glob.scanSync({
-      cwd,
-      dot: needsDotFiles,
-      absolute: false,
-      onlyFiles: true,
-    });
 
-    // Process each file from the iterator
-    for (const file of iterator) {
-      // Check if file matches any exclude pattern
-      let shouldExclude = false;
-      for (const excludeGlob of excludeGlobs) {
-        if (excludeGlob.match(file)) {
-          shouldExclude = true;
-          break;
+    try {
+      const iterator = glob.scanSync({
+        cwd,
+        dot: needsDotFiles,
+        absolute: false,
+        onlyFiles: true,
+        followSymlinks: false, // Prevent following symlinks to avoid circular references
+      });
+
+      // Process each file from the iterator
+      for (const file of iterator) {
+        // Check if file matches any exclude pattern
+        let shouldExclude = false;
+        for (const excludeGlob of excludeGlobs) {
+          if (excludeGlob.match(file)) {
+            shouldExclude = true;
+            break;
+          }
+        }
+
+        if (!shouldExclude) {
+          allFiles.add(file);
         }
       }
-
-      if (!shouldExclude) {
-        allFiles.add(file);
+    } catch (error) {
+      // Skip patterns that cause filesystem errors (e.g., ENAMETOOLONG from circular symlinks)
+      if (error.code === 'ENAMETOOLONG' || error.code === 'ELOOP') {
+        console.error(`Warning: Skipping pattern '${pattern}' due to filesystem error: ${error.message}`);
+        continue;
       }
+      throw error;
     }
   }
 
