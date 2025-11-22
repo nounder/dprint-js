@@ -1,5 +1,6 @@
 {
   "lockfileVersion": 1,
+  "configVersion": 0,
   "workspaces": {
     "": {
       "name": "dprint-js",
@@ -7,9 +8,9 @@
         "@dprint/formatter": "^0.4.1",
       },
       "devDependencies": {
-        "@dprint/json": "^0.21.0",
-        "@dprint/markdown": "^0.20.0",
-        "@dprint/typescript": "^0.95.12",
+        "@dprint/json": "^0.19.3",
+        "@dprint/markdown": "^0.17.8",
+        "@dprint/typescript": "^0.93.0",
         "@types/bun": "latest",
         "dprint": "^0.50.2",
         "typescript": "^5.9.3",
@@ -23,7 +24,7 @@
 
     "@dprint/formatter": ["@dprint/formatter@0.4.1", "", {}, "sha512-IB/GXdlMOvi0UhQQ9mcY15Fxcrc2JPadmo6tqefCNV0bptFq7YBpggzpqYXldBXDa04CbKJ+rDwO2eNRPE2+/g=="],
 
-    "@dprint/json": ["@dprint/json@0.21.0", "", {}, "sha512-Ptds5055ES2mziP7WDh04DOU/KDumQ+iBb3FuYyniXaEBDasp7Jr/Emarxo9JCEtGb0zEMdM83H7iADHSNXxtg=="],
+    "@dprint/json": ["@dprint/json@0.19.4", "", {}, "sha512-65NHNet0KXpARa4iX9ZNMtzQQoQEUnHCHGOYfA6OICz8+V+7FNjieeltlCZf0gTLs3eBbgFuy8RsFX9+jYt1Uw=="],
 
     "@dprint/linux-arm64-glibc": ["@dprint/linux-arm64-glibc@0.50.2", "", { "os": "linux", "cpu": "arm64" }, "sha512-marxQzRw8atXAnaawwZHeeUaaAVewrGTlFKKcDASGyjPBhc23J5fHPUPremm8xCbgYZyTlokzrV8/1rDRWhJcw=="],
 
@@ -35,9 +36,9 @@
 
     "@dprint/linux-x64-musl": ["@dprint/linux-x64-musl@0.50.2", "", { "os": "linux", "cpu": "x64" }, "sha512-qM37T7H69g5coBTfE7SsA+KZZaRBky6gaUhPgAYxW+fOsoVtZSVkXtfTtQauHTpqqOEtbxfCtum70Hz1fr1teg=="],
 
-    "@dprint/markdown": ["@dprint/markdown@0.20.0", "", {}, "sha512-qvynFdQZwul4Y+hoMP02QerEhM5VItb4cO8/qpQrSuQuYvDU+bIseiheVAetSpWlNPBU1JK8bQKloiCSp9lXnA=="],
+    "@dprint/markdown": ["@dprint/markdown@0.17.8", "", {}, "sha512-ukHFOg+RpG284aPdIg7iPrCYmMs3Dqy43S1ejybnwlJoFiW02b+6Bbr5cfZKFRYNP3dKGM86BqHEnMzBOyLvvA=="],
 
-    "@dprint/typescript": ["@dprint/typescript@0.95.12", "", {}, "sha512-zcXPOAWdE+R6pyga06YL5oPpPCZwlPX12Dq3yBOky+sjHDGqYcVV3PIGLWG0kl036iGLmbzK1qkD35sDTZpkjg=="],
+    "@dprint/typescript": ["@dprint/typescript@0.93.4", "", {}, "sha512-2pyMXLK9Bnodv4vSh/mUeYbaSnnzIj+vFOTUC9GVjUouEKpMNkZZsuS5d7rPqr72tfoy96vzFepsRa7spkgcRA=="],
 
     "@dprint/win32-arm64": ["@dprint/win32-arm64@0.50.2", "", { "os": "win32", "cpu": "arm64" }, "sha512-kuGVHGoxLwssVDsodefUIYQRoO2fQncurH/xKgXiZwMPOSzFcgUzYJQiyqmJEp+PENhO9VT1hXUHZtlyCAWBUQ=="],
 

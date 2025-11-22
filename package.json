@@ -24,9 +24,7 @@
   "publishConfig": {
     "access": "public"
   },
-  "dependencies": {
-    "@dprint/formatter": "^0.4.1"
-  },
+  "dependencies": {},
   "devDependencies": {
     "@types/bun": "latest",
     "typescript": "^5.9.3",
