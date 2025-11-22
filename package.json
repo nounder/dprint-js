@@ -7,7 +7,9 @@
     "dprint": "./bin/dprint"
   },
   "scripts": {
-    "test": "bun test ./test",
+    "test": "bun test $(find test -name '*.test.ts' -not -path 'test/comparison-extended/*')",
+    "test:fast": "bun test $(find test -name '*.test.ts' -not -path 'test/comparison-extended/*')",
+    "test:full": "bun test ./test",
     "format": "bun run ./bin/dprint fmt",
     "check": "bun run ./bin/dprint check",
     "publish": "bunx npm publish"
