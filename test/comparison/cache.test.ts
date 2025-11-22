@@ -7,6 +7,7 @@ import fmtCommand from "../../src/commands/fmt.js";
 
 const projectRoot = process.cwd();
 const fixturesDir = path.join(projectRoot, "test/fixtures");
+const rustDprint = path.join(projectRoot, "node_modules/dprint/dprint");
 
 let testDir;
 let oursDir;
@@ -97,7 +98,7 @@ t.it("both implementations format all files on first run", async () => {
   const ourExitCode = await fmtCommand([], { logLevel: "info", cwd: oursDir });
 
   // Format with rust dprint
-  const theirResult = await $`npx dprint fmt`.cwd(theirsDir).nothrow().quiet();
+  const theirResult = await $`${rustDprint} fmt`.cwd(theirsDir).nothrow().quiet();
   const theirExitCode = theirResult.exitCode;
 
   // Both should succeed
@@ -113,12 +114,12 @@ t.it("both implementations format all files on first run", async () => {
 t.it("both implementations skip all files on second run (cache hit)", async () => {
   // First run - format everything
   await fmtCommand([], { logLevel: "silent", cwd: oursDir });
-  await $`npx dprint fmt --log-level silent`.cwd(theirsDir).nothrow().quiet();
+  await $`${rustDprint} fmt --log-level silent`.cwd(theirsDir).nothrow().quiet();
 
   // Second run - should skip everything due to cache
-  const ourResult = await $`bun run ${path.join(projectRoot, "bin/dprint-js")} fmt`.cwd(oursDir).nothrow()
+  const ourResult = await $`bun run ${path.join(projectRoot, "bin/dprint")} fmt`.cwd(oursDir).nothrow()
     .quiet();
-  const theirResult = await $`npx dprint fmt`.cwd(theirsDir).nothrow().quiet();
+  const theirResult = await $`${rustDprint} fmt --log-level silent`.cwd(theirsDir).nothrow().quiet();
 
   const ourOutput = ourResult.stdout.toString();
   const theirOutput = theirResult.stdout.toString();
@@ -142,7 +143,7 @@ t.it("both implementations skip all files on second run (cache hit)", async () =
 t.it("both implementations only format changed files after modification", async () => {
   // First run - format everything
   await fmtCommand([], { logLevel: "silent", cwd: oursDir });
-  await $`npx dprint fmt --log-level silent`.cwd(theirsDir).nothrow().quiet();
+  await $`${rustDprint} fmt --log-level silent`.cwd(theirsDir).nothrow().quiet();
 
   // Modify one file in both directories with malformed code
   const testFile = path.join(oursDir, "Sample.actual.ts");
@@ -153,9 +154,9 @@ t.it("both implementations only format changed files after modification", async 
   fs.appendFileSync(testFileTheirs, "\nconst x={a:1,b:2,c:3};\n");
 
   // Second run - should only format the modified file
-  const ourResult = await $`bun run ${path.join(projectRoot, "bin/dprint-js")} fmt`.cwd(oursDir).nothrow()
+  const ourResult = await $`bun run ${path.join(projectRoot, "bin/dprint")} fmt`.cwd(oursDir).nothrow()
     .quiet();
-  const theirResult = await $`npx dprint fmt`.cwd(theirsDir).nothrow().quiet();
+  const theirResult = await $`${rustDprint} fmt --log-level silent`.cwd(theirsDir).nothrow().quiet();
 
   const ourOutput = ourResult.stdout.toString();
   const theirOutput = theirResult.stdout.toString();
@@ -179,10 +180,10 @@ t.it("both implementations only format changed files after modification", async 
 t.it("both implementations invalidate cache when config changes", async () => {
   // First run - format everything
   await fmtCommand([], { logLevel: "silent", cwd: oursDir });
-  await $`npx dprint fmt --log-level silent`.cwd(theirsDir).nothrow().quiet();
+  await $`${rustDprint} fmt --log-level silent`.cwd(theirsDir).nothrow().quiet();
 
   // Verify second run with no changes skips files
-  const checkResult = await $`bun run ${path.join(projectRoot, "bin/dprint-js")} fmt`.cwd(oursDir).nothrow()
+  const checkResult = await $`bun run ${path.join(projectRoot, "bin/dprint")} fmt`.cwd(oursDir).nothrow()
     .quiet();
   const checkSkipped = countSkippedFiles(checkResult.stdout.toString());
   t.expect(checkSkipped).toBeGreaterThan(0); // Should skip files with cache
@@ -201,9 +202,9 @@ t.it("both implementations invalidate cache when config changes", async () => {
   fs.writeFileSync(theirConfigPath, JSON.stringify(theirConfig, null, 2));
 
   // Third run - should reformat due to config change
-  const ourResult = await $`bun run ${path.join(projectRoot, "bin/dprint-js")} fmt`.cwd(oursDir).nothrow()
+  const ourResult = await $`bun run ${path.join(projectRoot, "bin/dprint")} fmt`.cwd(oursDir).nothrow()
     .quiet();
-  const theirResult = await $`npx dprint fmt`.cwd(theirsDir).nothrow().quiet();
+  const theirResult = await $`${rustDprint} fmt --log-level silent`.cwd(theirsDir).nothrow().quiet();
 
   const ourOutput = ourResult.stdout.toString();
   const theirOutput = theirResult.stdout.toString();
@@ -236,12 +237,12 @@ t.it("both implementations respect incremental=false in config", async () => {
 
   // First run
   await fmtCommand([], { logLevel: "silent", cwd: oursDir });
-  await $`npx dprint fmt --log-level silent`.cwd(theirsDir).nothrow().quiet();
+  await $`${rustDprint} fmt --log-level silent`.cwd(theirsDir).nothrow().quiet();
 
   // Second run - should still format everything (no caching)
-  const ourResult = await $`bun run ${path.join(projectRoot, "bin/dprint-js")} fmt`.cwd(oursDir).nothrow()
+  const ourResult = await $`bun run ${path.join(projectRoot, "bin/dprint")} fmt`.cwd(oursDir).nothrow()
     .quiet();
-  const theirResult = await $`npx dprint fmt`.cwd(theirsDir).nothrow().quiet();
+  const theirResult = await $`${rustDprint} fmt --log-level silent`.cwd(theirsDir).nothrow().quiet();
 
   const ourOutput = ourResult.stdout.toString();
   const theirOutput = theirResult.stdout.toString();
@@ -267,12 +268,12 @@ t.it("both implementations respect incremental=false in config", async () => {
 t.it("both implementations handle --incremental=false CLI flag", async () => {
   // First run with caching enabled
   await fmtCommand([], { logLevel: "silent", cwd: oursDir });
-  await $`npx dprint fmt --log-level silent`.cwd(theirsDir).nothrow().quiet();
+  await $`${rustDprint} fmt --log-level silent`.cwd(theirsDir).nothrow().quiet();
 
   // Second run with incremental disabled via CLI
-  const ourResult = await $`bun run ${path.join(projectRoot, "bin/dprint-js")} fmt --incremental=false`.cwd(oursDir)
+  const ourResult = await $`bun run ${path.join(projectRoot, "bin/dprint")} fmt --incremental=false`.cwd(oursDir)
     .nothrow().quiet();
-  const theirResult = await $`npx dprint fmt --incremental=false`.cwd(theirsDir).nothrow().quiet();
+  const theirResult = await $`${rustDprint} fmt --incremental=false --log-level silent`.cwd(theirsDir).nothrow().quiet();
 
   const ourOutput = ourResult.stdout.toString();
   const theirOutput = theirResult.stdout.toString();
@@ -300,7 +301,7 @@ t.it("cache provides significant performance improvement on second run", async (
   const ourTime1 = Date.now() - ourStart1;
 
   const theirStart1 = Date.now();
-  await $`npx dprint fmt --log-level silent`.cwd(theirsDir).nothrow().quiet();
+  await $`${rustDprint} fmt --log-level silent`.cwd(theirsDir).nothrow().quiet();
   const theirTime1 = Date.now() - theirStart1;
 
   // Second run - measure time (should be much faster)
@@ -309,7 +310,7 @@ t.it("cache provides significant performance improvement on second run", async (
   const ourTime2 = Date.now() - ourStart2;
 
   const theirStart2 = Date.now();
-  await $`npx dprint fmt --log-level silent`.cwd(theirsDir).nothrow().quiet();
+  await $`${rustDprint} fmt --log-level silent`.cwd(theirsDir).nothrow().quiet();
   const theirTime2 = Date.now() - theirStart2;
 
   // Second run should be faster than first run for our implementation

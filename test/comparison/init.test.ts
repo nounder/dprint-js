@@ -243,7 +243,7 @@ t.it("handles empty plugins array", async () => {
 
   // Both should handle empty plugins similarly (likely as error)
   const ourResult = await $`bun run ${
-    path.join(projectRoot, "bin/dprint-js")
+    path.join(projectRoot, "bin/dprint")
   } check --config test-config.json --log-level silent`.cwd(oursDir).nothrow().quiet();
 
   const theirResult = await $`npx dprint check --config test-config.json --log-level silent`.cwd(theirsDir).nothrow()

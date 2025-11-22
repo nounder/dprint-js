@@ -188,7 +188,7 @@ t.it("list-different outputs same file paths", async () => {
 
   // Check with our implementation using --list-different
   const ourResult = await $`bun run ${
-    path.join(projectRoot, "bin/dprint-js")
+    path.join(projectRoot, "bin/dprint")
   } check --list-different --log-level silent 2>&1`.cwd(oursDir).nothrow().quiet();
 
   // Check with rust dprint using --list-different (outputs to stderr, so capture with 2>&1)
