@@ -1,179 +1,113 @@
 import { $ } from "bun";
 import * as t from "bun:test";
 import * as fs from "node:fs";
-import * as os from "node:os";
-import * as path from "node:path";
-import fmtCommand from "../../src/commands/fmt.js";
+import * as path from "path";
+import {
+  cleanupTestDirs,
+  createTestDirs,
+  projectRoot,
+  runBothInParallel,
+  setupConfigs,
+  testData,
+  type TestDirs,
+} from "./test-helpers.js";
 
-let testDir;
-let oursDir;
-let theirsDir;
-
-// Get path to our dprint binary
-const projectRoot = path.resolve(import.meta.dir, "../..");
 const dprintBin = path.join(projectRoot, "bin/dprint");
 
-// Sample malformatted code to test
-const malformattedTS = `const   x=1;const    y={a:1,b:2};function    foo(){return    x+y.a;}`;
-const malformattedJSON = `{"name":"test","nested":{"value":1,"items":["a","b","c"]}}`;
-const malformattedMD = `# Title\n\n\n-  Item 1\n-  Item 2\n\n\n**Bold**and*italic*`;
+let dirs: TestDirs;
 
 t.beforeEach(() => {
-  // Create unique test directory in /tmp
-  testDir = fs.mkdtempSync(path.join(os.tmpdir(), "dprint-test-comparison-stdin-"));
-  oursDir = path.join(testDir, "ours");
-  theirsDir = path.join(testDir, "theirs");
-
-  // Create test directories
-  fs.mkdirSync(oursDir, { recursive: true });
-  fs.mkdirSync(theirsDir, { recursive: true });
-
-  // Create config for our implementation (npm-based)
-  const ourConfig = {
-    lineWidth: 80,
-    indentWidth: 2,
-    useTabs: false,
-    incremental: false,
-    includes: ["**/*.{ts,js,md}", "test.json"],
-    excludes: ["**/node_modules", "dprint.json"],
-    plugins: ["@dprint/typescript", "@dprint/json", "@dprint/markdown"],
-    typescript: {},
-    json: {},
-    markdown: {},
-  };
-  fs.writeFileSync(path.join(oursDir, "dprint.json"), JSON.stringify(ourConfig, null, 2));
-
-  // Create config for rust dprint (URL-based)
-  const theirConfig = {
-    lineWidth: 80,
-    indentWidth: 2,
-    useTabs: false,
-    incremental: false,
-    includes: ["**/*.{ts,js,md}", "test.json"],
-    excludes: ["**/node_modules", "dprint.json"],
-    plugins: [
-      "https://plugins.dprint.dev/typescript-0.93.0.wasm",
-      "https://plugins.dprint.dev/json-0.19.3.wasm",
-      "https://plugins.dprint.dev/markdown-0.17.8.wasm",
-    ],
-    typescript: {},
-    json: {},
-    markdown: {},
-  };
-  fs.writeFileSync(path.join(theirsDir, "dprint.json"), JSON.stringify(theirConfig, null, 2));
+  dirs = createTestDirs("comparison-stdin");
+  setupConfigs(dirs);
 });
 
 t.afterEach(() => {
-  // Clean up test directory
-  if (testDir && fs.existsSync(testDir)) {
-    fs.rmSync(testDir, { recursive: true, force: true });
-  }
+  cleanupTestDirs(dirs.testDir);
 });
 
-t.it("formats stdin with extension identically to rust dprint", async () => {
-  // Write input to a temporary file
-  const inputFile = path.join(testDir, "input.txt");
-  fs.writeFileSync(inputFile, malformattedTS);
+// Consolidated: Test stdin formatting for different file types
+t.describe("stdin formatting", () => {
+  const stdinCases = [
+    {
+      name: "TypeScript with extension",
+      input: testData.malformattedTS,
+      arg: "ts",
+    },
+    {
+      name: "TypeScript with filename",
+      input: testData.malformattedTS,
+      arg: "test.ts",
+    },
+    {
+      name: "JSON with extension",
+      input: testData.malformattedJSON,
+      arg: "json",
+    },
+    {
+      name: "Markdown with extension",
+      input: testData.malformattedMD,
+      arg: "md",
+    },
+  ];
 
-  // Format with our implementation using stdin
-  const ourResult = await $`bun run ${dprintBin} fmt --stdin ts --log-level silent < ${inputFile}`.cwd(oursDir).text();
+  stdinCases.forEach(({ name, input, arg }) => {
+    t.it(`formats ${name} identically to rust dprint`, async () => {
+      // Write input to a temporary file for shell redirection
+      const inputFile = path.join(dirs.testDir, "input.txt");
+      fs.writeFileSync(inputFile, input);
 
-  // Format with rust dprint using stdin
-  const theirResult = await $`npx dprint fmt --stdin ts --log-level silent < ${inputFile}`.cwd(theirsDir).text();
+      // Run both in parallel
+      const [ourResult, theirResult] = await runBothInParallel(
+        () => $`bun run ${dprintBin} fmt --stdin ${arg} --log-level silent < ${inputFile}`.cwd(dirs.oursDir).text(),
+        () => $`npx dprint fmt --stdin ${arg} --log-level silent < ${inputFile}`.cwd(dirs.theirsDir).text(),
+      );
 
-  // Compare results
-  t.expect(ourResult).toBe(theirResult);
+      // Compare results
+      t.expect(ourResult).toBe(theirResult);
+    });
+  });
 });
 
-t.it("formats stdin with filename identically to rust dprint", async () => {
-  // Write input to a temporary file
-  const inputFile = path.join(testDir, "input.txt");
-  fs.writeFileSync(inputFile, malformattedTS);
-
-  // Format with our implementation using stdin
-  const ourResult = await $`bun run ${dprintBin} fmt --stdin test.ts --log-level silent < ${inputFile}`.cwd(oursDir)
-    .text();
-
-  // Format with rust dprint using stdin
-  const theirResult = await $`npx dprint fmt --stdin test.ts --log-level silent < ${inputFile}`.cwd(theirsDir).text();
-
-  // Compare results
-  t.expect(ourResult).toBe(theirResult);
-});
-
-t.it("formats stdin JSON identically to rust dprint", async () => {
-  // Write input to a temporary file
-  const inputFile = path.join(testDir, "input.json");
-  fs.writeFileSync(inputFile, malformattedJSON);
-
-  // Format with our implementation using stdin
-  const ourResult = await $`bun run ${dprintBin} fmt --stdin json --log-level silent < ${inputFile}`.cwd(oursDir)
-    .text();
-
-  // Format with rust dprint using stdin
-  const theirResult = await $`npx dprint fmt --stdin json --log-level silent < ${inputFile}`.cwd(theirsDir).text();
-
-  // Compare results
-  t.expect(ourResult).toBe(theirResult);
-});
-
-t.it("formats stdin Markdown identically to rust dprint", async () => {
-  // Write input to a temporary file
-  const inputFile = path.join(testDir, "input.md");
-  fs.writeFileSync(inputFile, malformattedMD);
-
-  // Format with our implementation using stdin
-  const ourResult = await $`bun run ${dprintBin} fmt --stdin md --log-level silent < ${inputFile}`.cwd(oursDir).text();
-
-  // Format with rust dprint using stdin
-  const theirResult = await $`npx dprint fmt --stdin md --log-level silent < ${inputFile}`.cwd(theirsDir).text();
-
-  // Compare results
-  t.expect(ourResult).toBe(theirResult);
-});
-
+// Test: Absolute file path
 t.it("handles stdin with absolute file path", async () => {
-  // Create a test file path
-  const testFilePath = path.join(oursDir, "src", "test.ts");
-  const inputFile = path.join(testDir, "input.txt");
-  fs.writeFileSync(inputFile, malformattedTS);
+  const testFilePath = path.join(dirs.oursDir, "src", "test.ts");
+  const inputFile = path.join(dirs.testDir, "input.txt");
+  fs.writeFileSync(inputFile, testData.malformattedTS);
 
-  // Format with our implementation using stdin with absolute path
-  const ourResult = await $`bun run ${dprintBin} fmt --stdin ${testFilePath} --log-level silent < ${inputFile}`.cwd(
-    oursDir,
-  ).text();
+  // Format with absolute path
+  const ourResult = await $`bun run ${dprintBin} fmt --stdin ${testFilePath} --log-level silent < ${inputFile}`
+    .cwd(dirs.oursDir)
+    .text();
 
-  // The file doesn't need to exist - dprint just uses the path to determine the formatter
-  // So we just verify it formats correctly
+  // Verify it formats correctly
   t.expect(ourResult).toContain("const x = 1;");
   t.expect(ourResult).toContain("const y = { a: 1, b: 2 };");
 });
 
+// Test: Error for unsupported extension
 t.it("returns error code when no formatter found for stdin extension", async () => {
-  // Try to format with an unsupported extension
-  const inputFile = path.join(testDir, "input.txt");
+  const inputFile = path.join(dirs.testDir, "input.txt");
   fs.writeFileSync(inputFile, "some content");
 
   try {
-    await $`bun run ${dprintBin} fmt --stdin xyz --log-level silent < ${inputFile}`.cwd(oursDir).quiet();
+    await $`bun run ${dprintBin} fmt --stdin xyz --log-level silent < ${inputFile}`.cwd(dirs.oursDir).quiet();
     t.expect(true).toBe(false); // Should not reach here
   } catch (proc) {
     t.expect(proc.exitCode).toBe(13); // Plugin error exit code
   }
 });
 
+// Test: Info log level includes diagnostic messages
 t.it("formats stdin with info log level includes diagnostic messages", async () => {
-  // Write input to a temporary file
-  const inputFile = path.join(testDir, "input.txt");
-  fs.writeFileSync(inputFile, malformattedTS);
+  const inputFile = path.join(dirs.testDir, "input.txt");
+  fs.writeFileSync(inputFile, testData.malformattedTS);
 
-  // Format with info log level
-  const stdout = await $`bun run ${dprintBin} fmt --stdin ts --log-level info < ${inputFile}`.cwd(oursDir).text();
+  const stdout = await $`bun run ${dprintBin} fmt --stdin ts --log-level info < ${inputFile}`.cwd(dirs.oursDir).text();
 
   // The formatted code should be in stdout
   t.expect(stdout).toContain("const x = 1;");
 
-  // Diagnostic messages should also appear in stdout
+  // Diagnostic messages should also appear
   t.expect(stdout).toContain("Using configuration from:");
   t.expect(stdout).toContain("Loading plugins...");
 });

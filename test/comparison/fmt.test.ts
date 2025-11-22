@@ -1,310 +1,167 @@
 import { $ } from "bun";
 import * as t from "bun:test";
 import * as fs from "node:fs";
-import * as os from "node:os";
-import * as path from "node:path";
 import fmtCommand from "../../src/commands/fmt.js";
+import {
+  cleanupTestDirs,
+  createTestDirs,
+  createTestFiles,
+  runBothInParallel,
+  setupConfigs,
+  testData,
+  type TestDirs,
+} from "./test-helpers.js";
 
-let testDir;
-let oursDir;
-let theirsDir;
-
-// Sample malformatted code to test
-const malformattedTS = `const   x=1;const    y={a:1,b:2};function    foo(){return    x+y.a;}`;
-const malformattedJSON = `{"name":"test","nested":{"value":1,"items":["a","b","c"]}}`;
-const malformattedMD = `# Title\n\n\n-  Item 1\n-  Item 2\n\n\n**Bold**and*italic*`;
+let dirs: TestDirs;
 
 t.beforeEach(() => {
-  // Create unique test directory in /tmp
-  testDir = fs.mkdtempSync(path.join(os.tmpdir(), "dprint-test-comparison-fmt-"));
-  oursDir = path.join(testDir, "ours");
-  theirsDir = path.join(testDir, "theirs");
-
-  // Create test directories
-  fs.mkdirSync(oursDir, { recursive: true });
-  fs.mkdirSync(theirsDir, { recursive: true });
-
-  // Create config for our implementation (npm-based)
-  const ourConfig = {
-    lineWidth: 80,
-    indentWidth: 2,
-    useTabs: false,
-    incremental: false,
-    includes: ["**/*.{ts,js,md}", "test.json", "file*.json"],
-    excludes: ["**/node_modules", "dprint.json"],
-    plugins: ["@dprint/typescript", "@dprint/json", "@dprint/markdown"],
-    typescript: {},
-    json: {},
-    markdown: {},
-  };
-  fs.writeFileSync(path.join(oursDir, "dprint.json"), JSON.stringify(ourConfig, null, 2));
-
-  // Create config for rust dprint (URL-based)
-  const theirConfig = {
-    lineWidth: 80,
-    indentWidth: 2,
-    useTabs: false,
-    incremental: false,
-    includes: ["**/*.{ts,js,md}", "test.json", "file*.json"],
-    excludes: ["**/node_modules", "dprint.json"],
-    plugins: [
-      "https://plugins.dprint.dev/typescript-0.93.0.wasm",
-      "https://plugins.dprint.dev/json-0.19.3.wasm",
-      "https://plugins.dprint.dev/markdown-0.17.8.wasm",
-    ],
-    typescript: {},
-    json: {},
-    markdown: {},
-  };
-  fs.writeFileSync(path.join(theirsDir, "dprint.json"), JSON.stringify(theirConfig, null, 2));
+  dirs = createTestDirs("comparison-fmt");
+  setupConfigs(dirs);
 });
 
 t.afterEach(() => {
-  // Clean up test directory
-  if (testDir && fs.existsSync(testDir)) {
-    fs.rmSync(testDir, { recursive: true, force: true });
-  }
+  cleanupTestDirs(dirs.testDir);
 });
 
-t.it("formats TypeScript identically to rust dprint", async () => {
-  // Create test files
-  const filename = "test.ts";
-  fs.writeFileSync(path.join(oursDir, filename), malformattedTS);
-  fs.writeFileSync(path.join(theirsDir, filename), malformattedTS);
+// Consolidated: Test formatting for multiple file types
+t.it("formats all file types identically to rust dprint", async () => {
+  // Create test files for all supported types
+  createTestFiles(dirs, {
+    "test.ts": testData.malformattedTS,
+    "test.json": testData.malformattedJSON,
+    "test.md": testData.malformattedMD,
+  });
 
-  // Format with our implementation
-  await fmtCommand([], { logLevel: "silent", cwd: oursDir });
-
-  // Format with rust dprint
-  await $`npx dprint fmt --log-level silent`.cwd(theirsDir).quiet();
-
-  // Compare results
-  const ourResult = fs.readFileSync(path.join(oursDir, filename), "utf-8");
-  const theirResult = fs.readFileSync(path.join(theirsDir, filename), "utf-8");
-
-  t.expect(ourResult).toBe(theirResult);
-});
-
-t.it("formats JSON identically to rust dprint", async () => {
-  // Create test files
-  const filename = "test.json";
-  fs.writeFileSync(path.join(oursDir, filename), malformattedJSON);
-  fs.writeFileSync(path.join(theirsDir, filename), malformattedJSON);
-
-  // Format with our implementation
-  await fmtCommand([], { logLevel: "silent", cwd: oursDir });
-
-  // Format with rust dprint
-  await $`npx dprint fmt --log-level silent`.cwd(theirsDir).quiet();
-
-  // Compare results
-  const ourResult = fs.readFileSync(path.join(oursDir, filename), "utf-8");
-  const theirResult = fs.readFileSync(path.join(theirsDir, filename), "utf-8");
-
-  t.expect(ourResult).toBe(theirResult);
-});
-
-t.it("formats Markdown identically to rust dprint", async () => {
-  // Create test files
-  const filename = "test.md";
-  fs.writeFileSync(path.join(oursDir, filename), malformattedMD);
-  fs.writeFileSync(path.join(theirsDir, filename), malformattedMD);
-
-  // Format with our implementation
-  await fmtCommand([], { logLevel: "silent", cwd: oursDir });
-
-  // Format with rust dprint
-  await $`npx dprint fmt --log-level silent`.cwd(theirsDir).quiet();
-
-  // Compare results
-  const ourResult = fs.readFileSync(path.join(oursDir, filename), "utf-8");
-  const theirResult = fs.readFileSync(path.join(theirsDir, filename), "utf-8");
-
-  t.expect(ourResult).toBe(theirResult);
-});
-
-t.it("handles multiple files identically to rust dprint", async () => {
-  // Create multiple test files
-  fs.writeFileSync(path.join(oursDir, "file1.ts"), malformattedTS);
-  fs.writeFileSync(path.join(oursDir, "file2.json"), malformattedJSON);
-  fs.writeFileSync(path.join(oursDir, "file3.md"), malformattedMD);
-
-  fs.writeFileSync(path.join(theirsDir, "file1.ts"), malformattedTS);
-  fs.writeFileSync(path.join(theirsDir, "file2.json"), malformattedJSON);
-  fs.writeFileSync(path.join(theirsDir, "file3.md"), malformattedMD);
-
-  // Format with our implementation
-  await fmtCommand([], { logLevel: "silent", cwd: oursDir });
-
-  // Format with rust dprint
-  await $`npx dprint fmt --log-level silent`.cwd(theirsDir).quiet();
+  // Run both formatters in parallel
+  await runBothInParallel(
+    () => fmtCommand([], { logLevel: "silent", cwd: dirs.oursDir }),
+    () => $`npx dprint fmt --log-level silent`.cwd(dirs.theirsDir).quiet(),
+  );
 
   // Compare results for all files
-  for (const file of ["file1.ts", "file2.json", "file3.md"]) {
-    const ourResult = fs.readFileSync(path.join(oursDir, file), "utf-8");
-    const theirResult = fs.readFileSync(path.join(theirsDir, file), "utf-8");
+  for (const file of ["test.ts", "test.json", "test.md"]) {
+    const ourResult = fs.readFileSync(`${dirs.oursDir}/${file}`, "utf-8");
+    const theirResult = fs.readFileSync(`${dirs.theirsDir}/${file}`, "utf-8");
     t.expect(ourResult).toBe(theirResult);
   }
 });
 
-t.it("respects file patterns identically to rust dprint", async () => {
-  // Create test files
-  fs.writeFileSync(path.join(oursDir, "format.ts"), malformattedTS);
-  fs.writeFileSync(path.join(oursDir, "skip.json"), malformattedJSON);
+// Consolidated: Test pattern matching and excludes
+t.it("respects file patterns and excludes identically to rust dprint", async () => {
+  // Create directory structure
+  fs.mkdirSync(`${dirs.oursDir}/src`, { recursive: true });
+  fs.mkdirSync(`${dirs.oursDir}/excluded`, { recursive: true });
+  fs.mkdirSync(`${dirs.theirsDir}/src`, { recursive: true });
+  fs.mkdirSync(`${dirs.theirsDir}/excluded`, { recursive: true });
 
-  fs.writeFileSync(path.join(theirsDir, "format.ts"), malformattedTS);
-  fs.writeFileSync(path.join(theirsDir, "skip.json"), malformattedJSON);
-
-  // Format only .ts files with our implementation
-  await fmtCommand(["*.ts"], { logLevel: "silent", cwd: oursDir });
-
-  // Format only .ts files with rust dprint
-  await $`npx dprint fmt --log-level silent *.ts`.cwd(theirsDir).quiet();
-
-  // TS file should be formatted
-  const ourTS = fs.readFileSync(path.join(oursDir, "format.ts"), "utf-8");
-  const theirTS = fs.readFileSync(path.join(theirsDir, "format.ts"), "utf-8");
-  t.expect(ourTS).toBe(theirTS);
-
-  // JSON file should remain unformatted
-  const ourJSON = fs.readFileSync(path.join(oursDir, "skip.json"), "utf-8");
-  const theirJSON = fs.readFileSync(path.join(theirsDir, "skip.json"), "utf-8");
-  t.expect(ourJSON).toBe(malformattedJSON);
-  t.expect(theirJSON).toBe(malformattedJSON);
-});
-
-t.it("respects excludes option identically to rust dprint", async () => {
-  // Create nested directories
-  fs.mkdirSync(path.join(oursDir, "src"), { recursive: true });
-  fs.mkdirSync(path.join(oursDir, "excluded"), { recursive: true });
-  fs.mkdirSync(path.join(theirsDir, "src"), { recursive: true });
-  fs.mkdirSync(path.join(theirsDir, "excluded"), { recursive: true });
-
-  // Create test files
-  fs.writeFileSync(path.join(oursDir, "src", "code.ts"), malformattedTS);
-  fs.writeFileSync(path.join(oursDir, "excluded", "code.ts"), malformattedTS);
-  fs.writeFileSync(path.join(theirsDir, "src", "code.ts"), malformattedTS);
-  fs.writeFileSync(path.join(theirsDir, "excluded", "code.ts"), malformattedTS);
-
-  // Format with excludes using our implementation
-  await fmtCommand([], { excludes: ["**/excluded/**"], logLevel: "silent", cwd: oursDir });
-
-  // Format with excludes using rust dprint
-  await $`npx dprint fmt --log-level silent --excludes "**/excluded/**"`.cwd(theirsDir).quiet();
-
-  // src file should be formatted
-  const ourSrc = fs.readFileSync(path.join(oursDir, "src", "code.ts"), "utf-8");
-  const theirSrc = fs.readFileSync(path.join(theirsDir, "src", "code.ts"), "utf-8");
-  t.expect(ourSrc).toBe(theirSrc);
-
-  // excluded file should remain unformatted
-  const ourExcluded = fs.readFileSync(path.join(oursDir, "excluded", "code.ts"), "utf-8");
-  const theirExcluded = fs.readFileSync(path.join(theirsDir, "excluded", "code.ts"), "utf-8");
-  t.expect(ourExcluded).toBe(malformattedTS);
-  t.expect(theirExcluded).toBe(malformattedTS);
-});
-
-// Error tests
-t.it("returns same exit code when config file is missing", async () => {
-  // Remove config files
-  fs.unlinkSync(path.join(oursDir, "dprint.json"));
-  fs.unlinkSync(path.join(theirsDir, "dprint.json"));
-
-  // Create a test file
-  fs.writeFileSync(path.join(oursDir, "test.ts"), malformattedTS);
-  fs.writeFileSync(path.join(theirsDir, "test.ts"), malformattedTS);
-
-  // Format with our implementation (disable config discovery to avoid finding parent config)
-  const ourExitCode = await fmtCommand([], { logLevel: "silent", configDiscovery: false, cwd: oursDir });
-
-  // Format with rust dprint (use --config to specify non-existent config)
-  const theirResult = await $`npx dprint fmt --log-level silent --config dprint.json`.cwd(theirsDir).nothrow().quiet();
-  const theirExitCode = theirResult.exitCode;
-
-  // Both should return error exit code (11 for config error)
-  t.expect(ourExitCode).toBe(11);
-  t.expect(theirExitCode).toBe(11);
-  t.expect(ourExitCode).toBe(theirExitCode);
-});
-
-t.it("returns same exit code when config has invalid JSON", async () => {
-  // Write invalid JSON to config files
-  fs.writeFileSync(path.join(oursDir, "dprint.json"), "{ invalid json");
-  fs.writeFileSync(path.join(theirsDir, "dprint.json"), "{ invalid json");
-
-  // Create a test file
-  fs.writeFileSync(path.join(oursDir, "test.ts"), malformattedTS);
-  fs.writeFileSync(path.join(theirsDir, "test.ts"), malformattedTS);
-
-  // Format with our implementation
-  const ourExitCode = await fmtCommand([], { logLevel: "silent", cwd: oursDir });
-
-  // Format with rust dprint
-  const theirResult = await $`npx dprint fmt --log-level silent`.cwd(theirsDir).nothrow().quiet();
-  const theirExitCode = theirResult.exitCode;
-
-  // Both should return error exit code
-  t.expect(ourExitCode).toBeGreaterThan(0);
-  t.expect(theirExitCode).toBeGreaterThan(0);
-  t.expect(ourExitCode).toBe(theirExitCode);
-});
-
-t.it("returns same exit code when config is missing plugins", async () => {
-  // Write config without plugins
-  const invalidConfig = {
-    lineWidth: 80,
-    indentWidth: 2,
-    useTabs: false,
-  };
-  fs.writeFileSync(path.join(oursDir, "dprint.json"), JSON.stringify(invalidConfig, null, 2));
-  fs.writeFileSync(path.join(theirsDir, "dprint.json"), JSON.stringify(invalidConfig, null, 2));
-
-  // Create a test file
-  fs.writeFileSync(path.join(oursDir, "test.ts"), malformattedTS);
-  fs.writeFileSync(path.join(theirsDir, "test.ts"), malformattedTS);
-
-  // Format with our implementation
-  const ourExitCode = await fmtCommand([], { logLevel: "silent", cwd: oursDir });
-
-  // Format with rust dprint
-  const theirResult = await $`npx dprint fmt --log-level silent`.cwd(theirsDir).nothrow().quiet();
-  const theirExitCode = theirResult.exitCode;
-
-  // Both should return error exit code
-  t.expect(ourExitCode).toBeGreaterThan(0);
-  t.expect(theirExitCode).toBeGreaterThan(0);
-  t.expect(ourExitCode).toBe(theirExitCode);
-});
-
-t.it("returns same exit code for non-existent file argument", async () => {
-  // Format with our implementation for a non-existent file
-  const ourExitCode = await fmtCommand(["non-existent-file.ts"], { logLevel: "silent", cwd: oursDir });
-
-  // Format with rust dprint for a non-existent file
-  const theirResult = await $`npx dprint fmt --log-level silent non-existent-file.ts`.cwd(theirsDir).nothrow().quiet();
-  const theirExitCode = theirResult.exitCode;
-
-  // Both should return error exit code (14 for no files found)
-  t.expect(ourExitCode).toBe(14);
-  t.expect(theirExitCode).toBe(14);
-  t.expect(ourExitCode).toBe(theirExitCode);
-});
-
-t.it("returns same exit code with --allow-no-files for non-existent files", async () => {
-  // Format with our implementation for a non-existent file with --allow-no-files
-  const ourExitCode = await fmtCommand(["non-existent-file.ts"], {
-    allowNoFiles: true,
-    logLevel: "silent",
-    cwd: oursDir,
+  createTestFiles(dirs, {
+    "format.ts": testData.malformattedTS,
+    "skip.json": testData.malformattedJSON,
+    "src/code.ts": testData.malformattedTS,
+    "excluded/code.ts": testData.malformattedTS,
   });
 
-  // Format with rust dprint for a non-existent file with --allow-no-files
-  const theirResult = await $`npx dprint fmt --log-level silent --allow-no-files non-existent-file.ts`.cwd(theirsDir)
-    .nothrow().quiet();
-  const theirExitCode = theirResult.exitCode;
+  // Test 1: Format only .ts files
+  await runBothInParallel(
+    () => fmtCommand(["*.ts"], { logLevel: "silent", cwd: dirs.oursDir }),
+    () => $`npx dprint fmt --log-level silent *.ts`.cwd(dirs.theirsDir).quiet(),
+  );
 
-  // Both should return success with --allow-no-files
-  t.expect(ourExitCode).toBe(0);
-  t.expect(theirExitCode).toBe(0);
-  t.expect(ourExitCode).toBe(theirExitCode);
+  // TS file should be formatted, JSON should not
+  t.expect(fs.readFileSync(`${dirs.oursDir}/format.ts`, "utf-8"))
+    .toBe(fs.readFileSync(`${dirs.theirsDir}/format.ts`, "utf-8"));
+  t.expect(fs.readFileSync(`${dirs.oursDir}/skip.json`, "utf-8")).toBe(testData.malformattedJSON);
+  t.expect(fs.readFileSync(`${dirs.theirsDir}/skip.json`, "utf-8")).toBe(testData.malformattedJSON);
+
+  // Test 2: Format with excludes
+  await runBothInParallel(
+    () => fmtCommand([], { excludes: ["**/excluded/**"], logLevel: "silent", cwd: dirs.oursDir }),
+    () => $`npx dprint fmt --log-level silent --excludes "**/excluded/**"`.cwd(dirs.theirsDir).quiet(),
+  );
+
+  // src file should be formatted, excluded should not
+  const ourSrc = fs.readFileSync(`${dirs.oursDir}/src/code.ts`, "utf-8");
+  const theirSrc = fs.readFileSync(`${dirs.theirsDir}/src/code.ts`, "utf-8");
+  t.expect(ourSrc).toBe(theirSrc);
+
+  const ourExcluded = fs.readFileSync(`${dirs.oursDir}/excluded/code.ts`, "utf-8");
+  const theirExcluded = fs.readFileSync(`${dirs.theirsDir}/excluded/code.ts`, "utf-8");
+  t.expect(ourExcluded).toBe(testData.malformattedTS);
+  t.expect(theirExcluded).toBe(testData.malformattedTS);
+});
+
+// Consolidated: Error exit codes using test.each
+t.describe("error handling", () => {
+  const errorCases = [
+    {
+      name: "missing config file",
+      setup: (d: TestDirs) => {
+        fs.unlinkSync(`${d.oursDir}/dprint.json`);
+        fs.unlinkSync(`${d.theirsDir}/dprint.json`);
+        createTestFiles(d, { "test.ts": testData.malformattedTS });
+      },
+      ourOptions: { logLevel: "silent", configDiscovery: false },
+      theirArgs: "fmt --log-level silent --config dprint.json",
+      expectedCode: 11,
+    },
+    {
+      name: "invalid JSON config",
+      setup: (d: TestDirs) => {
+        fs.writeFileSync(`${d.oursDir}/dprint.json`, "{ invalid json");
+        fs.writeFileSync(`${d.theirsDir}/dprint.json`, "{ invalid json");
+        createTestFiles(d, { "test.ts": testData.malformattedTS });
+      },
+      ourOptions: { logLevel: "silent" },
+      theirArgs: "fmt --log-level silent",
+      expectedCode: null, // Just check they match, don't enforce specific code
+    },
+    {
+      name: "missing plugins",
+      setup: (d: TestDirs) => {
+        const invalidConfig = { lineWidth: 80, indentWidth: 2, useTabs: false };
+        fs.writeFileSync(`${d.oursDir}/dprint.json`, JSON.stringify(invalidConfig, null, 2));
+        fs.writeFileSync(`${d.theirsDir}/dprint.json`, JSON.stringify(invalidConfig, null, 2));
+        createTestFiles(d, { "test.ts": testData.malformattedTS });
+      },
+      ourOptions: { logLevel: "silent" },
+      theirArgs: "fmt --log-level silent",
+      expectedCode: null,
+    },
+    {
+      name: "non-existent file",
+      setup: () => {},
+      ourOptions: { logLevel: "silent" },
+      theirArgs: "fmt --log-level silent non-existent-file.ts",
+      fileArgs: ["non-existent-file.ts"],
+      expectedCode: 14,
+    },
+    {
+      name: "non-existent file with --allow-no-files",
+      setup: () => {},
+      ourOptions: { allowNoFiles: true, logLevel: "silent" },
+      theirArgs: "fmt --log-level silent --allow-no-files non-existent-file.ts",
+      fileArgs: ["non-existent-file.ts"],
+      expectedCode: 0,
+    },
+  ];
+
+  errorCases.forEach(({ name, setup, ourOptions, theirArgs, fileArgs = [], expectedCode }) => {
+    t.it(`returns same exit code for ${name}`, async () => {
+      setup(dirs);
+
+      // Run both in parallel
+      const [ourExitCode, theirResult] = await runBothInParallel(
+        () => fmtCommand(fileArgs, { ...ourOptions, cwd: dirs.oursDir }),
+        () => $`npx dprint ${theirArgs}`.cwd(dirs.theirsDir).nothrow().quiet(),
+      );
+
+      const theirExitCode = theirResult.exitCode;
+
+      if (expectedCode !== null) {
+        t.expect(ourExitCode).toBe(expectedCode);
+        t.expect(theirExitCode).toBe(expectedCode);
+      }
+      t.expect(ourExitCode).toBe(theirExitCode);
+    });
+  });
 });
