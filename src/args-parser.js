@@ -141,10 +141,14 @@ USAGE:
     ${DPRINT} <SUBCOMMAND> [OPTIONS] [--] [file patterns]...
 
 SUBCOMMANDS:
-    init     Initializes a configuration file in the current directory
-    fmt      Formats the source files and writes the result to the file system
-    check    Checks for any files that haven't been formatted
-    help     Shows this help message
+    init                    Initializes a configuration file in the current directory
+    fmt                     Formats the source files and writes the result to the file system
+    check                   Checks for any files that haven't been formatted
+    config                  Functionality related to the configuration file
+    output-file-paths       Prints the resolved file paths for the plugins based on the args and configuration
+    output-resolved-config  Prints the resolved configuration for the plugins based on the args and configuration
+    output-format-times     Prints the amount of time it takes to format each file. Use this for debugging
+    help                    Shows this help message
 
 Use '${DPRINT} <subcommand> --help' for more information on a specific command.
 `);

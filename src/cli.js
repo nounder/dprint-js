@@ -2,6 +2,10 @@ import { parseArgs, showCheckHelp, showFmtHelp, showHelp, showInitHelp } from ".
 import checkCommand from "./commands/check.js";
 import fmtCommand from "./commands/fmt.js";
 import initCommand from "./commands/init.js";
+import configCommand from "./commands/config.js";
+import outputFilePathsCommand from "./commands/output-file-paths.js";
+import outputResolvedConfigCommand from "./commands/output-resolved-config.js";
+import outputFormatTimesCommand from "./commands/output-format-times.js";
 import { DPRINT } from "./constants.js";
 
 /**
@@ -44,6 +48,18 @@ export async function main(args = process.argv.slice(2)) {
 
       case "check":
         return await checkCommand(parsed.positional, parsed.options);
+
+      case "config":
+        return await configCommand(parsed.positional, parsed.options);
+
+      case "output-file-paths":
+        return await outputFilePathsCommand(parsed.positional, parsed.options);
+
+      case "output-resolved-config":
+        return await outputResolvedConfigCommand(parsed.options);
+
+      case "output-format-times":
+        return await outputFormatTimesCommand(parsed.positional, parsed.options);
 
       default:
         console.error(`Error: Unknown command '${parsed.command}'`);
