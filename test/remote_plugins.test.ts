@@ -204,7 +204,8 @@ describe("Remote Plugin Caching", () => {
       ],
     };
 
-    const loadedPlugins = await loadPlugins(config);
+    const result = await loadPlugins(config);
+    const loadedPlugins = result.plugins;
 
     // Should load both plugins successfully
     expect(loadedPlugins.length).toBe(2);

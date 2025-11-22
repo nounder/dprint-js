@@ -131,13 +131,24 @@ export default async function fmtCommand(filePatterns = [], options = {}) {
   }
 
   let loadedPlugins;
+  let autoDiscovered;
   try {
-    loadedPlugins = await loadPlugins(config, cwd, configPath, shouldLog);
+    const result = await loadPlugins(config, cwd, configPath);
+    loadedPlugins = result.plugins;
+    autoDiscovered = result.autoDiscovered;
   } catch (error) {
     if (shouldLog("error")) {
       console.error(`Error: ${error.message}`);
     }
     return 13; // Plugin error exit code
+  }
+
+  // Log auto-discovered plugins
+  if (autoDiscovered.length > 0 && shouldLog("info")) {
+    console.log(`[INFO] No plugins specified in config, auto-discovered from package.json:`);
+    for (const plugin of autoDiscovered) {
+      console.log(`  - ${plugin}`);
+    }
   }
 
   if (loadedPlugins.length === 0) {

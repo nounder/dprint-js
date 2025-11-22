@@ -51,7 +51,8 @@ t.it("loads all plugins from config", async () => {
     markdown: {},
   };
 
-  const plugins = await loadPlugins(config);
+  const result = await loadPlugins(config);
+  const plugins = result.plugins;
 
   t.expect(plugins.length).toBe(3);
   t.expect(plugins[0].name).toBe("@dprint/typescript");
@@ -66,7 +67,8 @@ t.it("handles missing plugin gracefully", async () => {
     json: {},
   };
 
-  const plugins = await loadPlugins(config);
+  const result = await loadPlugins(config);
+  const plugins = result.plugins;
 
   // Should load 2 plugins (typescript and json), skip the nonexistent one
   t.expect(plugins.length).toBe(2);
@@ -82,7 +84,8 @@ t.it("returns empty array when no plugins specified and no package.json", async 
   fs.writeFileSync(configPath, JSON.stringify({ plugins: [] }));
 
   const config = { plugins: [] };
-  const plugins = await loadPlugins(config, uniqueTempDir, configPath);
+  const result = await loadPlugins(config, uniqueTempDir, configPath);
+  const plugins = result.plugins;
 
   t.expect(plugins.length).toBe(0);
 
@@ -93,7 +96,8 @@ t.it("returns empty array when no plugins specified and no package.json", async 
 t.it("auto-loads plugins from package.json when plugins key missing", async () => {
   // When no plugins specified, should auto-discover from package.json
   const config = {};
-  const plugins = await loadPlugins(config);
+  const result = await loadPlugins(config);
+  const plugins = result.plugins;
 
   // Should find the plugins from the project's package.json
   t.expect(plugins.length).toBeGreaterThan(0);
@@ -106,7 +110,8 @@ t.it("returns typescript formatter for .ts files", async () => {
     json: {},
     markdown: {},
   };
-  const loadedPlugins = await loadPlugins(config);
+  const result = await loadPlugins(config);
+  const loadedPlugins = result.plugins;
   const formatter = getFormatterForFile("test.ts", loadedPlugins);
   t.expect(formatter).toBeDefined();
 });
@@ -118,7 +123,8 @@ t.it("returns typescript formatter for .js files", async () => {
     json: {},
     markdown: {},
   };
-  const loadedPlugins = await loadPlugins(config);
+  const result = await loadPlugins(config);
+  const loadedPlugins = result.plugins;
   const formatter = getFormatterForFile("test.js", loadedPlugins);
   t.expect(formatter).toBeDefined();
 });
@@ -130,7 +136,8 @@ t.it("returns typescript formatter for .tsx files", async () => {
     json: {},
     markdown: {},
   };
-  const loadedPlugins = await loadPlugins(config);
+  const result = await loadPlugins(config);
+  const loadedPlugins = result.plugins;
   const formatter = getFormatterForFile("test.tsx", loadedPlugins);
   t.expect(formatter).toBeDefined();
 });
@@ -142,7 +149,8 @@ t.it("returns json formatter for .json files", async () => {
     json: {},
     markdown: {},
   };
-  const loadedPlugins = await loadPlugins(config);
+  const result = await loadPlugins(config);
+  const loadedPlugins = result.plugins;
   const formatter = getFormatterForFile("test.json", loadedPlugins);
   t.expect(formatter).toBeDefined();
 });
@@ -154,7 +162,8 @@ t.it("returns markdown formatter for .md files", async () => {
     json: {},
     markdown: {},
   };
-  const loadedPlugins = await loadPlugins(config);
+  const result = await loadPlugins(config);
+  const loadedPlugins = result.plugins;
   const formatter = getFormatterForFile("test.md", loadedPlugins);
   t.expect(formatter).toBeDefined();
 });
@@ -166,7 +175,8 @@ t.it("returns markdown formatter for .markdown files", async () => {
     json: {},
     markdown: {},
   };
-  const loadedPlugins = await loadPlugins(config);
+  const result = await loadPlugins(config);
+  const loadedPlugins = result.plugins;
   const formatter = getFormatterForFile("test.markdown", loadedPlugins);
   t.expect(formatter).toBeDefined();
 });
@@ -178,7 +188,8 @@ t.it("returns null for unsupported file types", async () => {
     json: {},
     markdown: {},
   };
-  const loadedPlugins = await loadPlugins(config);
+  const result = await loadPlugins(config);
+  const loadedPlugins = result.plugins;
   const formatter = getFormatterForFile("test.txt", loadedPlugins);
   t.expect(formatter).toBeNull();
 });
@@ -190,7 +201,8 @@ t.it("returns null for files without extension", async () => {
     json: {},
     markdown: {},
   };
-  const loadedPlugins = await loadPlugins(config);
+  const result = await loadPlugins(config);
+  const loadedPlugins = result.plugins;
   const formatter = getFormatterForFile("README", loadedPlugins);
   t.expect(formatter).toBeNull();
 });
@@ -201,7 +213,8 @@ t.it("formats TypeScript code correctly", async () => {
     typescript: {},
     json: {},
   };
-  const loadedPlugins = await loadPlugins(config);
+  const result = await loadPlugins(config);
+  const loadedPlugins = result.plugins;
   const formatter = getFormatterForFile("test.ts", loadedPlugins);
   const input = "const   x=1";
   const output = formatText("test.ts", input, formatter!);
@@ -215,7 +228,8 @@ t.it("formats JSON correctly", async () => {
     typescript: {},
     json: {},
   };
-  const loadedPlugins = await loadPlugins(config);
+  const result = await loadPlugins(config);
+  const loadedPlugins = result.plugins;
   const formatter = getFormatterForFile("test.json", loadedPlugins);
   const input = "{\"a\":1,\"b\":2}";
   const output = formatText("test.json", input, formatter!);
@@ -232,7 +246,8 @@ t.it("returns same text if already formatted", async () => {
     typescript: {},
     json: {},
   };
-  const loadedPlugins = await loadPlugins(config);
+  const result = await loadPlugins(config);
+  const loadedPlugins = result.plugins;
   const formatter = getFormatterForFile("test.ts", loadedPlugins);
   const input = "const x = 1;\n";
   const output = formatText("test.ts", input, formatter!);
@@ -255,7 +270,8 @@ const config = {
 t.beforeAll(async () => {
   // Create unique test directory in /tmp
   testDir = fs.mkdtempSync(path.join(os.tmpdir(), "dprint-test-formatter-"));
-  loadedPlugins = await loadPlugins(config);
+  const result = await loadPlugins(config);
+  loadedPlugins = result.plugins;
 });
 
 t.afterAll(() => {

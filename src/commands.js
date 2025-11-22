@@ -43,7 +43,16 @@ export async function fmtCommand(filePatterns = [], options = {}) {
 
   // Load plugins
   console.log("Loading plugins...");
-  const loadedPlugins = await loadPlugins(config, cwd);
+  const result = await loadPlugins(config, cwd);
+  const loadedPlugins = result.plugins;
+
+  // Log auto-discovered plugins
+  if (result.autoDiscovered.length > 0) {
+    console.log(`[INFO] No plugins specified in config, auto-discovered from package.json:`);
+    for (const plugin of result.autoDiscovered) {
+      console.log(`  - ${plugin}`);
+    }
+  }
 
   if (loadedPlugins.length === 0) {
     console.error("Error: No formatters loaded. Make sure plugins are installed:");
@@ -107,7 +116,16 @@ export async function checkCommand(filePatterns = [], options = {}) {
 
   // Load plugins
   console.log("Loading plugins...");
-  const loadedPlugins = await loadPlugins(config, cwd);
+  const result = await loadPlugins(config, cwd);
+  const loadedPlugins = result.plugins;
+
+  // Log auto-discovered plugins
+  if (result.autoDiscovered.length > 0) {
+    console.log(`[INFO] No plugins specified in config, auto-discovered from package.json:`);
+    for (const plugin of result.autoDiscovered) {
+      console.log(`  - ${plugin}`);
+    }
+  }
 
   if (loadedPlugins.length === 0) {
     console.error("Error: No formatters loaded. Make sure plugins are installed:");
