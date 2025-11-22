@@ -158,3 +158,59 @@ t.it("respects exclude patterns", async () => {
   // File in root should be formatted
   t.expect(fs.readFileSync(path.join(testDir, "src.ts"), "utf-8")).toBe("const y = 2;\n");
 });
+
+t.it("stdin mode outputs only formatted content to stdout", async () => {
+  // Capture console.log and console.error
+  const originalLog = console.log;
+  const originalError = console.error;
+  let consoleLogOutput = [];
+  let consoleErrorOutput = [];
+
+  console.log = function(...args) {
+    consoleLogOutput.push(args.join(" "));
+  };
+  console.error = function(...args) {
+    consoleErrorOutput.push(args.join(" "));
+  };
+
+  // Capture stdout
+  const originalWrite = process.stdout.write;
+  let stdoutData = "";
+  process.stdout.write = function(chunk) {
+    stdoutData += chunk;
+    return true;
+  };
+
+  // Mock stdin
+  const originalStdin = process.stdin;
+  const { Readable } = await import("stream");
+  const mockStdin = new Readable();
+  mockStdin.push("const   x=1");
+  mockStdin.push(null); // End of stream
+  mockStdin.setEncoding = () => {};
+  process.stdin = mockStdin;
+
+  try {
+    const exitCode = await fmtCommand([], {
+      cwd: testDir,
+      stdin: "ts",
+    });
+
+    t.expect(exitCode).toBe(0);
+
+    // stdout should contain ONLY the formatted content, no diagnostic messages
+    t.expect(stdoutData).toBe("const x = 1;\n");
+
+    // No diagnostic messages should appear in console.log
+    t.expect(consoleLogOutput.join("\n")).not.toContain("Using configuration from");
+    t.expect(consoleLogOutput.join("\n")).not.toContain("Loading plugins");
+    t.expect(consoleLogOutput.join("\n")).not.toContain("Loaded");
+    t.expect(consoleLogOutput.join("\n")).not.toContain("[INFO]");
+  } finally {
+    // Restore
+    console.log = originalLog;
+    console.error = originalError;
+    process.stdout.write = originalWrite;
+    process.stdin = originalStdin;
+  }
+});

@@ -9,8 +9,8 @@ t.it("respects indentWidth: 2 for TypeScript", async () => {
     },
   };
 
-  const loadedPlugins = await loadPlugins(config);
-  const formatter = loadedPlugins[0].formatter;
+  const { plugins } = await loadPlugins(config);
+  const formatter = plugins[0].formatter;
 
   const input = "function test(){return 1}";
   const output = formatText("test.ts", input, formatter);
@@ -26,8 +26,8 @@ t.it("respects indentWidth: 4 for TypeScript", async () => {
     },
   };
 
-  const loadedPlugins = await loadPlugins(config);
-  const formatter = loadedPlugins[0].formatter;
+  const { plugins } = await loadPlugins(config);
+  const formatter = plugins[0].formatter;
 
   const input = "function test(){return 1}";
   const output = formatText("test.ts", input, formatter);
@@ -43,8 +43,8 @@ t.it("applies indentWidth to nested structures", async () => {
     },
   };
 
-  const loadedPlugins = await loadPlugins(config);
-  const formatter = loadedPlugins[0].formatter;
+  const { plugins } = await loadPlugins(config);
+  const formatter = plugins[0].formatter;
 
   const input = "class Test{method(){const x={a:1,b:2};return x;}}";
   const output = formatText("test.ts", input, formatter);
@@ -63,8 +63,8 @@ t.it("respects indentWidth for JSON", async () => {
     },
   };
 
-  const loadedPlugins = await loadPlugins(config);
-  const formatter = loadedPlugins[0].formatter;
+  const { plugins } = await loadPlugins(config);
+  const formatter = plugins[0].formatter;
 
   const input = "{\"nested\":{\"value\":1,\"items\":[\"a\",\"b\",\"c\"]}}";
   const output = formatText("test.json", input, formatter);

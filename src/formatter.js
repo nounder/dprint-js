@@ -516,10 +516,11 @@ function extractGlobalConfig(config) {
  * @param {object} config - The dprint configuration
  * @param {string} cwd - Current working directory
  * @param {string} configPath - Optional path to config file (used for auto-discovery)
- * @returns {Promise<Array<{name: string, formatter: object, extensions: string[], fileNames: string[]}>>}
+ * @returns {Promise<{plugins: Array<{name: string, formatter: object, extensions: string[], fileNames: string[]}>, autoDiscovered: string[]}>}
  */
 export async function loadPlugins(config, cwd = process.cwd(), configPath = null) {
   let plugins = config.plugins;
+  let autoDiscovered = [];
 
   // If no plugins specified in config, auto-discover from package.json
   if (!plugins || plugins.length === 0) {
@@ -527,10 +528,7 @@ export async function loadPlugins(config, cwd = process.cwd(), configPath = null
     const searchDir = configPath ? path.dirname(configPath) : cwd;
     plugins = await discoverPluginsFromPackageJson(searchDir);
     if (plugins.length > 0) {
-      console.log(`[INFO] No plugins specified in config, auto-discovered from package.json:`);
-      for (const plugin of plugins) {
-        console.log(`  - ${plugin}`);
-      }
+      autoDiscovered = [...plugins];
     }
   }
 
@@ -574,7 +572,7 @@ export async function loadPlugins(config, cwd = process.cwd(), configPath = null
     }
   }
 
-  return loadedPlugins;
+  return { plugins: loadedPlugins, autoDiscovered };
 }
 
 /**

@@ -89,7 +89,9 @@ async function handleStdin(stdinValue, loadedPlugins, cwd, shouldLog) {
  */
 export default async function fmtCommand(filePatterns = [], options = {}) {
   const cwd = options.cwd || process.cwd();
-  const logLevel = options.logLevel || "info";
+  // Default to silent mode for stdin to prevent diagnostic messages in stdout
+  // But respect explicit logLevel if provided
+  const logLevel = options.logLevel || (options.stdin ? "silent" : "info");
   const shouldLog = (level) => {
     const levels = ["debug", "info", "warn", "error", "silent"];
     const currentLevel = levels.indexOf(logLevel);
@@ -129,13 +131,24 @@ export default async function fmtCommand(filePatterns = [], options = {}) {
   }
 
   let loadedPlugins;
+  let autoDiscovered;
   try {
-    loadedPlugins = await loadPlugins(config, cwd, configPath);
+    const pluginData = await loadPlugins(config, cwd, configPath);
+    loadedPlugins = pluginData.plugins;
+    autoDiscovered = pluginData.autoDiscovered;
   } catch (error) {
     if (shouldLog("error")) {
       console.error(`Error: ${error.message}`);
     }
     return 13; // Plugin error exit code
+  }
+
+  // Log auto-discovered plugins
+  if (autoDiscovered.length > 0 && shouldLog("info")) {
+    console.log(`[INFO] No plugins specified in config, auto-discovered from package.json:`);
+    for (const plugin of autoDiscovered) {
+      console.log(`  - ${plugin}`);
+    }
   }
 
   if (loadedPlugins.length === 0) {
