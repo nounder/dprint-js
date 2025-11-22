@@ -133,9 +133,9 @@ export default async function fmtCommand(filePatterns = [], options = {}) {
   let loadedPlugins;
   let autoDiscovered;
   try {
-    const result = await loadPlugins(config, cwd, configPath);
-    loadedPlugins = result.plugins;
-    autoDiscovered = result.autoDiscovered;
+    const pluginData = await loadPlugins(config, cwd, configPath);
+    loadedPlugins = pluginData.plugins;
+    autoDiscovered = pluginData.autoDiscovered;
   } catch (error) {
     if (shouldLog("error")) {
       console.error(`Error: ${error.message}`);

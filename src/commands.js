@@ -43,13 +43,12 @@ export async function fmtCommand(filePatterns = [], options = {}) {
 
   // Load plugins
   console.log("Loading plugins...");
-  const result = await loadPlugins(config, cwd);
-  const loadedPlugins = result.plugins;
+  const { plugins: loadedPlugins, autoDiscovered } = await loadPlugins(config, cwd);
 
   // Log auto-discovered plugins
-  if (result.autoDiscovered.length > 0) {
+  if (autoDiscovered.length > 0) {
     console.log(`[INFO] No plugins specified in config, auto-discovered from package.json:`);
-    for (const plugin of result.autoDiscovered) {
+    for (const plugin of autoDiscovered) {
       console.log(`  - ${plugin}`);
     }
   }
@@ -116,13 +115,12 @@ export async function checkCommand(filePatterns = [], options = {}) {
 
   // Load plugins
   console.log("Loading plugins...");
-  const result = await loadPlugins(config, cwd);
-  const loadedPlugins = result.plugins;
+  const { plugins: loadedPlugins, autoDiscovered } = await loadPlugins(config, cwd);
 
   // Log auto-discovered plugins
-  if (result.autoDiscovered.length > 0) {
+  if (autoDiscovered.length > 0) {
     console.log(`[INFO] No plugins specified in config, auto-discovered from package.json:`);
-    for (const plugin of result.autoDiscovered) {
+    for (const plugin of autoDiscovered) {
       console.log(`  - ${plugin}`);
     }
   }

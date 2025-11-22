@@ -13,8 +13,8 @@ t.it("respects lineWidth option", async () => {
     },
   };
 
-  const result = await loadPlugins(config);
-  const formatter = result.plugins[0].formatter;
+  const { plugins } = await loadPlugins(config);
+  const formatter = plugins[0].formatter;
 
   const input = "const longVariable = \"this is a very long string that should wrap\";";
   const output = formatText("test.ts", input, formatter);
@@ -31,8 +31,8 @@ t.it("respects indentWidth option", async () => {
     },
   };
 
-  const result = await loadPlugins(config);
-  const formatter = result.plugins[0].formatter;
+  const { plugins } = await loadPlugins(config);
+  const formatter = plugins[0].formatter;
 
   const input = "function test(){return 1}";
   const output = formatText("test.ts", input, formatter);
@@ -50,8 +50,8 @@ t.it("respects useTabs: false option", async () => {
     },
   };
 
-  const result = await loadPlugins(config);
-  const formatter = result.plugins[0].formatter;
+  const { plugins } = await loadPlugins(config);
+  const formatter = plugins[0].formatter;
 
   const input = "function test(){return 1}";
   const output = formatText("test.ts", input, formatter);
@@ -69,8 +69,8 @@ t.it("respects useTabs: true option", async () => {
     },
   };
 
-  const result = await loadPlugins(config);
-  const formatter = result.plugins[0].formatter;
+  const { plugins } = await loadPlugins(config);
+  const formatter = plugins[0].formatter;
 
   const input = "function test(){return 1}";
   const output = formatText("test.ts", input, formatter);
@@ -89,8 +89,8 @@ t.it("formatting options work together", async () => {
     },
   };
 
-  const result = await loadPlugins(config);
-  const formatter = result.plugins[0].formatter;
+  const { plugins } = await loadPlugins(config);
+  const formatter = plugins[0].formatter;
 
   const input = "function test(){const x={a:1,b:2,c:3,d:4,e:5};return x;}";
   const output = formatText("test.ts", input, formatter);
@@ -110,8 +110,8 @@ t.it("respects newLineKind: lf option", async () => {
     },
   };
 
-  const result = await loadPlugins(config);
-  const formatter = result.plugins[0].formatter;
+  const { plugins } = await loadPlugins(config);
+  const formatter = plugins[0].formatter;
 
   const input = "function test(){\nreturn 1;\n}";
   const output = formatText("test.ts", input, formatter);
@@ -129,8 +129,8 @@ t.it("respects newLineKind: crlf option", async () => {
     },
   };
 
-  const result = await loadPlugins(config);
-  const formatter = result.plugins[0].formatter;
+  const { plugins } = await loadPlugins(config);
+  const formatter = plugins[0].formatter;
 
   const input = "function test(){\nreturn 1;\n}";
   const output = formatText("test.ts", input, formatter);
@@ -147,8 +147,8 @@ t.it("respects global lineWidth option", async () => {
     typescript: {},
   };
 
-  const result = await loadPlugins(config);
-  const formatter = result.plugins[0].formatter;
+  const { plugins } = await loadPlugins(config);
+  const formatter = plugins[0].formatter;
 
   const input = "const longVariable = \"this is a very long string that should wrap\";";
   const output = formatText("test.ts", input, formatter);
@@ -164,8 +164,8 @@ t.it("respects global indentWidth option", async () => {
     typescript: {},
   };
 
-  const result = await loadPlugins(config);
-  const formatter = result.plugins[0].formatter;
+  const { plugins } = await loadPlugins(config);
+  const formatter = plugins[0].formatter;
 
   const input = "function test(){return 1}";
   const output = formatText("test.ts", input, formatter);
@@ -181,8 +181,8 @@ t.it("respects global newLineKind option", async () => {
     typescript: {},
   };
 
-  const result = await loadPlugins(config);
-  const formatter = result.plugins[0].formatter;
+  const { plugins } = await loadPlugins(config);
+  const formatter = plugins[0].formatter;
 
   const input = "function test(){\nreturn 1;\n}";
   const output = formatText("test.ts", input, formatter);
@@ -202,8 +202,8 @@ t.it("plugin-specific options override global options", async () => {
     },
   };
 
-  const result = await loadPlugins(config);
-  const formatter = result.plugins[0].formatter;
+  const { plugins } = await loadPlugins(config);
+  const formatter = plugins[0].formatter;
 
   const input = "function test(){const longVariable = \"this is a very long string that should wrap\"; return 1;}";
   const output = formatText("test.ts", input, formatter);

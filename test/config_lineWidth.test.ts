@@ -9,8 +9,8 @@ t.it("respects lineWidth configuration for TypeScript", async () => {
     },
   };
 
-  const result = await loadPlugins(config);
-  const formatter = result.plugins[0].formatter;
+  const { plugins } = await loadPlugins(config);
+  const formatter = plugins[0].formatter;
 
   const input = "const longVariable = \"this is a very long string that should wrap\";";
   const output = formatText("test.ts", input, formatter);
@@ -27,8 +27,8 @@ t.it("uses wider lineWidth when configured", async () => {
     },
   };
 
-  const result = await loadPlugins(config);
-  const formatter = result.plugins[0].formatter;
+  const { plugins } = await loadPlugins(config);
+  const formatter = plugins[0].formatter;
 
   const input = "const longVariable = \"this is a moderately long string\";";
   const output = formatText("test.ts", input, formatter);
@@ -46,8 +46,8 @@ t.it("applies lineWidth to JSON formatting", async () => {
     },
   };
 
-  const result = await loadPlugins(config);
-  const formatter = result.plugins[0].formatter;
+  const { plugins } = await loadPlugins(config);
+  const formatter = plugins[0].formatter;
 
   const input = "{\"a\":1,\"b\":2,\"c\":3,\"d\":4,\"e\":5,\"f\":6,\"g\":7}";
   const output = formatText("test.json", input, formatter);

@@ -137,8 +137,7 @@ describe("CWD Plugin Loading", () => {
         const configPath = path.join(testDir, "dprint.json");
         const config = JSON.parse(fs.readFileSync(configPath, "utf-8"));
 
-        const result = await loadPlugins(config, testDir, configPath);
-        const plugins = result.plugins;
+        const { plugins } = await loadPlugins(config, testDir, configPath);
 
         // Verify: Should find both plugins from CWD's node_modules
         expect(plugins.length).toBe(2);
