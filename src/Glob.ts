@@ -20,10 +20,10 @@ import { Glob } from "bun";
  *   "*.ts"  → "*.ts"      (file pattern, unchanged)
  *   "**\/node_modules\/**" → "**\/node_modules\/**" (glob pattern, unchanged)
  *
- * @param {string[]} patterns - Array of exclude glob patterns
- * @returns {string[]} Normalized patterns
+ * @param patterns - Array of exclude glob patterns
+ * @returns Normalized patterns
  */
-export function normalizeExcludePatterns(patterns) {
+export function normalizeExcludePatterns(patterns: string[]): string[] {
   return patterns.map((pattern) => {
     // Directory with trailing slash: "dir/" → "dir/**"
     // Excludes the directory and all its contents
@@ -59,10 +59,10 @@ export function normalizeExcludePatterns(patterns) {
  *
  * Users must explicitly specify patterns like "src/**" to include directory contents.
  *
- * @param {string[]} patterns - Array of include glob patterns
- * @returns {string[]} Normalized patterns (typically unchanged)
+ * @param patterns - Array of include glob patterns
+ * @returns Normalized patterns (typically unchanged)
  */
-export function normalizeIncludePatterns(patterns) {
+export function normalizeIncludePatterns(patterns: string[]): string[] {
   // Include patterns are passed through unchanged to match original dprint behavior
   // Users must explicitly use patterns like "**/*.ts" or "src/**"
   return patterns;
@@ -71,11 +71,11 @@ export function normalizeIncludePatterns(patterns) {
 /**
  * Normalize glob pattern based on its purpose
  *
- * @param {string} pattern - Glob pattern to normalize
- * @param {'include'|'exclude'} type - Whether this is an include or exclude pattern
- * @returns {string} Normalized pattern
+ * @param pattern - Glob pattern to normalize
+ * @param type - Whether this is an include or exclude pattern
+ * @returns Normalized pattern
  */
-export function normalizePattern(pattern, type = "exclude") {
+export function normalizePattern(pattern: string, type: "include" | "exclude" = "exclude"): string {
   if (type === "exclude") {
     return normalizeExcludePatterns([pattern])[0];
   } else {
@@ -86,17 +86,17 @@ export function normalizePattern(pattern, type = "exclude") {
 /**
  * Find files matching include patterns while excluding specified patterns
  *
- * @param {string[]} includePatterns - Array of glob patterns to include
- * @param {string[]} excludePatterns - Array of glob patterns to exclude (normalized)
- * @param {string} cwd - Current working directory
- * @returns {string[]} Array of matching file paths
+ * @param includePatterns - Array of glob patterns to include
+ * @param excludePatterns - Array of glob patterns to exclude (normalized)
+ * @param cwd - Current working directory
+ * @returns Array of matching file paths
  */
-export function findMatchingFiles(includePatterns, excludePatterns, cwd) {
+export function findMatchingFiles(includePatterns: string[], excludePatterns: string[], cwd: string): string[] {
   // Determine if we need to scan dot files
   // If any include pattern explicitly references dot files/directories, enable dot scanning
   const needsDotFiles = includePatterns.some((pattern) => pattern.startsWith(".") || pattern.includes("/."));
 
-  const allFiles = new Set();
+  const allFiles = new Set<string>();
   const excludeGlobs = excludePatterns.map((pattern) => new Glob(pattern));
 
   for (const pattern of includePatterns) {
@@ -138,8 +138,10 @@ export function findMatchingFiles(includePatterns, excludePatterns, cwd) {
       // ENAMETOOLONG: filename too long (from circular symlinks)
       // ELOOP: too many symlink levels
       // EPERM: permission denied
-      if (error.code === "ENAMETOOLONG" || error.code === "ELOOP" || error.code === "EPERM") {
-        console.warn(`Warning: Skipping pattern '${pattern}' due to filesystem error: ${error.message}`);
+      if ((error as NodeJS.ErrnoException).code === "ENAMETOOLONG" ||
+          (error as NodeJS.ErrnoException).code === "ELOOP" ||
+          (error as NodeJS.ErrnoException).code === "EPERM") {
+        console.warn(`Warning: Skipping pattern '${pattern}' due to filesystem error: ${(error as Error).message}`);
         continue;
       }
       throw error;

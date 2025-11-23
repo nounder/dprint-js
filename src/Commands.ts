@@ -5,10 +5,14 @@ import * as Files from "./Files.js";
 import * as Formatter from "./Formatter.js";
 import * as Constants from "./Constants.js";
 
+interface CommandOptions {
+  [key: string]: any;
+}
+
 /**
  * Initialize a new dprint.json configuration file
  */
-export async function initCommand(options = {}) {
+export async function initCommand(options: CommandOptions = {}): Promise<number> {
   const configPath = path.join(process.cwd(), "dprint.json");
 
   if (fs.existsSync(configPath)) {
@@ -28,7 +32,7 @@ export async function initCommand(options = {}) {
 /**
  * Format files according to configuration
  */
-export async function fmtCommand(filePatterns = [], options = {}) {
+export async function fmtCommand(filePatterns: string[] = [], options: CommandOptions = {}): Promise<number> {
   const cwd = process.cwd();
   const configPath = Config.findConfigFile(cwd);
 
@@ -43,7 +47,7 @@ export async function fmtCommand(filePatterns = [], options = {}) {
 
   // Load plugins
   console.log("Loading plugins...");
-  const { plugins: loadedPlugins, autoDiscovered } = await Formatter.loadPlugins(config, cwd);
+  const { plugins: loadedPlugins, autoDiscovered }: Formatter.LoadPluginsResult = await Formatter.loadPlugins(config, cwd);
 
   // Log auto-discovered plugins
   if (autoDiscovered.length > 0) {
@@ -100,7 +104,7 @@ export async function fmtCommand(filePatterns = [], options = {}) {
 /**
  * Check if files are formatted correctly
  */
-export async function checkCommand(filePatterns = [], options = {}) {
+export async function checkCommand(filePatterns: string[] = [], options: CommandOptions = {}): Promise<number> {
   const cwd = process.cwd();
   const configPath = Config.findConfigFile(cwd);
 
@@ -115,7 +119,7 @@ export async function checkCommand(filePatterns = [], options = {}) {
 
   // Load plugins
   console.log("Loading plugins...");
-  const { plugins: loadedPlugins, autoDiscovered } = await Formatter.loadPlugins(config, cwd);
+  const { plugins: loadedPlugins, autoDiscovered }: Formatter.LoadPluginsResult = await Formatter.loadPlugins(config, cwd);
 
   // Log auto-discovered plugins
   if (autoDiscovered.length > 0) {
@@ -144,7 +148,7 @@ export async function checkCommand(filePatterns = [], options = {}) {
   console.log(`Checking ${files.length} file(s)...`);
 
   // Check files
-  const unformattedFiles = [];
+  const unformattedFiles: string[] = [];
   let errorCount = 0;
 
   for (const file of files) {

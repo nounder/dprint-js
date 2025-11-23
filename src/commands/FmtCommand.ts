@@ -5,26 +5,7 @@ import * as Config from "../Config.js";
 import * as Constants from "../Constants.js";
 import * as Files from "../Files.js";
 import * as Formatter from "../Formatter.js";
-
-type LogLevel = "debug" | "info" | "warn" | "error" | "silent";
-
-interface FmtCommandOptions {
-  cwd: string;
-  logLevel?: LogLevel;
-  config?: string;
-  configDiscovery?: boolean;
-  plugins?: string[];
-  includesOverride?: string[];
-  excludes?: string[];
-  excludesOverride?: string[];
-  allowNodeModules?: boolean;
-  allowGitignored?: boolean;
-  incremental?: boolean;
-  allowNoFiles?: boolean;
-  stdin?: string;
-  diff?: boolean;
-  filePatterns?: string[];
-}
+import * as Logger from "../Logger.js";
 
 /**
  * Read all data from stdin
@@ -36,7 +17,7 @@ async function readStdin(): Promise<string> {
     process.stdin.setEncoding("utf-8");
 
     process.stdin.on("data", (chunk) => {
-      chunks.push(chunk);
+      chunks.push(chunk.toString());
     });
 
     process.stdin.on("end", () => {
@@ -54,14 +35,14 @@ async function readStdin(): Promise<string> {
  * @param stdinValue - The value of --stdin (extension, filename, or filepath)
  * @param loadedPlugins - Array of loaded plugin objects
  * @param cwd - Current working directory
- * @param shouldLog - Function to check if a log level should be output
+ * @param logLevel - The log level to use
  * @returns Exit code
  */
 async function handleStdin(
   stdinValue: string,
   loadedPlugins: any[],
   cwd: string,
-  shouldLog: (level: LogLevel) => boolean,
+  logLevel: Logger.LogLevel,
 ): Promise<number> {
   try {
     // Read content from stdin
@@ -88,7 +69,7 @@ async function handleStdin(
     const formatter = Formatter.getFormatterForFile(filePath, loadedPlugins);
 
     if (!formatter) {
-      if (shouldLog("error")) {
+      if (Logger.shouldLog(logLevel, "error")) {
         console.error(`Error: No formatter found for ${stdinValue}`);
       }
       return 13; // Plugin error exit code
@@ -102,7 +83,7 @@ async function handleStdin(
 
     return 0;
   } catch (error) {
-    if (shouldLog("error")) {
+    if (Logger.shouldLog(logLevel, "error")) {
       console.error(`Error: ${(error as Error).message}`);
     }
     return 1;
@@ -112,24 +93,34 @@ async function handleStdin(
 /**
  * Format files according to configuration
  */
-export async function run(options: FmtCommandOptions): Promise<number> {
+export async function run(options: {
+  cwd: string;
+  filePatterns?: string[];
+  logLevel?: Logger.LogLevel;
+  config?: string;
+  configDiscovery?: boolean;
+  plugins?: string[];
+  includesOverride?: string[];
+  excludes?: string[];
+  excludesOverride?: string[];
+  allowNodeModules?: boolean;
+  allowGitignored?: boolean;
+  incremental?: boolean;
+  allowNoFiles?: boolean;
+  stdin?: string;
+  diff?: boolean;
+}): Promise<number> {
   const filePatterns = options.filePatterns || [];
   const cwd = options.cwd;
   // Default to silent mode for stdin to prevent diagnostic messages in stdout
   // But respect explicit logLevel if provided
   const logLevel = options.logLevel || (options.stdin ? "silent" : "info");
-  const shouldLog = (level: LogLevel): boolean => {
-    const levels: LogLevel[] = ["debug", "info", "warn", "error", "silent"];
-    const currentLevel = levels.indexOf(logLevel);
-    const messageLevel = levels.indexOf(level);
-    return messageLevel >= currentLevel;
-  };
 
   // Find config file
   const configPath = Config.findConfigFile(cwd, options);
 
   if (!configPath) {
-    if (shouldLog("error")) {
+    if (Logger.shouldLog(logLevel, "error")) {
       console.error("Error: No dprint.json configuration file found");
       console.error(`Run '${Constants.DPRINT} init' to create one`);
     }
@@ -141,18 +132,18 @@ export async function run(options: FmtCommandOptions): Promise<number> {
   try {
     config = Config.loadConfig(configPath, options);
   } catch (error) {
-    if (shouldLog("error")) {
+    if (Logger.shouldLog(logLevel, "error")) {
       console.error(`Error: ${(error as Error).message}`);
     }
     return 11; // Config error exit code
   }
 
-  if (shouldLog("info")) {
+  if (Logger.shouldLog(logLevel, "info")) {
     console.log(`Using configuration from: ${configPath}`);
   }
 
   // Load plugins
-  if (shouldLog("info")) {
+  if (Logger.shouldLog(logLevel, "info")) {
     console.log("Loading plugins...");
   }
 
@@ -163,14 +154,14 @@ export async function run(options: FmtCommandOptions): Promise<number> {
     loadedPlugins = pluginData.plugins;
     autoDiscovered = pluginData.autoDiscovered;
   } catch (error) {
-    if (shouldLog("error")) {
+    if (Logger.shouldLog(logLevel, "error")) {
       console.error(`Error: ${(error as Error).message}`);
     }
     return 13; // Plugin error exit code
   }
 
   // Log auto-discovered plugins
-  if (autoDiscovered.length > 0 && shouldLog("info")) {
+  if (autoDiscovered.length > 0 && Logger.shouldLog(logLevel, "info")) {
     console.log(`[INFO] No plugins specified in config, auto-discovered from package.json:`);
     for (const plugin of autoDiscovered) {
       console.log(`  - ${plugin}`);
@@ -178,20 +169,20 @@ export async function run(options: FmtCommandOptions): Promise<number> {
   }
 
   if (loadedPlugins.length === 0) {
-    if (shouldLog("error")) {
+    if (Logger.shouldLog(logLevel, "error")) {
       console.error("Error: No formatters loaded. Make sure plugins are installed:");
       console.error("  bun install @dprint/typescript @dprint/json @dprint/markdown");
     }
     return 13; // Plugin error exit code
   }
 
-  if (shouldLog("info")) {
+  if (Logger.shouldLog(logLevel, "info")) {
     console.log(`Loaded ${loadedPlugins.length} formatter(s)`);
   }
 
   // Handle stdin mode
   if (options.stdin) {
-    return await handleStdin(options.stdin, loadedPlugins, cwd, shouldLog);
+    return await handleStdin(options.stdin, loadedPlugins, cwd, logLevel);
   }
 
   // Initialize incremental cache if enabled
@@ -204,7 +195,7 @@ export async function run(options: FmtCommandOptions): Promise<number> {
     const cacheDir = Cache.getCacheDirectory();
     await cache.load(cacheDir, cacheKey);
 
-    if (shouldLog("debug")) {
+    if (Logger.shouldLog(logLevel, "debug")) {
       const stats = cache.getStats();
       console.log(`[DEBUG] Incremental cache loaded`);
       console.log(`[DEBUG] Cache entries: ${stats.entries}`);
@@ -219,14 +210,14 @@ export async function run(options: FmtCommandOptions): Promise<number> {
   const files = await Files.findFiles(config, filePatterns, cwd, options);
 
   if (files.length === 0) {
-    if (shouldLog("info")) {
+    if (Logger.shouldLog(logLevel, "info")) {
       console.log("No files found to format");
     }
     // Exit with 0 if --allow-no-files, otherwise 14
     return options.allowNoFiles ? 0 : 14;
   }
 
-  if (shouldLog("info")) {
+  if (Logger.shouldLog(logLevel, "info")) {
     console.log(`Found ${files.length} file(s) to format`);
   }
 
@@ -249,7 +240,7 @@ export async function run(options: FmtCommandOptions): Promise<number> {
         // File already formatted, skip
         skippedCount++;
         cacheHits++;
-        if (shouldLog("debug")) {
+        if (Logger.shouldLog(logLevel, "debug")) {
           console.log(`[DEBUG] Cache hit: ${file}`);
         }
         continue;
@@ -264,7 +255,7 @@ export async function run(options: FmtCommandOptions): Promise<number> {
       console.error(`Error formatting ${file}: ${result.error}`);
       errorCount++;
     } else if (result.formatted) {
-      if (shouldLog("info")) {
+      if (Logger.shouldLog(logLevel, "info")) {
         console.log(`Formatted ${file}`);
       }
       formattedCount++;
@@ -294,7 +285,7 @@ export async function run(options: FmtCommandOptions): Promise<number> {
   if (cache) {
     await cache.save();
 
-    if (shouldLog("debug")) {
+    if (Logger.shouldLog(logLevel, "debug")) {
       console.log(`[DEBUG] Cache saved`);
       console.log(`[DEBUG] Cache hits: ${cacheHits}`);
       console.log(`[DEBUG] Cache misses: ${cacheMisses}`);
@@ -305,7 +296,7 @@ export async function run(options: FmtCommandOptions): Promise<number> {
     }
   }
 
-  if (shouldLog("info")) {
+  if (Logger.shouldLog(logLevel, "info")) {
     if (skippedCount > 0) {
       console.log(`\nFormatted ${formattedCount} file(s), skipped ${skippedCount} file(s) (already formatted)`);
     } else {

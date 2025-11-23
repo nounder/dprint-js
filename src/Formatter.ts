@@ -5,10 +5,79 @@ import * as crypto from "node:crypto";
 import * as os from "node:os";
 
 /**
- * Get the cache directory path for remote plugins
- * @returns {string} Path to the cache directory
+ * Cache manifest structure
  */
-function getRemotePluginCacheDir() {
+interface CacheManifest {
+  schemaVersion: number;
+  plugins: Record<string, CachedPluginEntry>;
+}
+
+/**
+ * Cached plugin entry
+ */
+interface CachedPluginEntry {
+  createdTime: number;
+  info: PluginInfo;
+}
+
+/**
+ * Plugin information
+ */
+export interface PluginInfo {
+  name: string;
+  version: string;
+  configKey: string;
+}
+
+/**
+ * Plugin data with cached path and info
+ */
+interface CachedPluginData {
+  path: string;
+  info: PluginInfo;
+}
+
+/**
+ * Result from loading a plugin
+ */
+export interface LoadedPluginData {
+  formatter: WasmFormatter.Formatter;
+  fileMatchingInfo: WasmFormatter.FileMatchingInfo;
+  configKey?: string;
+}
+
+/**
+ * Loaded plugin with file matching information
+ */
+export interface LoadedPlugin {
+  name: string;
+  formatter: WasmFormatter.Formatter;
+  extensions: string[];
+  fileNames: string[];
+}
+
+/**
+ * Result from loadPlugins function
+ */
+export interface LoadPluginsResult {
+  plugins: LoadedPlugin[];
+  autoDiscovered: string[];
+}
+
+/**
+ * Result from formatFile function
+ */
+export interface FormatFileResult {
+  formatted: boolean;
+  error: string | null;
+  diff?: string;
+}
+
+/**
+ * Get the cache directory path for remote plugins
+ * @returns Path to the cache directory
+ */
+function getRemotePluginCacheDir(): string {
   // Check for custom cache directory from environment
   if (process.env.DPRINT_CACHE_DIR) {
     return path.join(process.env.DPRINT_CACHE_DIR, "cache");
@@ -33,17 +102,17 @@ function getRemotePluginCacheDir() {
 
 /**
  * Get the cache manifest file path
- * @returns {string} Path to the cache manifest
+ * @returns Path to the cache manifest
  */
-function getCacheManifestPath() {
+function getCacheManifestPath(): string {
   return path.join(getRemotePluginCacheDir(), "plugin-cache-manifest.json");
 }
 
 /**
  * Load the cache manifest
- * @returns {object} The cache manifest
+ * @returns The cache manifest
  */
-function loadCacheManifest() {
+function loadCacheManifest(): CacheManifest {
   const manifestPath = getCacheManifestPath();
 
   if (!fs.existsSync(manifestPath)) {
@@ -67,10 +136,10 @@ function loadCacheManifest() {
 
 /**
  * Find package.json in the same directory as the config file
- * @param {string} configDir - Directory containing the config file
- * @returns {string|null} Path to package.json or null if not found
+ * @param configDir - Directory containing the config file
+ * @returns Path to package.json or null if not found
  */
-function findPackageJson(configDir) {
+function findPackageJson(configDir: string): string | null {
   const packagePath = path.join(configDir, "package.json");
   if (fs.existsSync(packagePath)) {
     return packagePath;
@@ -80,14 +149,14 @@ function findPackageJson(configDir) {
 
 /**
  * Resolve a package path from the specified directory's node_modules
- * @param {string} packageName - Name of the package
- * @param {string} searchDir - Directory to search from (usually CWD)
- * @returns {string|null} Absolute path to the package, or null if not found
+ * @param packageName - Name of the package
+ * @param searchDir - Directory to search from (usually CWD)
+ * @returns Absolute path to the package, or null if not found
  */
-function resolvePackageFromDir(packageName, searchDir) {
+function resolvePackageFromDir(packageName: string, searchDir: string): string | null {
   // For scoped packages like @dprint/typescript, split into scope and name
   const parts = packageName.split("/");
-  let packagePath;
+  let packagePath: string;
 
   if (packageName.startsWith("@")) {
     // Scoped package: @scope/name
@@ -108,16 +177,16 @@ function resolvePackageFromDir(packageName, searchDir) {
 
 /**
  * Check if a package is a valid dprint plugin
- * @param {string} packageName - Name of the package
- * @param {string} packageDir - Directory where package.json is located
- * @returns {Promise<boolean>} True if the package is a valid plugin
+ * @param packageName - Name of the package
+ * @param packageDir - Directory where package.json is located
+ * @returns True if the package is a valid plugin
  */
-async function isValidDprintPlugin(packageName, packageDir) {
+async function isValidDprintPlugin(packageName: string, packageDir: string): Promise<boolean> {
   try {
     // First, try to resolve from the package directory (CWD's node_modules)
     const packagePath = resolvePackageFromDir(packageName, packageDir);
 
-    let pluginModule;
+    let pluginModule: any;
     if (packagePath) {
       // Import from the resolved path in CWD's node_modules
       const packageJsonPath = path.join(packagePath, "package.json");
@@ -168,10 +237,10 @@ async function isValidDprintPlugin(packageName, packageDir) {
 
 /**
  * Check if a package name matches dprint plugin patterns
- * @param {string} name - Package name
- * @returns {boolean} True if name matches dprint plugin patterns
+ * @param name - Package name
+ * @returns True if name matches dprint plugin patterns
  */
-function matchesDprintPattern(name) {
+function matchesDprintPattern(name: string): boolean {
   // Exclude the base @dprint/formatter library
   if (name === "@dprint/formatter") {
     return false;
@@ -198,10 +267,10 @@ function matchesDprintPattern(name) {
 
 /**
  * Discover dprint plugins from package.json dependencies
- * @param {string} configDir - Directory containing the config file
- * @returns {Promise<string[]>} Array of discovered plugin names
+ * @param configDir - Directory containing the config file
+ * @returns Array of discovered plugin names
  */
-async function discoverPluginsFromPackageJson(configDir) {
+async function discoverPluginsFromPackageJson(configDir: string): Promise<string[]> {
   const packagePath = findPackageJson(configDir);
   if (!packagePath) {
     return [];
@@ -236,9 +305,9 @@ async function discoverPluginsFromPackageJson(configDir) {
 
 /**
  * Save the cache manifest
- * @param {object} manifest - The cache manifest to save
+ * @param manifest - The cache manifest to save
  */
-function saveCacheManifest(manifest) {
+function saveCacheManifest(manifest: CacheManifest): void {
   const manifestPath = getCacheManifestPath();
   const cacheDir = getRemotePluginCacheDir();
 
@@ -250,10 +319,10 @@ function saveCacheManifest(manifest) {
 
 /**
  * Get plugin info from a remote URL
- * @param {string} url - The plugin URL
- * @returns {object} Plugin info including name, version, and configKey
+ * @param url - The plugin URL
+ * @returns Plugin info including name, version, and configKey
  */
-function getPluginInfoFromUrl(url) {
+function getPluginInfoFromUrl(url: string): PluginInfo {
   // Extract plugin name and version from URL
   // Examples:
   // - https://plugins.dprint.dev/typescript-0.95.11.wasm
@@ -286,11 +355,11 @@ function getPluginInfoFromUrl(url) {
 
 /**
  * Generate a cache file path for a plugin
- * @param {string} pluginName - The plugin name
- * @param {string} version - The plugin version
- * @returns {string} Path to the cached plugin file
+ * @param pluginName - The plugin name
+ * @param version - The plugin version
+ * @returns Path to the cached plugin file
  */
-function getCachedPluginPath(pluginName, version) {
+function getCachedPluginPath(pluginName: string, version: string): string {
   const pluginsDir = path.join(getRemotePluginCacheDir(), "plugins");
 
   // Generate a hash for the file (simplified version)
@@ -306,10 +375,10 @@ function getCachedPluginPath(pluginName, version) {
 
 /**
  * Get a cached plugin path if it exists
- * @param {string} url - The plugin URL
- * @returns {string|null} Path to the cached plugin file, or null if not cached
+ * @param url - The plugin URL
+ * @returns Path to the cached plugin file, or null if not cached
  */
-function getCachedPluginForUrl(url) {
+function getCachedPluginForUrl(url: string): CachedPluginData | null {
   const cacheKey = `remote:${url}`;
   const manifest = loadCacheManifest();
 
@@ -330,10 +399,10 @@ function getCachedPluginForUrl(url) {
 
 /**
  * Download a file from a URL
- * @param {string} url - The URL to download from
- * @returns {Promise<Buffer>} The downloaded file content
+ * @param url - The URL to download from
+ * @returns The downloaded file content
  */
-async function downloadFile(url) {
+async function downloadFile(url: string): Promise<Buffer> {
   const response = await fetch(url);
 
   if (!response.ok) {
@@ -346,12 +415,12 @@ async function downloadFile(url) {
 
 /**
  * Cache a remote plugin
- * @param {string} url - The plugin URL
- * @param {Buffer} content - The plugin content
- * @param {object} info - Plugin info
- * @returns {string} Path to the cached plugin file
+ * @param url - The plugin URL
+ * @param content - The plugin content
+ * @param info - Plugin info
+ * @returns Path to the cached plugin file
  */
-function cacheRemotePlugin(url, content, info) {
+function cacheRemotePlugin(url: string, content: Buffer, info: PluginInfo): string {
   const cacheKey = `remote:${url}`;
   const pluginPath = getCachedPluginPath(info.name, info.version);
 
@@ -374,19 +443,19 @@ function cacheRemotePlugin(url, content, info) {
 
 /**
  * Check if a plugin name is a remote URL
- * @param {string} pluginName - The plugin name/URL
- * @returns {boolean} True if it's a remote URL
+ * @param pluginName - The plugin name/URL
+ * @returns True if it's a remote URL
  */
-function isRemotePlugin(pluginName) {
+function isRemotePlugin(pluginName: string): boolean {
   return pluginName.startsWith("http://") || pluginName.startsWith("https://");
 }
 
 /**
  * Load a remote plugin from URL
- * @param {string} url - The plugin URL
- * @returns {Promise<object>} The loaded formatter with file matching info and config key
+ * @param url - The plugin URL
+ * @returns The loaded formatter with file matching info and config key
  */
-async function loadRemotePlugin(url) {
+async function loadRemotePlugin(url: string): Promise<LoadedPluginData> {
   // Get plugin info
   const info = getPluginInfoFromUrl(url);
 
@@ -435,11 +504,11 @@ async function loadRemotePlugin(url) {
 
 /**
  * Load a plugin from node_modules or remote URL
- * @param {string} pluginName - Name of the plugin package or URL (e.g., "@dprint/typescript" or "https://...")
- * @param {string} cwd - Current working directory
- * @returns {Promise<object>} The loaded formatter with file matching info and optional configKey
+ * @param pluginName - Name of the plugin package or URL (e.g., "@dprint/typescript" or "https://...")
+ * @param cwd - Current working directory
+ * @returns The loaded formatter with file matching info and optional configKey
  */
-export async function loadPlugin(pluginName, cwd = process.cwd()) {
+export async function loadPlugin(pluginName: string, cwd: string = process.cwd()): Promise<LoadedPluginData> {
   try {
     // Check if this is a remote plugin
     if (isRemotePlugin(pluginName)) {
@@ -449,7 +518,7 @@ export async function loadPlugin(pluginName, cwd = process.cwd()) {
     // Try to resolve from CWD's node_modules first
     const packagePath = resolvePackageFromDir(pluginName, cwd);
 
-    let pluginModule;
+    let pluginModule: any;
     if (packagePath) {
       // Import from the resolved path in CWD's node_modules
       const packageJsonPath = path.join(packagePath, "package.json");
@@ -463,7 +532,7 @@ export async function loadPlugin(pluginName, cwd = process.cwd()) {
     }
 
     // Get the path to the WASM file
-    let wasmPath;
+    let wasmPath: string;
     if (typeof pluginModule.getPath === "function") {
       wasmPath = pluginModule.getPath();
     } else if (typeof pluginModule.getBuffer === "function") {
@@ -484,16 +553,16 @@ export async function loadPlugin(pluginName, cwd = process.cwd()) {
 
     return { formatter, fileMatchingInfo: formatter.getFileMatchingInfo() };
   } catch (error) {
-    throw new Error(`Failed to load plugin ${pluginName}: ${error.message}`);
+    throw new Error(`Failed to load plugin ${pluginName}: ${(error as Error).message}`);
   }
 }
 
 /**
  * Extract global formatting options from config
- * @param {object} config - The dprint configuration
- * @returns {object} Global formatting options
+ * @param config - The dprint configuration
+ * @returns Global formatting options
  */
-function extractGlobalConfig(config) {
+function extractGlobalConfig(config: Record<string, unknown>): Record<string, unknown> {
   const globalOptions = [
     "lineWidth",
     "indentWidth",
@@ -501,7 +570,7 @@ function extractGlobalConfig(config) {
     "useTabs",
   ];
 
-  const globalConfig = {};
+  const globalConfig: Record<string, unknown> = {};
   for (const option of globalOptions) {
     if (config[option] !== undefined) {
       globalConfig[option] = config[option];
@@ -513,14 +582,14 @@ function extractGlobalConfig(config) {
 
 /**
  * Load all plugins specified in the configuration
- * @param {object} config - The dprint configuration
- * @param {string} cwd - Current working directory
- * @param {string} configPath - Optional path to config file (used for auto-discovery)
- * @returns {Promise<{plugins: Array<{name: string, formatter: object, extensions: string[], fileNames: string[]}>, autoDiscovered: string[]}>}
+ * @param config - The dprint configuration
+ * @param cwd - Current working directory
+ * @param configPath - Optional path to config file (used for auto-discovery)
+ * @returns Object containing loaded plugins and auto-discovered plugin names
  */
-export async function loadPlugins(config, cwd = process.cwd(), configPath = null) {
-  let plugins = config.plugins;
-  let autoDiscovered = [];
+export async function loadPlugins(config: Record<string, unknown>, cwd: string = process.cwd(), configPath: string | null = null): Promise<LoadPluginsResult> {
+  let plugins = config.plugins as string[] | undefined;
+  let autoDiscovered: string[] = [];
 
   // If no plugins specified in config, auto-discover from package.json
   if (!plugins || plugins.length === 0) {
@@ -532,7 +601,7 @@ export async function loadPlugins(config, cwd = process.cwd(), configPath = null
     }
   }
 
-  const loadedPlugins = [];
+  const loadedPlugins: LoadedPlugin[] = [];
 
   // Extract global formatting options
   const globalConfig = extractGlobalConfig(config);
@@ -543,7 +612,7 @@ export async function loadPlugins(config, cwd = process.cwd(), configPath = null
 
       // Set configuration for the formatter
       // For remote plugins, configKey is provided. For npm plugins, extract from name
-      let pluginConfigKey;
+      let pluginConfigKey: string;
       if (configKey) {
         pluginConfigKey = configKey;
       } else {
@@ -555,7 +624,7 @@ export async function loadPlugins(config, cwd = process.cwd(), configPath = null
         pluginConfigKey = parts.length > 1 ? parts[1] : pluginName;
       }
 
-      const pluginConfig = config[pluginConfigKey] || {};
+      const pluginConfig = (config[pluginConfigKey] as Record<string, unknown>) || {};
 
       // Call setConfig with global config and plugin-specific configuration
       // Plugin-specific options will override global options
@@ -568,7 +637,7 @@ export async function loadPlugins(config, cwd = process.cwd(), configPath = null
         fileNames: fileMatchingInfo.fileNames || [],
       });
     } catch (error) {
-      console.error(`Warning: ${error.message}`);
+      console.error(`Warning: ${(error as Error).message}`);
     }
   }
 
@@ -577,11 +646,11 @@ export async function loadPlugins(config, cwd = process.cwd(), configPath = null
 
 /**
  * Get the appropriate formatter for a file based on its extension and name
- * @param {string} filePath - Path to the file
- * @param {Array} loadedPlugins - Array of loaded plugin objects
- * @returns {object|null} The formatter to use, or null if none found
+ * @param filePath - Path to the file
+ * @param loadedPlugins - Array of loaded plugin objects
+ * @returns The formatter to use, or null if none found
  */
-export function getFormatterForFile(filePath, loadedPlugins) {
+export function getFormatterForFile(filePath: string, loadedPlugins: LoadedPlugin[]): WasmFormatter.Formatter | null {
   const ext = path.extname(filePath).slice(1); // Remove leading dot
   const fileName = path.basename(filePath);
 
@@ -602,12 +671,12 @@ export function getFormatterForFile(filePath, loadedPlugins) {
 
 /**
  * Format a file's content
- * @param {string} filePath - Path to the file
- * @param {string} content - File content
- * @param {object} formatter - The formatter to use
- * @returns {string} Formatted content
+ * @param filePath - Path to the file
+ * @param content - File content
+ * @param formatter - The formatter to use
+ * @returns Formatted content
  */
-export function formatText(filePath, content, formatter) {
+export function formatText(filePath: string, content: string, formatter: WasmFormatter.Formatter): string {
   try {
     // The formatter.formatText API uses object parameter syntax
     const formatted = formatter.formatText({
@@ -617,19 +686,19 @@ export function formatText(filePath, content, formatter) {
 
     return formatted;
   } catch (error) {
-    throw new Error(`Failed to format ${filePath}: ${error.message}`);
+    throw new Error(`Failed to format ${filePath}: ${(error as Error).message}`);
   }
 }
 
 /**
  * Format a file and optionally write it back
- * @param {string} filePath - Path to the file
- * @param {Array} loadedPlugins - Array of loaded plugin objects
- * @param {object} config - The dprint configuration
- * @param {boolean} check - If true, only check formatting without writing
- * @returns {Promise<{formatted: boolean, error: string|null}>}
+ * @param filePath - Path to the file
+ * @param loadedPlugins - Array of loaded plugin objects
+ * @param config - The dprint configuration
+ * @param check - If true, only check formatting without writing
+ * @returns Object with formatted status and optional error message
  */
-export async function formatFile(filePath, loadedPlugins, config, check = false) {
+export async function formatFile(filePath: string, loadedPlugins: LoadedPlugin[], config: Record<string, unknown>, check: boolean = false): Promise<FormatFileResult> {
   try {
     const formatter = getFormatterForFile(filePath, loadedPlugins);
     if (!formatter) {
@@ -652,6 +721,6 @@ export async function formatFile(filePath, loadedPlugins, config, check = false)
 
     return { formatted: true, error: null };
   } catch (error) {
-    return { formatted: false, error: error.message };
+    return { formatted: false, error: (error as Error).message };
   }
 }

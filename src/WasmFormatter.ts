@@ -8,16 +8,80 @@ const decoder = new TextDecoder();
 const encoder = new TextEncoder();
 
 /**
+ * Request for formatting text
+ */
+export interface FormatRequest {
+  filePath: string;
+  fileText: string;
+  bytesRange?: [number, number];
+  overrideConfig?: Record<string, unknown>;
+}
+
+/**
+ * File matching information from a plugin
+ */
+export interface FileMatchingInfo {
+  fileExtensions: string[];
+  fileNames: string[];
+}
+
+/**
+ * Plugin information
+ */
+export interface PluginInfo {
+  name: string;
+  version: string;
+  configKey?: string;
+  [key: string]: unknown;
+}
+
+/**
+ * Host formatter function for plugin composition
+ */
+export type HostFormatter = (request: FormatRequest) => string;
+
+/**
+ * Formatter instance that can format text
+ */
+export interface Formatter {
+  setConfig(globalConfig: Record<string, unknown>, pluginConfig: Record<string, unknown>): void;
+  getConfigDiagnostics(): unknown[];
+  getResolvedConfig(): Record<string, unknown>;
+  getFileMatchingInfo(): FileMatchingInfo;
+  getPluginInfo(): PluginInfo;
+  getLicenseText(): string;
+  formatText(request: FormatRequest, formatWithHost?: HostFormatter): string;
+}
+
+/**
+ * Host interface for v3 plugins
+ */
+interface HostV3 {
+  setInstance(wasmInstance: WebAssembly.Instance): void;
+  setHostFormatter(formatWithHost?: HostFormatter): void;
+  createImportObject(): WebAssembly.Imports;
+}
+
+/**
+ * Host interface for v4 plugins
+ */
+interface HostV4 {
+  setInstance(wasmInstance: WebAssembly.Instance): void;
+  setHostFormatter(formatWithHost?: HostFormatter): void;
+  createImportObject(): WebAssembly.Imports;
+}
+
+/**
  * Creates a formatter from the specified streaming source.
  * @remarks This is the most efficient way to create a formatter.
- * @param {Response|Promise<Response>} responsePromise - The streaming source to create the formatter from.
- * @returns {Promise<object>} The formatter instance
+ * @param responsePromise - The streaming source to create the formatter from.
+ * @returns The formatter instance
  */
-export async function createStreaming(responsePromise) {
+export async function createStreaming(responsePromise: Response | Promise<Response>): Promise<Formatter> {
   const response = await responsePromise;
   if (response.status !== 200) {
     throw new Error(
-      `Unexpected status code: ${response.status}\n${await response.text()}`
+      `Unexpected status code: ${response.status}\n${await response.text()}`,
     );
   }
   if (
@@ -34,26 +98,26 @@ export async function createStreaming(responsePromise) {
 
 /**
  * Creates a formatter from the specified wasm module bytes.
- * @param {ArrayBuffer|Uint8Array} wasmModuleBuffer - The buffer of the wasm module.
- * @returns {object} The formatter instance
+ * @param wasmModuleBuffer - The buffer of the wasm module.
+ * @returns The formatter instance
  */
-export function createFromBuffer(wasmModuleBuffer) {
-  const wasmModule = new WebAssembly.Module(wasmModuleBuffer);
+export function createFromBuffer(wasmModuleBuffer: ArrayBuffer | Uint8Array): Formatter {
+  const wasmModule = new WebAssembly.Module(wasmModuleBuffer as BufferSource);
   return createFromWasmModule(wasmModule);
 }
 
 /**
  * Creates a formatter from a compiled WASM module
- * @param {WebAssembly.Module} wasmModule - The compiled WASM module
- * @returns {object} The formatter instance
+ * @param wasmModule - The compiled WASM module
+ * @returns The formatter instance
  */
-function createFromWasmModule(wasmModule) {
+function createFromWasmModule(wasmModule: WebAssembly.Module): Formatter {
   const version = getModuleVersionOrThrow(wasmModule);
   if (version === 3) {
     const host = createHostV3();
     const wasmInstance = new WebAssembly.Instance(
       wasmModule,
-      host.createImportObject()
+      host.createImportObject(),
     );
     return createFromInstanceV3(wasmInstance, host);
   } else {
@@ -61,7 +125,7 @@ function createFromWasmModule(wasmModule) {
     const host = createHostV4();
     const wasmInstance = new WebAssembly.Instance(
       wasmModule,
-      host.createImportObject()
+      host.createImportObject(),
     );
     return createFromInstanceV4(wasmInstance, host);
   }
@@ -69,35 +133,35 @@ function createFromWasmModule(wasmModule) {
 
 /**
  * Get the plugin version from the WASM module
- * @param {WebAssembly.Module} module - The WASM module
- * @returns {number} The version number
+ * @param module - The WASM module
+ * @returns The version number
  */
-function getModuleVersionOrThrow(module) {
+function getModuleVersionOrThrow(module: WebAssembly.Module): number {
   const version = getModuleVersion(module);
   if (version == null) {
     throw new Error(
-      "Couldn't determine dprint plugin version. Maybe the js-formatter version is too old?"
+      "Couldn't determine dprint plugin version. Maybe the js-formatter version is too old?",
     );
   } else if (version === 3 || version === 4) {
     return version;
   } else if (version > 4) {
     throw new Error(
-      `Unsupported new dprint plugin version '${version}'. Maybe the js-formatter version is too old?`
+      `Unsupported new dprint plugin version '${version}'. Maybe the js-formatter version is too old?`,
     );
   } else {
     throw new Error(
-      `Unsupported old dprint plugin version '${version}'. Please upgrade the plugin.`
+      `Unsupported old dprint plugin version '${version}'. Please upgrade the plugin.`,
     );
   }
 }
 
 /**
  * Get the version number from the WASM module exports
- * @param {WebAssembly.Module} module - The WASM module
- * @returns {number|undefined} The version number or undefined
+ * @param module - The WASM module
+ * @returns The version number or undefined
  */
-function getModuleVersion(module) {
-  function getVersionFromExport(name) {
+function getModuleVersion(module: WebAssembly.Module): number | undefined {
+  function getVersionFromExport(name: string): number | undefined {
     if (name === "get_plugin_schema_version") {
       return 3;
     }
@@ -122,13 +186,13 @@ function getModuleVersion(module) {
 
 /**
  * Get a buffer view at a specific pointer in WASM memory
- * @param {WebAssembly.Instance} wasmInstance - The WASM instance
- * @param {number} pointer - Memory pointer
- * @param {number} length - Buffer length
- * @returns {Uint8Array} The buffer view
+ * @param wasmInstance - The WASM instance
+ * @param pointer - Memory pointer
+ * @param length - Buffer length
+ * @returns The buffer view
  */
-function getWasmBufferAtPointer(wasmInstance, pointer, length) {
-  return new Uint8Array(wasmInstance.exports.memory.buffer, pointer, length);
+function getWasmBufferAtPointer(wasmInstance: WebAssembly.Instance, pointer: number, length: number): Uint8Array {
+  return new Uint8Array((wasmInstance.exports.memory as WebAssembly.Memory).buffer, pointer, length);
 }
 
 // ========================================
@@ -137,46 +201,46 @@ function getWasmBufferAtPointer(wasmInstance, pointer, length) {
 
 /**
  * Creates host for v3 plugins
- * @returns {object} The host object
+ * @returns The host object
  */
-function createHostV3() {
-  let instance;
-  let hostFormatter = undefined;
-  let overrideConfig = {};
+function createHostV3(): HostV3 {
+  let instance: WebAssembly.Instance;
+  let hostFormatter: HostFormatter | undefined = undefined;
+  let overrideConfig: Record<string, unknown> = {};
   let filePath = "";
   let formattedText = "";
   let errorText = "";
 
   return {
-    setInstance(wasmInstance) {
+    setInstance(wasmInstance: WebAssembly.Instance) {
       instance = wasmInstance;
     },
-    setHostFormatter(formatWithHost) {
+    setHostFormatter(formatWithHost?: HostFormatter) {
       hostFormatter = formatWithHost;
     },
-    createImportObject() {
+    createImportObject(): WebAssembly.Imports {
       let sharedBuffer = new Uint8Array(0);
       let sharedBufferIndex = 0;
-      const resetSharedBuffer = (length) => {
+      const resetSharedBuffer = (length: number) => {
         sharedBuffer = new Uint8Array(length);
         sharedBufferIndex = 0;
       };
 
       return {
         dprint: {
-          host_clear_bytes: (length) => {
+          host_clear_bytes: (length: number) => {
             resetSharedBuffer(length);
           },
-          host_read_buffer: (pointer, length) => {
+          host_read_buffer: (pointer: number, length: number) => {
             sharedBuffer.set(
               getWasmBufferAtPointer(instance, pointer, length),
-              sharedBufferIndex
+              sharedBufferIndex,
             );
             sharedBufferIndex += length;
           },
-          host_write_buffer: (pointer, index, length) => {
+          host_write_buffer: (pointer: number, index: number, length: number) => {
             getWasmBufferAtPointer(instance, pointer, length).set(
-              sharedBuffer.slice(index, index + length)
+              sharedBuffer.slice(index, index + length),
             );
           },
           host_take_file_path: () => {
@@ -220,13 +284,13 @@ function createHostV3() {
 
 /**
  * Create formatter from v3 WASM instance
- * @param {WebAssembly.Instance} wasmInstance - The WASM instance
- * @param {object} host - The host object
- * @returns {object} The formatter instance
+ * @param wasmInstance - The WASM instance
+ * @param host - The host object
+ * @returns The formatter instance
  */
-function createFromInstanceV3(wasmInstance, host) {
+function createFromInstanceV3(wasmInstance: WebAssembly.Instance, host: HostV3): Formatter {
   host.setInstance(wasmInstance);
-  const wasmExports = wasmInstance.exports;
+  const wasmExports = wasmInstance.exports as any;
   const {
     get_plugin_schema_version,
     set_file_path,
@@ -252,14 +316,14 @@ function createFromInstanceV3(wasmInstance, host) {
     throw new Error(
       `Not compatible plugin. ` +
         `Expected schema ${expectedPluginSchemaVersion}, ` +
-        `but plugin had ${pluginSchemaVersion}.`
+        `but plugin had ${pluginSchemaVersion}.`,
     );
   }
 
   let configSet = false;
 
   return {
-    setConfig(globalConfig, pluginConfig) {
+    setConfig(globalConfig: Record<string, unknown>, pluginConfig: Record<string, unknown>) {
       setConfig(globalConfig, pluginConfig);
     },
     getConfigDiagnostics() {
@@ -272,7 +336,7 @@ function createFromInstanceV3(wasmInstance, host) {
       const length = get_resolved_config();
       return JSON.parse(receiveString(wasmInstance, length));
     },
-    getFileMatchingInfo() {
+    getFileMatchingInfo(): FileMatchingInfo {
       const length = get_plugin_info();
       const pluginInfo = JSON.parse(receiveString(wasmInstance, length));
       return {
@@ -280,7 +344,7 @@ function createFromInstanceV3(wasmInstance, host) {
         fileNames: pluginInfo.fileNames ?? [],
       };
     },
-    getPluginInfo() {
+    getPluginInfo(): PluginInfo {
       const length = get_plugin_info();
       const pluginInfo = JSON.parse(receiveString(wasmInstance, length));
       delete pluginInfo.fileNames;
@@ -291,7 +355,7 @@ function createFromInstanceV3(wasmInstance, host) {
       const length = get_license_text();
       return receiveString(wasmInstance, length);
     },
-    formatText(request, formatWithHost) {
+    formatText(request: FormatRequest, formatWithHost?: HostFormatter): string {
       if (request.bytesRange != null) {
         // not supported for v3
         return request.fileText;
@@ -301,7 +365,7 @@ function createFromInstanceV3(wasmInstance, host) {
       if (request.overrideConfig != null) {
         if (pluginSchemaVersion === 2) {
           throw new Error(
-            "Cannot set the override configuration for this old plugin."
+            "Cannot set the override configuration for this old plugin.",
           );
         }
         sendString(wasmInstance, JSON.stringify(request.overrideConfig));
@@ -330,7 +394,7 @@ function createFromInstanceV3(wasmInstance, host) {
     }
   }
 
-  function setConfig(globalConfig, pluginConfig) {
+  function setConfig(globalConfig: Record<string, unknown>, pluginConfig: Record<string, unknown>) {
     if (reset_config != null) {
       reset_config();
     }
@@ -344,11 +408,11 @@ function createFromInstanceV3(wasmInstance, host) {
 
 /**
  * Send a string to v3 WASM instance
- * @param {WebAssembly.Instance} wasmInstance - The WASM instance
- * @param {string} text - The text to send
+ * @param wasmInstance - The WASM instance
+ * @param text - The text to send
  */
-function sendString(wasmInstance, text) {
-  const exports = wasmInstance.exports;
+function sendString(wasmInstance: WebAssembly.Instance, text: string): number {
+  const exports = wasmInstance.exports as any;
   const encodedText = encoder.encode(text);
   const length = encodedText.length;
   const memoryBufferSize = exports.get_wasm_memory_buffer_size();
@@ -360,7 +424,7 @@ function sendString(wasmInstance, text) {
     const wasmBuffer = getWasmBufferAtPointer(
       wasmInstance,
       memoryBufferPointer,
-      writeCount
+      writeCount,
     );
     wasmBuffer.set(encodedText.slice(index, index + writeCount));
     exports.add_to_shared_bytes_from_buffer(writeCount);
@@ -371,12 +435,12 @@ function sendString(wasmInstance, text) {
 
 /**
  * Receive a string from v3 WASM instance
- * @param {WebAssembly.Instance} wasmInstance - The WASM instance
- * @param {number} length - The length of the string
- * @returns {string} The received string
+ * @param wasmInstance - The WASM instance
+ * @param length - The length of the string
+ * @returns The received string
  */
-function receiveString(wasmInstance, length) {
-  const exports = wasmInstance.exports;
+function receiveString(wasmInstance: WebAssembly.Instance, length: number): string {
+  const exports = wasmInstance.exports as any;
   const memoryBufferSize = exports.get_wasm_memory_buffer_size();
   const memoryBufferPointer = getWasmMemoryBufferPointer(wasmInstance);
   const buffer = new Uint8Array(length);
@@ -387,7 +451,7 @@ function receiveString(wasmInstance, length) {
     const wasmBuffer = getWasmBufferAtPointer(
       wasmInstance,
       memoryBufferPointer,
-      readCount
+      readCount,
     );
     buffer.set(wasmBuffer, index);
     index += readCount;
@@ -397,11 +461,11 @@ function receiveString(wasmInstance, length) {
 
 /**
  * Get the WASM memory buffer pointer for v3
- * @param {WebAssembly.Instance} wasmInstance - The WASM instance
- * @returns {number} The memory buffer pointer
+ * @param wasmInstance - The WASM instance
+ * @returns The memory buffer pointer
  */
-function getWasmMemoryBufferPointer(wasmInstance) {
-  return wasmInstance.exports.get_wasm_memory_buffer();
+function getWasmMemoryBufferPointer(wasmInstance: WebAssembly.Instance): number {
+  return (wasmInstance.exports as any).get_wasm_memory_buffer();
 }
 
 // ========================================
@@ -410,14 +474,14 @@ function getWasmMemoryBufferPointer(wasmInstance) {
 
 /**
  * Write to stderr (simplified version)
- * @param {Uint8Array} buf - The buffer to write
+ * @param buf - The buffer to write
  */
-function writeStderr(buf) {
+function writeStderr(buf: Uint8Array): void {
   try {
-    if (globalThis.Deno) {
-      globalThis.Deno.stderr.writeSync(buf);
-    } else if (globalThis.process) {
-      globalThis.process.stderr.write(buf);
+    if ((globalThis as any).Deno) {
+      (globalThis as any).Deno.stderr.writeSync(buf);
+    } else if ((globalThis as any).process) {
+      (globalThis as any).process.stderr.write(buf);
     }
     // ignore if neither available
   } catch {
@@ -427,28 +491,28 @@ function writeStderr(buf) {
 
 /**
  * Creates host for v4 plugins
- * @returns {object} The host object
+ * @returns The host object
  */
-function createHostV4() {
-  let instance;
-  let hostFormatter = undefined;
+function createHostV4(): HostV4 {
+  let instance: WebAssembly.Instance;
+  let hostFormatter: HostFormatter | undefined = undefined;
   let formattedText = "";
   let errorText = "";
 
   return {
-    setInstance(wasmInstance) {
+    setInstance(wasmInstance: WebAssembly.Instance) {
       instance = wasmInstance;
     },
-    setHostFormatter(formatWithHost) {
+    setHostFormatter(formatWithHost?: HostFormatter) {
       hostFormatter = formatWithHost;
     },
-    createImportObject() {
+    createImportObject(): WebAssembly.Imports {
       let sharedBuffer = new Uint8Array(0);
       return {
         env: {
-          fd_write: (fd, iovsPtr, iovsLen, nwrittenPtr) => {
+          fd_write: (fd: number, iovsPtr: number, iovsLen: number, nwrittenPtr: number) => {
             let totalWritten = 0;
-            const wasmMemoryBuffer = instance.exports.memory.buffer;
+            const wasmMemoryBuffer = (instance.exports.memory as WebAssembly.Memory).buffer;
             const dataView = new DataView(wasmMemoryBuffer);
             for (let i = 0; i < iovsLen; i++) {
               const iovsOffset = iovsPtr + i * 8;
@@ -457,7 +521,7 @@ function createHostV4() {
               const buf = new Uint8Array(
                 wasmMemoryBuffer,
                 iovecBufPtr,
-                iovecBufLen
+                iovecBufLen,
               );
               if (fd === 1 || fd === 2) {
                 // just write both stdout and stderr to stderr
@@ -473,30 +537,30 @@ function createHostV4() {
         },
         dprint: {
           host_has_cancelled: () => 0,
-          host_write_buffer: (pointer) => {
+          host_write_buffer: (pointer: number) => {
             getWasmBufferAtPointer(instance, pointer, sharedBuffer.length).set(
-              sharedBuffer
+              sharedBuffer,
             );
           },
           host_format: (
-            filePathPtr,
-            filePathLen,
-            rangeStart,
-            rangeEnd,
-            overrideConfigPtr,
-            overrideConfigLen,
-            fileBytesPtr,
-            fileBytesLen
+            filePathPtr: number,
+            filePathLen: number,
+            rangeStart: number,
+            rangeEnd: number,
+            overrideConfigPtr: number,
+            overrideConfigLen: number,
+            fileBytesPtr: number,
+            fileBytesLen: number,
           ) => {
             const filePath = receiveStringV4(filePathPtr, filePathLen);
             const overrideConfigRaw = receiveStringV4(
               overrideConfigPtr,
-              overrideConfigLen
+              overrideConfigLen,
             );
-            const overrideConfig =
+            const overrideConfig: Record<string, unknown> =
               overrideConfigRaw === "" ? {} : JSON.parse(overrideConfigRaw);
             const fileText = receiveStringV4(fileBytesPtr, fileBytesLen);
-            const bytesRange =
+            const bytesRange: [number, number] | undefined =
               rangeStart === 0 && rangeEnd === fileBytesLen
                 ? undefined
                 : [rangeStart, rangeEnd];
@@ -525,7 +589,7 @@ function createHostV4() {
         },
       };
 
-      function receiveStringV4(ptr, length) {
+      function receiveStringV4(ptr: number, length: number): string {
         return decoder.decode(getWasmBufferAtPointer(instance, ptr, length));
       }
     },
@@ -534,15 +598,15 @@ function createHostV4() {
 
 /**
  * Create formatter from v4 WASM instance
- * @param {WebAssembly.Instance} wasmInstance - The WASM instance
- * @param {object} host - The host object
- * @returns {object} The formatter instance
+ * @param wasmInstance - The WASM instance
+ * @param host - The host object
+ * @returns The formatter instance
  */
-function createFromInstanceV4(wasmInstance, host) {
+function createFromInstanceV4(wasmInstance: WebAssembly.Instance, host: HostV4): Formatter {
   host.setInstance(wasmInstance);
   // only a single config is supported in here atm
   const configId = 1;
-  const wasmExports = wasmInstance.exports;
+  const wasmExports = wasmInstance.exports as any;
   const {
     get_shared_bytes_ptr,
     set_file_path,
@@ -564,7 +628,7 @@ function createFromInstanceV4(wasmInstance, host) {
   let configSet = false;
 
   return {
-    setConfig(globalConfig, pluginConfig) {
+    setConfig(globalConfig: Record<string, unknown>, pluginConfig: Record<string, unknown>) {
       setConfig(globalConfig, pluginConfig);
     },
     getConfigDiagnostics() {
@@ -577,11 +641,11 @@ function createFromInstanceV4(wasmInstance, host) {
       const length = get_resolved_config(configId);
       return JSON.parse(receiveStringV4(length));
     },
-    getFileMatchingInfo() {
+    getFileMatchingInfo(): FileMatchingInfo {
       const length = get_config_file_matching(configId);
       return JSON.parse(receiveStringV4(length));
     },
-    getPluginInfo() {
+    getPluginInfo(): PluginInfo {
       const length = get_plugin_info();
       return JSON.parse(receiveStringV4(length));
     },
@@ -589,7 +653,7 @@ function createFromInstanceV4(wasmInstance, host) {
       const length = get_license_text();
       return receiveStringV4(length);
     },
-    formatText(request, formatWithHost) {
+    formatText(request: FormatRequest, formatWithHost?: HostFormatter): string {
       if (request.bytesRange != null && format_range == null) {
         // plugin doesn't support range formatting
         return request.fileText;
@@ -626,25 +690,25 @@ function createFromInstanceV4(wasmInstance, host) {
     }
   }
 
-  function setConfig(globalConfig, pluginConfig) {
+  function setConfig(globalConfig: Record<string, unknown>, pluginConfig: Record<string, unknown>) {
     release_config(configId);
     sendStringV4(
       JSON.stringify({
         global: globalConfig,
         plugin: pluginConfig,
-      })
+      }),
     );
     register_config(configId);
     configSet = true;
   }
 
-  function sendStringV4(value) {
+  function sendStringV4(value: string) {
     const bytes = encoder.encode(value);
     const ptr = clear_shared_bytes(bytes.length);
     getWasmBufferAtPointer(wasmInstance, ptr, bytes.length).set(bytes);
   }
 
-  function receiveStringV4(length) {
+  function receiveStringV4(length: number): string {
     const ptr = get_shared_bytes_ptr();
     return decoder.decode(getWasmBufferAtPointer(wasmInstance, ptr, length));
   }

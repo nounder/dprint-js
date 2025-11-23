@@ -160,35 +160,41 @@ t.it("respects exclude patterns", async () => {
 });
 
 t.it("stdin mode outputs only formatted content to stdout", async () => {
-  // Capture console.log and console.error
-  const originalLog = console.log;
-  const originalError = console.error;
+  // Mock console.log and console.error
   let consoleLogOutput = [];
   let consoleErrorOutput = [];
 
-  console.log = function(...args) {
+  const logSpy = t.spyOn(console, "log").mockImplementation((...args) => {
     consoleLogOutput.push(args.join(" "));
-  };
-  console.error = function(...args) {
+  });
+  const errorSpy = t.spyOn(console, "error").mockImplementation((...args) => {
     consoleErrorOutput.push(args.join(" "));
-  };
+  });
 
-  // Capture stdout
-  const originalWrite = process.stdout.write;
+  // Mock stdout.write
   let stdoutData = "";
-  process.stdout.write = function(chunk) {
+  const stdoutSpy = t.spyOn(process.stdout, "write").mockImplementation((chunk) => {
     stdoutData += chunk;
     return true;
-  };
+  });
 
-  // Mock stdin
-  const originalStdin = process.stdin;
-  const { Readable } = await import("stream");
-  const mockStdin = new Readable();
-  mockStdin.push("const   x=1");
-  mockStdin.push(null); // End of stream
-  mockStdin.setEncoding = () => {};
-  process.stdin = mockStdin;
+  // Mock stdin event handling
+  const stdinContent = "const   x=1";
+  let dataCallback: (chunk: string) => void;
+  let endCallback: () => void;
+
+  const onSpy = t.spyOn(process.stdin, "on").mockImplementation((event: string, callback: any) => {
+    if (event === "data") {
+      dataCallback = callback;
+      // Immediately call with data
+      setTimeout(() => dataCallback(stdinContent), 0);
+    } else if (event === "end") {
+      endCallback = callback;
+      // Call end after data
+      setTimeout(() => endCallback(), 10);
+    }
+    return process.stdin;
+  });
 
   try {
     const exitCode = await FmtCommand.run({
@@ -207,10 +213,10 @@ t.it("stdin mode outputs only formatted content to stdout", async () => {
     t.expect(consoleLogOutput.join("\n")).not.toContain("Loaded");
     t.expect(consoleLogOutput.join("\n")).not.toContain("[INFO]");
   } finally {
-    // Restore
-    console.log = originalLog;
-    console.error = originalError;
-    process.stdout.write = originalWrite;
-    process.stdin = originalStdin;
+    // Restore all spies
+    logSpy.mockRestore();
+    errorSpy.mockRestore();
+    stdoutSpy.mockRestore();
+    onSpy.mockRestore();
   }
 });

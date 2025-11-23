@@ -11,8 +11,10 @@ import * as Constants from "./Constants.js";
 
 /**
  * Main CLI function
+ * @param args - Command line arguments (defaults to process.argv.slice(2))
+ * @returns Exit code
  */
-export async function main(args = process.argv.slice(2)) {
+export async function main(args: string[] = process.argv.slice(2)): Promise<number> {
   const parsed = ArgsParser.parseArgs(args);
 
   // Show general help if no command or help command
@@ -27,29 +29,30 @@ export async function main(args = process.argv.slice(2)) {
 
   try {
     // Ensure cwd is always set in options
-    const options = { ...parsed.options, cwd: parsed.options.cwd || process.cwd() };
+    const cwdValue = typeof parsed.options.cwd === "string" ? parsed.options.cwd : process.cwd();
+    const baseOptions = { ...parsed.options, cwd: cwdValue };
 
     switch (parsed.command) {
       case "init":
-        return await InitCommand.run(options);
+        return await InitCommand.run(baseOptions as any);
 
       case "fmt":
-        return await FmtCommand.run({ ...options, filePatterns: parsed.positional });
+        return await FmtCommand.run({ ...baseOptions, filePatterns: parsed.positional } as any);
 
       case "check":
-        return await CheckCommand.run({ ...options, filePatterns: parsed.positional });
+        return await CheckCommand.run({ ...baseOptions, filePatterns: parsed.positional } as any);
 
       case "config":
-        return await ConfigCommand.run({ ...options, args: parsed.positional });
+        return await ConfigCommand.run({ ...baseOptions, args: parsed.positional } as any);
 
       case "output-file-paths":
-        return await OutputFilePathsCommand.run({ ...options, filePatterns: parsed.positional });
+        return await OutputFilePathsCommand.run({ ...baseOptions, filePatterns: parsed.positional } as any);
 
       case "output-resolved-config":
-        return await OutputResolvedConfigCommand.run(options);
+        return await OutputResolvedConfigCommand.run(baseOptions as any);
 
       case "output-format-times":
-        return await OutputFormatTimesCommand.run({ ...options, filePatterns: parsed.positional });
+        return await OutputFormatTimesCommand.run({ ...baseOptions, filePatterns: parsed.positional } as any);
 
       default:
         console.error(`Error: Unknown command '${parsed.command}'`);
@@ -57,9 +60,10 @@ export async function main(args = process.argv.slice(2)) {
         return 1;
     }
   } catch (error) {
-    console.error(`Error: ${error.message}`);
-    if (error.stack) {
-      console.error(error.stack);
+    const err = error as Error;
+    console.error(`Error: ${err.message}`);
+    if (err.stack) {
+      console.error(err.stack);
     }
     return 1;
   }

@@ -2,10 +2,19 @@ import * as Commands from "./Commands.js";
 import * as Constants from "./Constants.js";
 
 /**
+ * Parsed command line arguments
+ */
+export interface ParsedArgs {
+  command: string | null;
+  filePatterns: string[];
+  options: Record<string, boolean>;
+}
+
+/**
  * Parse command line arguments
  */
-export function parseArgs(args) {
-  const result = {
+export function parseArgs(args: string[]): ParsedArgs {
+  const result: ParsedArgs = {
     command: null,
     filePatterns: [],
     options: {},
@@ -47,7 +56,7 @@ export function parseArgs(args) {
 /**
  * Show help message
  */
-export function showHelp() {
+export function showHelp(): void {
   console.log(`dprint-js - JavaScript implementation of dprint CLI
 
 USAGE:
@@ -74,7 +83,7 @@ EXAMPLES:
 /**
  * Main CLI function
  */
-export async function main(args = process.argv.slice(2)) {
+export async function main(args: string[] = process.argv.slice(2)): Promise<number> {
   const parsed = parseArgs(args);
 
   if (!parsed.command || parsed.command === "help") {
@@ -99,9 +108,9 @@ export async function main(args = process.argv.slice(2)) {
         return 1;
     }
   } catch (error) {
-    console.error(`Error: ${error.message}`);
-    if (error.stack) {
-      console.error(error.stack);
+    console.error(`Error: ${(error as Error).message}`);
+    if ((error as Error).stack) {
+      console.error((error as Error).stack);
     }
     return 1;
   }

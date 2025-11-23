@@ -2,10 +2,35 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 
 /**
+ * Options for finding and loading configuration
+ */
+export interface ConfigOptions {
+  config?: string;
+  configDiscovery?: boolean;
+  plugins?: string[];
+}
+
+/**
+ * Configuration object for dprint
+ */
+export interface DprintConfig {
+  $schema?: string;
+  projectType?: string;
+  incremental?: boolean;
+  includes?: string[];
+  excludes?: string[];
+  plugins?: string[];
+  typescript?: Record<string, unknown>;
+  json?: Record<string, unknown>;
+  markdown?: Record<string, unknown>;
+  [key: string]: unknown;
+}
+
+/**
  * Find dprint.json configuration file starting from the current directory
  * and walking up the directory tree.
  */
-export function findConfigFile(startDir = process.cwd(), options = {}) {
+export function findConfigFile(startDir: string = process.cwd(), options: ConfigOptions = {}): string | null {
   // If config discovery is disabled, don't search
   if (options.configDiscovery === false) {
     return null;
@@ -36,7 +61,7 @@ export function findConfigFile(startDir = process.cwd(), options = {}) {
 /**
  * Load and parse dprint.json configuration file
  */
-export function loadConfig(configPath, options = {}) {
+export function loadConfig(configPath: string, options: ConfigOptions = {}): DprintConfig {
   if (!configPath) {
     throw new Error("No dprint.json configuration file found");
   }
@@ -45,7 +70,7 @@ export function loadConfig(configPath, options = {}) {
     const content = fs.readFileSync(configPath, "utf-8");
 
     // Try parsing directly first
-    let config;
+    let config: DprintConfig;
     try {
       config = JSON.parse(content);
     } catch (parseError) {
@@ -61,14 +86,14 @@ export function loadConfig(configPath, options = {}) {
 
     return config;
   } catch (error) {
-    throw new Error(`Failed to parse configuration file ${configPath}: ${error.message}`);
+    throw new Error(`Failed to parse configuration file ${configPath}: ${(error as Error).message}`);
   }
 }
 
 /**
  * Simple JSON comment stripper (removes single-line and multi-line comments)
  */
-function stripJsonComments(jsonString) {
+function stripJsonComments(jsonString: string): string {
   // Remove single-line comments
   let result = jsonString.replace(/\/\/.*$/gm, "");
   // Remove multi-line comments (replace with space to avoid breaking JSON structure)
@@ -79,7 +104,7 @@ function stripJsonComments(jsonString) {
 /**
  * Get default configuration for init command
  */
-export function getDefaultConfig() {
+export function getDefaultConfig(): DprintConfig {
   return {
     "$schema": "https://dprint.dev/schemas/v0.json",
     "projectType": "openSource",

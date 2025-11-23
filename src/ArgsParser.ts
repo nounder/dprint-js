@@ -3,10 +3,33 @@
  */
 
 /**
+ * Options that can be parsed from command line arguments
+ */
+export interface ParsedOptions {
+  help?: boolean;
+  config?: string;
+  logLevel?: string;
+  includesOverride?: string[];
+  excludes?: string[];
+  excludesOverride?: string[];
+  plugins?: string[];
+  [key: string]: boolean | string | string[] | undefined;
+}
+
+/**
+ * Result of parsing command line arguments
+ */
+export interface ParsedArgs {
+  command: string | null;
+  positional: string[];
+  options: ParsedOptions;
+}
+
+/**
  * Parse command line arguments with support for flags, options, and positional arguments
  */
-export function parseArgs(args) {
-  const result = {
+export function parseArgs(args: string[]): ParsedArgs {
+  const result: ParsedArgs = {
     command: null,
     positional: [],
     options: {},
@@ -69,14 +92,14 @@ export function parseArgs(args) {
       const key = kebabToCamel(flag);
 
       // Check if this is a variadic flag (takes multiple values)
-      const variadicFlags = ["includesOverride", "excludes", "excludesOverride", "plugins"];
+      const variadicFlags: string[] = ["includesOverride", "excludes", "excludesOverride", "plugins"];
 
       if (variadicFlags.includes(key)) {
-        result.options[key] = result.options[key] || [];
+        result.options[key] = (result.options[key] as string[] | undefined) || [];
         // Collect all values until next flag
         i++;
         while (i < args.length && !args[i].startsWith("-")) {
-          result.options[key].push(args[i]);
+          (result.options[key] as string[]).push(args[i]);
           i++;
         }
         continue;
@@ -104,8 +127,8 @@ export function parseArgs(args) {
 /**
  * Map short flags to their long form keys
  */
-function flagToKey(flag) {
-  const mapping = {
+function flagToKey(flag: string): string {
+  const mapping: Record<string, string> = {
     "c": "config",
     "L": "logLevel",
     "h": "help",
@@ -116,14 +139,14 @@ function flagToKey(flag) {
 /**
  * Convert kebab-case to camelCase
  */
-function kebabToCamel(str) {
-  return str.replace(/-([a-z])/g, (_, letter) => letter.toUpperCase());
+function kebabToCamel(str: string): string {
+  return str.replace(/-([a-z])/g, (_: string, letter: string) => letter.toUpperCase());
 }
 
 /**
  * Parse a value string to appropriate type
  */
-function parseValue(value) {
+function parseValue(value: string): boolean | string {
   if (value === "true") return true;
   if (value === "false") return false;
   return value;

@@ -5,10 +5,76 @@ import * as path from "node:path";
 import packageJson from "../package.json" with { type: "json" };
 
 /**
- * Get the platform-specific cache directory for dprint-js
- * @returns {string} Absolute path to cache directory
+ * Configuration object for dprint
  */
-export function getCacheDirectory() {
+export interface DprintConfig {
+  typescript?: Record<string, unknown>;
+  json?: Record<string, unknown>;
+  markdown?: Record<string, unknown>;
+  includes?: string[];
+  excludes?: string[];
+  [key: string]: unknown;
+}
+
+/**
+ * Plugin information for cache key computation
+ */
+export interface PluginInfo {
+  name: string;
+  [key: string]: unknown;
+}
+
+/**
+ * Cache metadata for tracking cache state
+ */
+export interface CacheMetadata {
+  createdAt: number;
+  lastModified: number;
+  formatCount: number;
+}
+
+/**
+ * Data stored for each file hash in the cache
+ */
+export interface CacheFileData {
+  paths: Set<string>;
+  formattedAt: number;
+}
+
+/**
+ * Serialized version of CacheFileData for JSON storage
+ */
+interface SerializedCacheFileData {
+  paths: string[];
+  formattedAt: number;
+}
+
+/**
+ * Cache manifest structure for JSON storage
+ */
+interface CacheManifest {
+  version: string;
+  cacheKey: string | null;
+  files: Record<string, SerializedCacheFileData>;
+  metadata: CacheMetadata;
+}
+
+/**
+ * Cache statistics
+ */
+export interface CacheStats {
+  entries: number;
+  createdAt: string;
+  lastModified: string;
+  formatCount: number;
+  cacheKey: string | null;
+}
+
+/**
+ * Get the platform-specific cache directory for dprint-js
+ * @returns Absolute path to cache directory
+ */
+export function getCacheDirectory(): string {
   // Allow override via environment variable
   if (process.env.DPRINT_CACHE_DIR) {
     return process.env.DPRINT_CACHE_DIR;
@@ -31,10 +97,10 @@ export function getCacheDirectory() {
  * Compute xxHash64-like hash of content using Node's crypto module
  * Note: Using SHA-256 truncated for compatibility, as Node doesn't have native xxHash
  * In production, consider using a dedicated xxhash package for better performance
- * @param {string} content - Content to hash
- * @returns {string} Hash as hex string
+ * @param content - Content to hash
+ * @returns Hash as hex string
  */
-export function hashContent(content) {
+export function hashContent(content: string): string {
   // Use SHA-256 and take first 16 chars for a fast hash
   // This is a compromise between performance and availability
   const hash = crypto.createHash("sha256");
@@ -45,11 +111,11 @@ export function hashContent(content) {
 /**
  * Compute cache key from configuration and plugin information
  * The cache key changes when formatting-related configuration changes
- * @param {object} config - dprint configuration
- * @param {Array} plugins - Loaded plugin information
- * @returns {string} Cache key as hex string
+ * @param config - dprint configuration
+ * @param plugins - Loaded plugin information
+ * @returns Cache key as hex string
  */
-export function computeCacheKey(config, plugins) {
+export function computeCacheKey(config: DprintConfig, plugins: PluginInfo[]): string {
   const keyComponents = {
     // Include formatting-related config (exclude includes/excludes as they don't affect formatting)
     typescript: config.typescript || {},
@@ -72,6 +138,14 @@ export function computeCacheKey(config, plugins) {
  * Incremental cache for tracking formatted files
  */
 export class IncrementalCache {
+  version: string;
+  cacheKey: string | null;
+  files: Map<string, CacheFileData>;
+  metadata: CacheMetadata;
+  dirty: boolean;
+  cacheDir: string | null;
+  manifestPath: string | null;
+
   constructor() {
     this.version = "1.0.0";
     this.cacheKey = null;
@@ -88,11 +162,11 @@ export class IncrementalCache {
 
   /**
    * Load cache from disk
-   * @param {string} cacheDir - Directory containing cache files
-   * @param {string} cacheKey - Current cache key based on config
-   * @returns {Promise<void>}
+   * @param cacheDir - Directory containing cache files
+   * @param cacheKey - Current cache key based on config
+   * @returns Promise that resolves when loading is complete
    */
-  async load(cacheDir, cacheKey) {
+  async load(cacheDir: string, cacheKey: string): Promise<void> {
     this.cacheDir = cacheDir;
     this.cacheKey = cacheKey;
     this.manifestPath = path.join(cacheDir, "incremental", "cache-manifest.json");
@@ -111,7 +185,7 @@ export class IncrementalCache {
 
     try {
       const content = fs.readFileSync(this.manifestPath, "utf-8");
-      const data = JSON.parse(content);
+      const data: CacheManifest = JSON.parse(content);
 
       // Check version compatibility
       if (data.version !== this.version) {
@@ -141,26 +215,27 @@ export class IncrementalCache {
         }
       }
     } catch (error) {
-      console.warn(`Failed to load cache: ${error.message}, starting fresh`);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.warn(`Failed to load cache: ${errorMessage}, starting fresh`);
       this.clear();
     }
   }
 
   /**
    * Check if a file hash exists in cache
-   * @param {string} hash - Hash of file content
-   * @returns {boolean}
+   * @param hash - Hash of file content
+   * @returns True if hash exists in cache
    */
-  hasHash(hash) {
+  hasHash(hash: string): boolean {
     return this.files.has(hash);
   }
 
   /**
    * Add a formatted file to cache
-   * @param {string} hash - Hash of formatted file content
-   * @param {string} filePath - Absolute path to file
+   * @param hash - Hash of formatted file content
+   * @param filePath - Absolute path to file
    */
-  addFile(hash, filePath) {
+  addFile(hash: string, filePath: string): void {
     if (!this.files.has(hash)) {
       this.files.set(hash, {
         paths: new Set([filePath]),
@@ -168,7 +243,10 @@ export class IncrementalCache {
       });
     } else {
       // Add path to existing hash entry
-      this.files.get(hash).paths.add(filePath);
+      const entry = this.files.get(hash);
+      if (entry) {
+        entry.paths.add(filePath);
+      }
     }
 
     this.metadata.formatCount++;
@@ -178,15 +256,15 @@ export class IncrementalCache {
 
   /**
    * Save cache to disk
-   * @returns {Promise<void>}
+   * @returns Promise that resolves when saving is complete
    */
-  async save() {
+  async save(): Promise<void> {
     if (!this.dirty || !this.manifestPath) {
       return;
     }
 
     // Convert Map to plain object for JSON serialization
-    const filesObject = {};
+    const filesObject: Record<string, SerializedCacheFileData> = {};
     for (const [hash, fileData] of this.files.entries()) {
       filesObject[hash] = {
         paths: Array.from(fileData.paths),
@@ -194,7 +272,7 @@ export class IncrementalCache {
       };
     }
 
-    const data = {
+    const data: CacheManifest = {
       version: this.version,
       cacheKey: this.cacheKey,
       files: filesObject,
@@ -214,7 +292,8 @@ export class IncrementalCache {
       fs.renameSync(tempPath, this.manifestPath);
       this.dirty = false;
     } catch (error) {
-      console.warn(`Failed to save cache: ${error.message}`);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.warn(`Failed to save cache: ${errorMessage}`);
       // Clean up temp file if it exists
       if (fs.existsSync(tempPath)) {
         fs.unlinkSync(tempPath);
@@ -225,7 +304,7 @@ export class IncrementalCache {
   /**
    * Clear all cache entries
    */
-  clear() {
+  clear(): void {
     this.files.clear();
     this.metadata = {
       createdAt: Date.now(),
@@ -237,10 +316,10 @@ export class IncrementalCache {
 
   /**
    * Prune old entries from cache
-   * @param {number} maxAge - Maximum age in milliseconds (default: 30 days)
-   * @param {number} maxEntries - Maximum number of entries (default: 10000)
+   * @param maxAge - Maximum age in milliseconds (default: 30 days)
+   * @param maxEntries - Maximum number of entries (default: 10000)
    */
-  prune(maxAge = 30 * 24 * 60 * 60 * 1000, maxEntries = 10000) {
+  prune(maxAge: number = 30 * 24 * 60 * 60 * 1000, maxEntries: number = 10000): void {
     const now = Date.now();
     let pruned = 0;
 
@@ -275,9 +354,9 @@ export class IncrementalCache {
 
   /**
    * Get cache statistics
-   * @returns {object} Cache statistics
+   * @returns Cache statistics
    */
-  getStats() {
+  getStats(): CacheStats {
     return {
       entries: this.files.size,
       createdAt: new Date(this.metadata.createdAt).toISOString(),

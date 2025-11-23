@@ -1,20 +1,70 @@
-import * as path from "node:path";
-import * as fs from "node:fs";
 import { Glob } from "bun";
-import * as GlobUtils from "./Glob.js";
+import * as fs from "node:fs";
+import * as path from "node:path";
 import * as Gitignore from "./Gitignore.js";
+import * as GlobUtils from "./Glob.js";
+
+/**
+ * Dprint configuration object
+ */
+export interface DprintConfig {
+  includes?: string[];
+  excludes?: string[];
+  plugins?: string[];
+  [key: string]: unknown;
+}
+
+/**
+ * Options for finding files
+ */
+export interface FindFilesOptions {
+  /**
+   * Override include patterns completely (from --includes-override)
+   */
+  includesOverride?: string[];
+  /**
+   * Override exclude patterns completely (from --excludes-override)
+   */
+  excludesOverride?: string[];
+  /**
+   * Additional exclude patterns to add to config excludes (from --excludes)
+   */
+  excludes?: string[];
+  /**
+   * Allow files in node_modules directories
+   */
+  allowNodeModules?: boolean;
+  /**
+   * Allow files that are gitignored
+   */
+  allowGitignored?: boolean;
+}
+
+/**
+ * Ignore instance from the gitignore module
+ */
+interface IgnoreInstance {
+  filter(paths: string[]): string[];
+  add(patterns: string | string[]): IgnoreInstance;
+  ignores(path: string): boolean;
+}
 
 /**
  * Find files matching the patterns specified in the configuration
- * @param {object} config - The dprint configuration object
- * @param {string[]} additionalPatterns - Additional file patterns from command line
- * @param {string} cwd - Current working directory
- * @param {object} options - Additional options for file finding
- * @returns {Promise<string[]>} Array of matching file paths
+ * @param config - The dprint configuration object
+ * @param additionalPatterns - Additional file patterns from command line
+ * @param cwd - Current working directory
+ * @param options - Additional options for file finding
+ * @returns Array of matching file paths
  */
-export async function findFiles(config, additionalPatterns = [], cwd = process.cwd(), options = {}) {
+export async function findFiles(
+  config: DprintConfig,
+  additionalPatterns: string[] = [],
+  cwd: string = process.cwd(),
+  options: FindFilesOptions = {},
+): Promise<string[]> {
   // Determine includes patterns
-  let includes;
+  let includes: string[];
   if (options.includesOverride && options.includesOverride.length > 0) {
     // --includes-override completely replaces config includes
     includes = options.includesOverride;
@@ -27,7 +77,7 @@ export async function findFiles(config, additionalPatterns = [], cwd = process.c
   }
 
   // Determine excludes patterns
-  let excludes;
+  let excludes: string[];
   if (options.excludesOverride && options.excludesOverride.length > 0) {
     // --excludes-override completely replaces config excludes
     excludes = options.excludesOverride;
@@ -64,11 +114,11 @@ export async function findFiles(config, additionalPatterns = [], cwd = process.c
 
 /**
  * Check if a file matches the include/exclude patterns
- * @param {string} filePath - The file path to check
- * @param {object} config - The dprint configuration object
- * @returns {boolean} True if the file should be processed
+ * @param filePath - The file path to check
+ * @param config - The dprint configuration object
+ * @returns True if the file should be processed
  */
-export function shouldProcessFile(filePath, config) {
+export function shouldProcessFile(filePath: string, config: DprintConfig): boolean {
   const includes = GlobUtils.normalizeIncludePatterns(config.includes || ["**/*"]);
   const excludes = GlobUtils.normalizeExcludePatterns(config.excludes || []);
 
@@ -94,17 +144,17 @@ export function shouldProcessFile(filePath, config) {
 /**
  * Get the file extension
  */
-export function getFileExtension(filePath) {
+export function getFileExtension(filePath: string): string {
   return path.extname(filePath).slice(1);
 }
 
 /**
  * Create an ignore instance from .gitignore files
  * Searches for all .gitignore files in the git repository
- * @param {string} cwd - Current working directory
- * @returns {Object|null} ignore instance or null if no .gitignore files found
+ * @param cwd - Current working directory
+ * @returns ignore instance or null if no .gitignore files found
  */
-export function loadGitignorePatterns(cwd = process.cwd()) {
+export function loadGitignorePatterns(cwd: string = process.cwd()): IgnoreInstance | null {
   const gitRoot = findGitRoot(cwd);
   if (!gitRoot) {
     return null;
@@ -140,10 +190,10 @@ export function loadGitignorePatterns(cwd = process.cwd()) {
 /**
  * Find the git root directory by looking for .git directory
  * Looks for .git starting from startDir and walking up
- * @param {string} startDir - Directory to start searching from
- * @returns {string|null} Path to git root or null if not in a git repository
+ * @param startDir - Directory to start searching from
+ * @returns Path to git root or null if not in a git repository
  */
-function findGitRoot(startDir) {
+function findGitRoot(startDir: string): string | null {
   // First check if startDir itself has a .git directory
   const gitDirInStart = path.join(startDir, ".git");
   if (fs.existsSync(gitDirInStart)) {
@@ -170,13 +220,13 @@ function findGitRoot(startDir) {
 /**
  * Find all .gitignore files in the git repository
  * Uses recursive directory traversal to find all .gitignore files
- * @param {string} gitRoot - Git root directory
- * @returns {string[]} Array of .gitignore file paths
+ * @param gitRoot - Git root directory
+ * @returns Array of .gitignore file paths
  */
-function findAllGitignoreFiles(gitRoot) {
-  const gitignoreFiles = [];
+function findAllGitignoreFiles(gitRoot: string): string[] {
+  const gitignoreFiles: string[] = [];
 
-  function traverse(dir) {
+  function traverse(dir: string): void {
     try {
       const gitignorePath = path.join(dir, ".gitignore");
       if (fs.existsSync(gitignorePath)) {
@@ -201,13 +251,13 @@ function findAllGitignoreFiles(gitRoot) {
 
 /**
  * Parse .gitignore content and return array of patterns
- * @param {string} content - Content of .gitignore file
- * @param {string} relativeDir - Relative directory path from git root
- * @returns {string[]} Array of patterns
+ * @param content - Content of .gitignore file
+ * @param relativeDir - Relative directory path from git root
+ * @returns Array of patterns
  */
-function parseGitignoreContent(content, relativeDir = "") {
+function parseGitignoreContent(content: string, relativeDir: string = ""): string[] {
   const lines = content.split(/\r?\n/);
-  const patterns = [];
+  const patterns: string[] = [];
 
   for (let line of lines) {
     // Remove trailing whitespace
@@ -228,11 +278,11 @@ function parseGitignoreContent(content, relativeDir = "") {
 
 /**
  * Normalize a gitignore pattern for a specific directory
- * @param {string} pattern - The pattern from .gitignore
- * @param {string} relativeDir - Relative directory path from git root
- * @returns {string[]} Array of normalized patterns (usually 1, sometimes 2)
+ * @param pattern - The pattern from .gitignore
+ * @param relativeDir - Relative directory path from git root
+ * @returns Array of normalized patterns (usually 1, sometimes 2)
  */
-function normalizePatternForDirectory(pattern, relativeDir) {
+function normalizePatternForDirectory(pattern: string, relativeDir: string): string[] {
   if (!relativeDir) {
     return [pattern];
   }
@@ -278,12 +328,16 @@ function normalizePatternForDirectory(pattern, relativeDir) {
 
 /**
  * Filter files using gitignore patterns
- * @param {string[]} files - Array of file paths relative to cwd
- * @param {Object} ig - ignore instance
- * @param {string} cwd - Current working directory
- * @returns {string[]} Filtered array of files
+ * @param files - Array of file paths relative to cwd
+ * @param ig - ignore instance
+ * @param cwd - Current working directory
+ * @returns Filtered array of files
  */
-export function filterWithGitignore(files, ig, cwd = process.cwd()) {
+export function filterWithGitignore(
+  files: string[],
+  ig: IgnoreInstance,
+  cwd: string = process.cwd(),
+): string[] {
   if (!ig) {
     return files;
   }

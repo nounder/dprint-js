@@ -1,37 +1,28 @@
 import * as Config from "../Config.js";
 import * as Formatter from "../Formatter.js";
+import * as Logger from "../Logger.js";
 import * as path from "node:path";
-
-type LogLevel = "debug" | "info" | "warn" | "error" | "silent";
-
-interface OutputResolvedConfigCommandOptions {
-  cwd: string;
-  logLevel?: LogLevel;
-  config?: string;
-  configDiscovery?: boolean;
-  plugins?: string[];
-}
 
 /**
  * Output the resolved configuration for the plugins
  * @param options - Command options
  * @returns Exit code (0 for success, 11 for config error, 13 for plugin error)
  */
-export async function run(options: OutputResolvedConfigCommandOptions): Promise<number> {
+export async function run(options: {
+  cwd: string;
+  logLevel?: Logger.LogLevel;
+  config?: string;
+  configDiscovery?: boolean;
+  plugins?: string[];
+}): Promise<number> {
   // Note: This command does not use filePatterns
   const cwd = options.cwd;
   const logLevel = options.logLevel || "info";
-  const shouldLog = (level: LogLevel): boolean => {
-    const levels: LogLevel[] = ["debug", "info", "warn", "error", "silent"];
-    const currentLevel = levels.indexOf(logLevel);
-    const messageLevel = levels.indexOf(level);
-    return messageLevel >= currentLevel;
-  };
 
   // 1. Find config file
   const configPath = Config.findConfigFile(cwd, options);
   if (!configPath) {
-    if (shouldLog("error")) {
+    if (Logger.shouldLog(logLevel, "error")) {
       console.error(
         `No config file found at ${path.join(cwd, "dprint.json")}. Did you mean to create (dprint init) or specify one (--config <path>)?`,
       );
@@ -44,7 +35,7 @@ export async function run(options: OutputResolvedConfigCommandOptions): Promise<
   try {
     config = Config.loadConfig(configPath, options);
   } catch (error) {
-    if (shouldLog("error")) {
+    if (Logger.shouldLog(logLevel, "error")) {
       console.error(`Error: ${(error as Error).message}`);
     }
     return 11;
@@ -57,13 +48,13 @@ export async function run(options: OutputResolvedConfigCommandOptions): Promise<
     loadedPlugins = result.plugins;
 
     if (loadedPlugins.length === 0) {
-      if (shouldLog("error")) {
+      if (Logger.shouldLog(logLevel, "error")) {
         console.error("No plugins found. Please specify plugins in your dprint.json file.");
       }
       return 13;
     }
   } catch (error) {
-    if (shouldLog("error")) {
+    if (Logger.shouldLog(logLevel, "error")) {
       console.error(`Error: ${(error as Error).message}`);
     }
     return 13;
@@ -95,14 +86,14 @@ export async function run(options: OutputResolvedConfigCommandOptions): Promise<
       resolvedConfig[configKey] = resolved;
     } catch (error) {
       // Skip plugins that don't support getResolvedConfig
-      if (shouldLog("warn")) {
+      if (Logger.shouldLog(logLevel, "warn")) {
         console.warn(`Warning: Could not get resolved config for ${plugin.name}: ${(error as Error).message}`);
       }
     }
   }
 
   // 5. Output as JSON (only if not silent log level)
-  if (shouldLog("info")) {
+  if (Logger.shouldLog(logLevel, "info")) {
     console.log(JSON.stringify(resolvedConfig, null, 2));
   }
 

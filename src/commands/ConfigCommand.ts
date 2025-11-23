@@ -3,24 +3,21 @@ import * as path from "node:path";
 import * as Config from "../Config.js";
 import * as InitCommand from "./InitCommand.js";
 import * as Constants from "../Constants.js";
-
-type LogLevel = "debug" | "info" | "warn" | "error" | "silent";
-
-interface ConfigCommandOptions {
-  cwd: string;
-  logLevel?: LogLevel;
-  config?: string;
-  configDiscovery?: boolean;
-  plugins?: string[];
-  args?: string[];
-}
+import * as Logger from "../Logger.js";
 
 /**
  * Config command - handles configuration-related subcommands
  * @param options - Command options
  * @returns Exit code
  */
-export async function run(options: ConfigCommandOptions): Promise<number> {
+export async function run(options: {
+  cwd: string;
+  logLevel?: Logger.LogLevel;
+  config?: string;
+  configDiscovery?: boolean;
+  plugins?: string[];
+  args?: string[];
+}): Promise<number> {
   const args = options.args || [];
   const subcommand = args[0];
 
@@ -78,7 +75,13 @@ Options:
  * @param options - Command options
  * @returns Exit code
  */
-async function configAddCommand(args: string[] = [], options: ConfigCommandOptions): Promise<number> {
+async function configAddCommand(args: string[] = [], options: {
+  cwd: string;
+  logLevel?: Logger.LogLevel;
+  config?: string;
+  configDiscovery?: boolean;
+  plugins?: string[];
+}): Promise<number> {
   const pluginNameOrUrl = args[0];
   const cwd = options.cwd;
 
@@ -132,7 +135,12 @@ async function configAddCommand(args: string[] = [], options: ConfigCommandOptio
  * @param options - Command options
  * @returns Exit code
  */
-async function configUpdateCommand(options: ConfigCommandOptions): Promise<number> {
+async function configUpdateCommand(options: {
+  cwd: string;
+  logLevel?: Logger.LogLevel;
+  config?: string;
+  configDiscovery?: boolean;
+}): Promise<number> {
   const cwd = options.cwd;
 
   // Find config file

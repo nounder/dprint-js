@@ -5,13 +5,15 @@ import * as Config from "../Config.js";
 import * as Files from "../Files.js";
 import * as Formatter from "../Formatter.js";
 import * as Constants from "../Constants.js";
+import * as Logger from "../Logger.js";
 
-type LogLevel = "debug" | "info" | "warn" | "error" | "silent";
-
-interface CheckCommandOptions {
+/**
+ * Check if files are formatted correctly
+ */
+export async function run(options: {
   cwd: string;
   filePatterns?: string[];
-  logLevel?: LogLevel;
+  logLevel?: Logger.LogLevel;
   config?: string;
   configDiscovery?: boolean;
   plugins?: string[];
@@ -24,27 +26,16 @@ interface CheckCommandOptions {
   allowNoFiles?: boolean;
   staged?: boolean;
   listDifferent?: boolean;
-}
-
-/**
- * Check if files are formatted correctly
- */
-export async function run(options: CheckCommandOptions): Promise<number> {
+}): Promise<number> {
   const cwd = options.cwd;
   const filePatterns = options.filePatterns || [];
   const logLevel = options.logLevel || "info";
-  const shouldLog = (level: LogLevel): boolean => {
-    const levels: LogLevel[] = ["debug", "info", "warn", "error", "silent"];
-    const currentLevel = levels.indexOf(logLevel);
-    const messageLevel = levels.indexOf(level);
-    return messageLevel >= currentLevel;
-  };
 
   // Find config file
   const configPath = Config.findConfigFile(cwd, options);
 
   if (!configPath) {
-    if (shouldLog("error")) {
+    if (Logger.shouldLog(logLevel, "error")) {
       console.error("Error: No dprint.json configuration file found");
       console.error(`Run '${Constants.DPRINT} init' to create one`);
     }
@@ -56,18 +47,18 @@ export async function run(options: CheckCommandOptions): Promise<number> {
   try {
     config = Config.loadConfig(configPath, options);
   } catch (error) {
-    if (shouldLog("error")) {
+    if (Logger.shouldLog(logLevel, "error")) {
       console.error(`Error: ${(error as Error).message}`);
     }
     return 11; // Config error exit code
   }
 
-  if (shouldLog("info")) {
+  if (Logger.shouldLog(logLevel, "info")) {
     console.log(`Using configuration from: ${configPath}`);
   }
 
   // Load plugins
-  if (shouldLog("info")) {
+  if (Logger.shouldLog(logLevel, "info")) {
     console.log("Loading plugins...");
   }
 
@@ -78,14 +69,14 @@ export async function run(options: CheckCommandOptions): Promise<number> {
     loadedPlugins = pluginData.plugins;
     autoDiscovered = pluginData.autoDiscovered;
   } catch (error) {
-    if (shouldLog("error")) {
+    if (Logger.shouldLog(logLevel, "error")) {
       console.error(`Error: ${(error as Error).message}`);
     }
     return 13; // Plugin error exit code
   }
 
   // Log auto-discovered plugins
-  if (autoDiscovered.length > 0 && shouldLog("info")) {
+  if (autoDiscovered.length > 0 && Logger.shouldLog(logLevel, "info")) {
     console.log(`[INFO] No plugins specified in config, auto-discovered from package.json:`);
     for (const plugin of autoDiscovered) {
       console.log(`  - ${plugin}`);
@@ -93,14 +84,14 @@ export async function run(options: CheckCommandOptions): Promise<number> {
   }
 
   if (loadedPlugins.length === 0) {
-    if (shouldLog("error")) {
+    if (Logger.shouldLog(logLevel, "error")) {
       console.error("Error: No formatters loaded. Make sure plugins are installed:");
       console.error("  bun install @dprint/typescript @dprint/json @dprint/markdown");
     }
     return 13; // Plugin error exit code
   }
 
-  if (shouldLog("info")) {
+  if (Logger.shouldLog(logLevel, "info")) {
     console.log(`Loaded ${loadedPlugins.length} formatter(s)`);
   }
 
@@ -114,7 +105,7 @@ export async function run(options: CheckCommandOptions): Promise<number> {
     const cacheDir = Cache.getCacheDirectory();
     await cache.load(cacheDir, cacheKey);
 
-    if (shouldLog("debug")) {
+    if (Logger.shouldLog(logLevel, "debug")) {
       const stats = cache.getStats();
       console.log(`[DEBUG] Incremental cache loaded`);
       console.log(`[DEBUG] Cache entries: ${stats.entries}`);
@@ -129,14 +120,14 @@ export async function run(options: CheckCommandOptions): Promise<number> {
   const files = await Files.findFiles(config, filePatterns, cwd, options);
 
   if (files.length === 0) {
-    if (shouldLog("info")) {
+    if (Logger.shouldLog(logLevel, "info")) {
       console.log("No files found to check");
     }
     // Exit with 0 if --allow-no-files, otherwise 14
     return options.allowNoFiles ? 0 : 14;
   }
 
-  if (shouldLog("info")) {
+  if (Logger.shouldLog(logLevel, "info")) {
     console.log(`Checking ${files.length} file(s)...`);
   }
 
@@ -159,7 +150,7 @@ export async function run(options: CheckCommandOptions): Promise<number> {
         // File already formatted, skip
         skippedCount++;
         cacheHits++;
-        if (shouldLog("debug")) {
+        if (Logger.shouldLog(logLevel, "debug")) {
           console.log(`[DEBUG] Cache hit: ${file}`);
         }
         continue;
@@ -189,7 +180,7 @@ export async function run(options: CheckCommandOptions): Promise<number> {
   if (cache) {
     await cache.save();
 
-    if (shouldLog("debug")) {
+    if (Logger.shouldLog(logLevel, "debug")) {
       console.log(`[DEBUG] Cache saved`);
       console.log(`[DEBUG] Cache hits: ${cacheHits}`);
       console.log(`[DEBUG] Cache misses: ${cacheMisses}`);
@@ -208,7 +199,7 @@ export async function run(options: CheckCommandOptions): Promise<number> {
       }
     } else {
       // Show full message with formatting info
-      if (shouldLog("info")) {
+      if (Logger.shouldLog(logLevel, "info")) {
         console.error(`\nThe following ${unformattedFiles.length} file(s) are not formatted:`);
         for (const file of unformattedFiles) {
           console.error(`  ${file}`);
@@ -225,7 +216,7 @@ export async function run(options: CheckCommandOptions): Promise<number> {
     return 1;
   }
 
-  if (shouldLog("info")) {
+  if (Logger.shouldLog(logLevel, "info")) {
     if (skippedCount > 0) {
       console.log(
         `All files are formatted correctly! (checked ${cacheMisses} file(s), skipped ${skippedCount} cached file(s))`,

@@ -71,7 +71,7 @@ describe("Remote Plugin Caching", () => {
     }
 
     // Mock global fetch
-    fetchMock = spyOn(globalThis, "fetch").mockImplementation(createMockFetch());
+    fetchMock = spyOn(globalThis, "fetch").mockImplementation(createMockFetch() as any);
   });
 
   afterEach(() => {
