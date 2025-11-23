@@ -32,8 +32,8 @@
     "@types/bun": "latest",
     "typescript": "^5.9.3",
     "dprint": "^0.50.2",
-    "@dprint/typescript": "^0.93.0",
-    "@dprint/json": "^0.19.3",
+    "@dprint/typescript": "^0.93.4",
+    "@dprint/json": "^0.19.4",
     "@dprint/markdown": "^0.17.8"
   }
 }

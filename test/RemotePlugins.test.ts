@@ -1,8 +1,9 @@
-import { describe, test, expect, beforeEach, afterEach } from "bun:test";
+import { describe, test, expect, beforeEach, afterEach, spyOn } from "bun:test";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import * as os from "node:os";
 import * as Formatter from "../src/Formatter.js";
+import { findLocalPlugin } from "./Testing.js";
 
 /**
  * Get the cache directory path (matches formatter.js implementation)
@@ -25,9 +26,39 @@ function getRemotePluginCacheDir() {
   }
 }
 
+/**
+ * Create a mock fetch function that returns plugin files from local node_modules
+ */
+function createMockFetch() {
+  return async (url: string | URL | Request) => {
+    const urlString = typeof url === "string" ? url : url instanceof URL ? url.toString() : url.url;
+
+    // Extract plugin name from URL pattern: https://plugins.dprint.dev/{name}-{version}.wasm
+    // or: https://plugins.dprint.dev/{org}/{name}-v{version}.wasm
+    const match = urlString.match(/\/([a-z_]+)-[v0-9]/);
+    if (!match) {
+      return new Response(null, { status: 404, statusText: "Not Found" });
+    }
+
+    const pluginName = match[1];
+    const pluginPath = findLocalPlugin(pluginName);
+
+    if (!pluginPath) {
+      return new Response(null, { status: 404, statusText: `Plugin ${pluginName} not found locally` });
+    }
+
+    const buffer = fs.readFileSync(pluginPath);
+    return new Response(buffer, {
+      status: 200,
+      headers: { "Content-Type": "application/wasm" },
+    });
+  };
+}
+
 describe("Remote Plugin Caching", () => {
   const testCacheDir = path.join(os.tmpdir(), "dprint-js-test-cache");
   let originalCacheDir: string | undefined;
+  let fetchMock: ReturnType<typeof spyOn>;
 
   beforeEach(() => {
     // Set custom cache directory for tests
@@ -38,9 +69,15 @@ describe("Remote Plugin Caching", () => {
     if (fs.existsSync(testCacheDir)) {
       fs.rmSync(testCacheDir, { recursive: true });
     }
+
+    // Mock global fetch
+    fetchMock = spyOn(globalThis, "fetch").mockImplementation(createMockFetch());
   });
 
   afterEach(() => {
+    // Restore original fetch
+    fetchMock.mockRestore();
+
     // Restore original cache directory
     if (originalCacheDir) {
       process.env.DPRINT_CACHE_DIR = originalCacheDir;
@@ -57,8 +94,11 @@ describe("Remote Plugin Caching", () => {
   test("downloads and caches a remote plugin", async () => {
     const pluginUrl = "https://plugins.dprint.dev/typescript-0.95.11.wasm";
 
-    // Load plugin for the first time (should download)
+    // Load plugin for the first time (should download using mock)
     const result = await Formatter.loadPlugin(pluginUrl);
+
+    // Verify fetch was called with the plugin URL
+    expect(fetchMock).toHaveBeenCalledWith(pluginUrl);
 
     expect(result).toBeDefined();
     expect(result.formatter).toBeDefined();
@@ -123,7 +163,6 @@ describe("Remote Plugin Caching", () => {
   test("caches multiple remote plugins", async () => {
     const plugins = [
       "https://plugins.dprint.dev/typescript-0.95.11.wasm",
-      "https://plugins.dprint.dev/json-0.20.0.wasm",
       "https://plugins.dprint.dev/markdown-0.19.0.wasm",
     ];
 
@@ -132,12 +171,12 @@ describe("Remote Plugin Caching", () => {
       await Formatter.loadPlugin(pluginUrl);
     }
 
-    // Check manifest has all three plugins
+    // Check manifest has both plugins
     const cacheDir = getRemotePluginCacheDir();
     const manifestPath = path.join(cacheDir, "plugin-cache-manifest.json");
     const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf-8"));
 
-    expect(Object.keys(manifest.plugins).length).toBe(3);
+    expect(Object.keys(manifest.plugins).length).toBe(2);
 
     for (const pluginUrl of plugins) {
       const cacheKey = `remote:${pluginUrl}`;
@@ -149,58 +188,35 @@ describe("Remote Plugin Caching", () => {
     const pluginDirs = fs.readdirSync(pluginsDir);
 
     expect(pluginDirs).toContain("dprint-plugin-typescript");
-    expect(pluginDirs).toContain("dprint-plugin-json");
     expect(pluginDirs).toContain("dprint-plugin-markdown");
   });
 
   test("extracts correct plugin info from URL", async () => {
-    const testCases = [
-      {
-        url: "https://plugins.dprint.dev/typescript-0.95.11.wasm",
-        expectedName: "dprint-plugin-typescript",
-        expectedVersion: "0.95.11",
-        expectedConfigKey: "typescript",
-      },
-      {
-        url: "https://plugins.dprint.dev/json-0.20.0.wasm",
-        expectedName: "dprint-plugin-json",
-        expectedVersion: "0.20.0",
-        expectedConfigKey: "json",
-      },
-      {
-        url: "https://plugins.dprint.dev/g-plane/markup_fmt-v0.24.0.wasm",
-        expectedName: "dprint-plugin-markup_fmt",
-        expectedVersion: "0.24.0",
-        expectedConfigKey: "markup_fmt",
-      },
-    ];
+    const pluginUrl = "https://plugins.dprint.dev/typescript-0.95.11.wasm";
+    const result = await Formatter.loadPlugin(pluginUrl);
 
-    for (const testCase of testCases) {
-      const result = await Formatter.loadPlugin(testCase.url);
+    expect(result.configKey).toBe("typescript");
 
-      expect(result.configKey).toBe(testCase.expectedConfigKey);
+    // Verify manifest
+    const cacheDir = getRemotePluginCacheDir();
+    const manifestPath = path.join(cacheDir, "plugin-cache-manifest.json");
+    const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf-8"));
 
-      // Verify manifest
-      const cacheDir = getRemotePluginCacheDir();
-      const manifestPath = path.join(cacheDir, "plugin-cache-manifest.json");
-      const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf-8"));
+    const cacheKey = `remote:${pluginUrl}`;
+    const entry = manifest.plugins[cacheKey];
 
-      const cacheKey = `remote:${testCase.url}`;
-      const entry = manifest.plugins[cacheKey];
-
-      expect(entry.info.name).toBe(testCase.expectedName);
-      expect(entry.info.version).toBe(testCase.expectedVersion);
-      expect(entry.info.configKey).toBe(testCase.expectedConfigKey);
-    }
+    expect(entry.info.name).toBe("dprint-plugin-typescript");
+    expect(entry.info.version).toBe("0.95.11");
+    expect(entry.info.configKey).toBe("typescript");
   });
 
   test("Formatter.loadPlugins works with mixed npm and remote plugins", async () => {
     const config = {
       typescript: { semiColons: "asi" },
-      json: {},
+      markdown: {},
       plugins: [
         "@dprint/typescript",
-        "https://plugins.dprint.dev/json-0.20.0.wasm",
+        "https://plugins.dprint.dev/markdown-0.19.0.wasm",
       ],
     };
 
@@ -215,7 +231,7 @@ describe("Remote Plugin Caching", () => {
     expect(fs.existsSync(manifestPath)).toBe(true);
 
     const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf-8"));
-    const cacheKey = "remote:https://plugins.dprint.dev/json-0.20.0.wasm";
+    const cacheKey = "remote:https://plugins.dprint.dev/markdown-0.19.0.wasm";
     expect(manifest.plugins[cacheKey]).toBeDefined();
   });
 

@@ -8,6 +8,10 @@ import * as Testing from "../Testing.js";
 
 const projectRoot = process.cwd();
 
+// Get binary paths
+const THEIR_BIN = Testing.THEIR_BIN;
+const OURS_BIN = Testing.OURS_BIN;
+
 // Get local plugin URL for rust dprint
 const typescriptPluginUrl = Testing.getLocalPluginUrl("typescript", projectRoot);
 
@@ -49,9 +53,9 @@ t.afterEach(() => {
 });
 
 t.it("outputs resolved configuration as JSON", async () => {
-  const ourResult = await $`bun run ${path.join(projectRoot, "bin/dprint")} output-resolved-config`.cwd(oursDir)
+  const ourResult = await $`${OURS_BIN} output-resolved-config`.cwd(oursDir)
     .nothrow().quiet();
-  const theirResult = await $`npx dprint output-resolved-config`.cwd(theirsDir).nothrow().quiet();
+  const theirResult = await $`${THEIR_BIN} output-resolved-config`.cwd(theirsDir).nothrow().quiet();
 
   t.expect(ourResult.exitCode).toBe(0);
   t.expect(theirResult.exitCode).toBe(0);
@@ -80,7 +84,7 @@ t.it("returns same exit code when config is missing", async () => {
     configDiscovery: false,
     cwd: oursDir,
   });
-  const theirResult = await $`npx dprint output-resolved-config --log-level silent --config dprint.json`.cwd(
+  const theirResult = await $`${THEIR_BIN} output-resolved-config --log-level silent --config dprint.json`.cwd(
     theirsDir,
   ).nothrow().quiet();
 

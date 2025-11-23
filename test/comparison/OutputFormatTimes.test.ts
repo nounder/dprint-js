@@ -8,6 +8,10 @@ import * as Testing from "../Testing.js";
 
 const projectRoot = process.cwd();
 
+// Get binary paths
+const THEIR_BIN = Testing.THEIR_BIN;
+const OURS_BIN = Testing.OURS_BIN;
+
 // Get local plugin URL for rust dprint
 const typescriptPluginUrl = Testing.getLocalPluginUrl("typescript", projectRoot);
 
@@ -52,9 +56,9 @@ t.it("outputs timing for formatted files", async () => {
   fs.writeFileSync(path.join(oursDir, "test.ts"), sampleTS);
   fs.writeFileSync(path.join(theirsDir, "test.ts"), sampleTS);
 
-  const ourResult = await $`bun run ${path.join(projectRoot, "bin/dprint")} output-format-times`.cwd(oursDir)
+  const ourResult = await $`${OURS_BIN} output-format-times`.cwd(oursDir)
     .nothrow().quiet();
-  const theirResult = await $`npx dprint output-format-times`.cwd(theirsDir).nothrow().quiet();
+  const theirResult = await $`${THEIR_BIN} output-format-times`.cwd(theirsDir).nothrow().quiet();
 
   t.expect(ourResult.exitCode).toBe(0);
   t.expect(theirResult.exitCode).toBe(0);
@@ -69,7 +73,7 @@ t.it("outputs timing for formatted files", async () => {
 
 t.it("returns same exit code when no files found", async () => {
   const ourExitCode = await OutputFormatTimesCommand.run({ logLevel: "silent", cwd: oursDir });
-  const theirResult = await $`npx dprint output-format-times --log-level silent`.cwd(theirsDir).nothrow().quiet();
+  const theirResult = await $`${THEIR_BIN} output-format-times --log-level silent`.cwd(theirsDir).nothrow().quiet();
 
   // output-format-times returns 14 when no files (unlike output-file-paths)
   t.expect(ourExitCode).toBe(14);
@@ -85,7 +89,7 @@ t.it("returns same exit code when config is missing", async () => {
     configDiscovery: false,
     cwd: oursDir,
   });
-  const theirResult = await $`npx dprint output-format-times --log-level silent --config dprint.json`.cwd(
+  const theirResult = await $`${THEIR_BIN} output-format-times --log-level silent --config dprint.json`.cwd(
     theirsDir,
   ).nothrow().quiet();
 

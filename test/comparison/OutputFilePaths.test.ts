@@ -8,6 +8,10 @@ import * as Testing from "../Testing.js";
 
 const projectRoot = process.cwd();
 
+// Get binary paths
+const THEIR_BIN = Testing.THEIR_BIN;
+const OURS_BIN = Testing.OURS_BIN;
+
 // Get local plugin URL for rust dprint
 const typescriptPluginUrl = Testing.getLocalPluginUrl("typescript", projectRoot);
 
@@ -70,12 +74,10 @@ t.it("lists same file paths when files exist", async () => {
   fs.writeFileSync(path.join(theirsDir, "test.js"), sampleJS);
 
   // Run our implementation
-  const ourResult = await $`bun run ${
-    path.join(projectRoot, "bin/dprint")
-  } output-file-paths`.cwd(oursDir).nothrow().quiet();
+  const ourResult = await $`${OURS_BIN} output-file-paths`.cwd(oursDir).nothrow().quiet();
 
   // Run rust dprint
-  const theirResult = await $`npx dprint output-file-paths`.cwd(theirsDir).nothrow().quiet();
+  const theirResult = await $`${THEIR_BIN} output-file-paths`.cwd(theirsDir).nothrow().quiet();
 
   // Both should return exit code 0
   t.expect(ourResult.exitCode).toBe(0);
@@ -105,7 +107,7 @@ t.it("returns exit code 0 when no files found", async () => {
   const ourExitCode = await OutputFilePathsCommand.run({ logLevel: "silent", cwd: oursDir });
 
   // Run rust dprint
-  const theirResult = await $`npx dprint output-file-paths --log-level silent`.cwd(theirsDir).nothrow().quiet();
+  const theirResult = await $`${THEIR_BIN} output-file-paths --log-level silent`.cwd(theirsDir).nothrow().quiet();
 
   // Both should return exit code 0 (no files is not an error for this command)
   t.expect(ourExitCode).toBe(0);
@@ -126,7 +128,7 @@ t.it("returns same exit code when config is missing", async () => {
   });
 
   // Run rust dprint
-  const theirResult = await $`npx dprint output-file-paths --log-level silent --config dprint.json`.cwd(theirsDir)
+  const theirResult = await $`${THEIR_BIN} output-file-paths --log-level silent --config dprint.json`.cwd(theirsDir)
     .nothrow().quiet();
 
   // Both should return exit code 11 (config error)
@@ -146,12 +148,10 @@ t.it("respects file patterns from command line", async () => {
   fs.writeFileSync(path.join(theirsDir, "other.ts"), sampleTS);
 
   // Run our implementation with specific pattern
-  const ourResult = await $`bun run ${
-    path.join(projectRoot, "bin/dprint")
-  } output-file-paths test.ts`.cwd(oursDir).nothrow().quiet();
+  const ourResult = await $`${OURS_BIN} output-file-paths test.ts`.cwd(oursDir).nothrow().quiet();
 
   // Run rust dprint with specific pattern
-  const theirResult = await $`npx dprint output-file-paths test.ts`.cwd(theirsDir).nothrow().quiet();
+  const theirResult = await $`${THEIR_BIN} output-file-paths test.ts`.cwd(theirsDir).nothrow().quiet();
 
   // Both should return exit code 0
   t.expect(ourResult.exitCode).toBe(0);

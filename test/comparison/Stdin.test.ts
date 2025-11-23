@@ -12,7 +12,10 @@ let theirsDir;
 
 // Get path to our dprint binary
 const projectRoot = path.resolve(import.meta.dir, "../..");
-const dprintBin = path.join(projectRoot, "bin/dprint");
+
+// Get binary paths
+const THEIR_BIN = Testing.THEIR_BIN;
+const OURS_BIN = Testing.OURS_BIN;
 
 // Get local plugin URL for rust dprint
 const typescriptPluginUrl = Testing.getLocalPluginUrl("typescript", projectRoot);
@@ -72,10 +75,10 @@ t.it("formats stdin with extension identically to rust dprint", async () => {
   fs.writeFileSync(inputFile, malformattedTS);
 
   // Format with our implementation using stdin
-  const ourResult = await $`bun run ${dprintBin} fmt --stdin ts --log-level silent < ${inputFile}`.cwd(oursDir).text();
+  const ourResult = await $`${OURS_BIN} fmt --stdin ts --log-level silent < ${inputFile}`.cwd(oursDir).text();
 
   // Format with rust dprint using stdin
-  const theirResult = await $`npx dprint fmt --stdin ts --log-level silent < ${inputFile}`.cwd(theirsDir).text();
+  const theirResult = await $`${THEIR_BIN} fmt --stdin ts --log-level silent < ${inputFile}`.cwd(theirsDir).text();
 
   // Compare results
   t.expect(ourResult).toBe(theirResult);
@@ -87,11 +90,11 @@ t.it("formats stdin with filename identically to rust dprint", async () => {
   fs.writeFileSync(inputFile, malformattedTS);
 
   // Format with our implementation using stdin
-  const ourResult = await $`bun run ${dprintBin} fmt --stdin test.ts --log-level silent < ${inputFile}`.cwd(oursDir)
+  const ourResult = await $`${OURS_BIN} fmt --stdin test.ts --log-level silent < ${inputFile}`.cwd(oursDir)
     .text();
 
   // Format with rust dprint using stdin
-  const theirResult = await $`npx dprint fmt --stdin test.ts --log-level silent < ${inputFile}`.cwd(theirsDir).text();
+  const theirResult = await $`${THEIR_BIN} fmt --stdin test.ts --log-level silent < ${inputFile}`.cwd(theirsDir).text();
 
   // Compare results
   t.expect(ourResult).toBe(theirResult);
@@ -104,7 +107,7 @@ t.it("handles stdin with absolute file path", async () => {
   fs.writeFileSync(inputFile, malformattedTS);
 
   // Format with our implementation using stdin with absolute path
-  const ourResult = await $`bun run ${dprintBin} fmt --stdin ${testFilePath} --log-level silent < ${inputFile}`.cwd(
+  const ourResult = await $`${OURS_BIN} fmt --stdin ${testFilePath} --log-level silent < ${inputFile}`.cwd(
     oursDir,
   ).text();
 
@@ -120,7 +123,7 @@ t.it("returns error code when no formatter found for stdin extension", async () 
   fs.writeFileSync(inputFile, "some content");
 
   try {
-    await $`bun run ${dprintBin} fmt --stdin xyz --log-level silent < ${inputFile}`.cwd(oursDir).quiet();
+    await $`${OURS_BIN} fmt --stdin xyz --log-level silent < ${inputFile}`.cwd(oursDir).quiet();
     t.expect(true).toBe(false); // Should not reach here
   } catch (proc) {
     t.expect(proc.exitCode).toBe(13); // Plugin error exit code
@@ -133,7 +136,7 @@ t.it("formats stdin with info log level includes diagnostic messages", async () 
   fs.writeFileSync(inputFile, malformattedTS);
 
   // Format with info log level
-  const stdout = await $`bun run ${dprintBin} fmt --stdin ts --log-level info < ${inputFile}`.cwd(oursDir).text();
+  const stdout = await $`${OURS_BIN} fmt --stdin ts --log-level info < ${inputFile}`.cwd(oursDir).text();
 
   // The formatted code should be in stdout
   t.expect(stdout).toContain("const x = 1;");

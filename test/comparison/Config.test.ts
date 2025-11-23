@@ -4,8 +4,13 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import * as ConfigCommand from "../../src/commands/ConfigCommand.js";
+import * as Testing from "../Testing.js";
 
 const projectRoot = process.cwd();
+
+// Get binary paths
+const THEIR_BIN = Testing.THEIR_BIN;
+const OURS_BIN = Testing.OURS_BIN;
 
 // Expected output from rust dprint for "config" without subcommand
 const EXPECTED_CONFIG_HELP = `Functionality related to the configuration file.
@@ -47,7 +52,7 @@ t.afterEach(() => {
 
 t.it("config without subcommand shows help and returns exit code 10", async () => {
   // Run our implementation and capture output
-  const ourResult = await $`bun run ${path.join(projectRoot, "bin/dprint")} config 2>&1`.cwd(oursDir).nothrow().quiet();
+  const ourResult = await $`${OURS_BIN} config 2>&1`.cwd(oursDir).nothrow().quiet();
 
   // Should return exit code 10
   t.expect(ourResult.exitCode).toBe(10);
@@ -76,7 +81,7 @@ t.it("config add adds plugin to configuration", async () => {
   const ourResult = await $`bun run ${
     path.join(projectRoot, "bin/dprint")
   } config add ${pluginUrl}`.cwd(oursDir).nothrow().quiet();
-  const theirResult = await $`npx dprint config add ${pluginUrl}`.cwd(theirsDir).nothrow().quiet();
+  const theirResult = await $`${THEIR_BIN} config add ${pluginUrl}`.cwd(theirsDir).nothrow().quiet();
 
   t.expect(ourResult.exitCode).toBe(0);
   t.expect(theirResult.exitCode).toBe(0);

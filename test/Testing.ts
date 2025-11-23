@@ -6,6 +6,9 @@
 import * as Glob from "../src/Glob.js"
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 /**
  * Find the closest node_modules directory starting from a given directory
@@ -109,3 +112,46 @@ export function getLocalPluginUrl(pluginName, cwd = process.cwd()) {
   // On Unix, this will be file:///path/to/plugin.wasm
   return `file://${pluginPath}`;
 }
+
+/**
+ * Find the Rust dprint binary in node_modules
+ *
+ * @param {string} [cwd=process.cwd()] - Working directory to start search from
+ * @returns {string|null} Absolute path to Rust dprint binary or null if not found
+ */
+function findTheirBinary(cwd = process.cwd()) {
+  const nodeModulesPath = findNodeModules(cwd);
+  if (!nodeModulesPath) {
+    return null;
+  }
+
+  const binaryPath = path.join(nodeModulesPath, "dprint", "dprint");
+  if (fs.existsSync(binaryPath)) {
+    return binaryPath;
+  }
+
+  return null;
+}
+
+/**
+ * Find our dprint binary (bin/dprint)
+ *
+ * @returns {string} Absolute path to our dprint binary
+ */
+function findOursBinary() {
+  // Go up from test/ to project root, then to bin/dprint
+  const projectRoot = path.resolve(__dirname, "..");
+  return path.join(projectRoot, "bin", "dprint");
+}
+
+/**
+ * Cached Rust dprint binary path for comparison tests
+ * @type {string|null}
+ */
+export const THEIR_BIN = findTheirBinary();
+
+/**
+ * Cached our dprint binary path for comparison tests
+ * @type {string}
+ */
+export const OURS_BIN = findOursBinary();

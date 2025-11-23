@@ -4,8 +4,13 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import * as InitCommand from "../../src/commands/InitCommand.js";
+import * as Testing from "../Testing.js";
 
 const projectRoot = process.cwd();
+
+// Get binary paths
+const THEIR_BIN = Testing.THEIR_BIN;
+const OURS_BIN = Testing.OURS_BIN;
 
 let testDir;
 let oursDir;
@@ -151,7 +156,7 @@ t.it("creates config compatible with rust dprint format", async () => {
   fs.writeFileSync(path.join(theirsDir, "test.ts"), "const   x=1;");
 
   // Verify rust dprint can use the config (should not error)
-  const result = await $`npx dprint fmt --log-level silent`.cwd(theirsDir).nothrow().quiet();
+  const result = await $`${THEIR_BIN} fmt --log-level silent`.cwd(theirsDir).nothrow().quiet();
 
   // Should succeed (exit code 0)
   t.expect(result.exitCode).toBe(0);
@@ -166,7 +171,7 @@ t.it("handles invalid custom config path gracefully", async () => {
   // Try to create config in non-existent directory
   const invalidPath = "non-existent-dir/dprint.json";
 
-  const ourExitCode = await InitCommand.run({ config: invalidPath, cwd: oursDir });
+  const ourExitCode = await InitCommand.run({ config: invalidPath, cwd: oursDir, logLevel: "silent" });
 
   // Should fail with error exit code
   t.expect(ourExitCode).toBeGreaterThan(0);
@@ -191,11 +196,9 @@ t.it("handles empty plugins array", async () => {
   fs.writeFileSync(path.join(theirsDir, "test.ts"), "const x=1;");
 
   // Both should handle empty plugins similarly (likely as error)
-  const ourResult = await $`bun run ${
-    path.join(projectRoot, "bin/dprint")
-  } check --config test-config.json --log-level silent`.cwd(oursDir).nothrow().quiet();
+  const ourResult = await $`${OURS_BIN} check --config test-config.json --log-level silent`.cwd(oursDir).nothrow().quiet();
 
-  const theirResult = await $`npx dprint check --config test-config.json --log-level silent`.cwd(theirsDir).nothrow()
+  const theirResult = await $`${THEIR_BIN} check --config test-config.json --log-level silent`.cwd(theirsDir).nothrow()
     .quiet();
 
   // Both should fail or succeed in the same way

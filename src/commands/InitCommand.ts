@@ -9,16 +9,28 @@ interface InitCommandOptions {
   logLevel?: "debug" | "info" | "warn" | "error" | "silent";
 }
 
+type LogLevel = "debug" | "info" | "warn" | "error" | "silent";
+
 /**
  * Initialize a new dprint.json configuration file
  */
 export async function run(options: InitCommandOptions): Promise<number> {
   const cwd = options.cwd;
+  const logLevel = options.logLevel || "info";
+  const shouldLog = (level: LogLevel): boolean => {
+    const levels: LogLevel[] = ["debug", "info", "warn", "error", "silent"];
+    const currentLevel = levels.indexOf(logLevel);
+    const messageLevel = levels.indexOf(level);
+    return messageLevel >= currentLevel;
+  };
+
   // Use custom config path if provided, otherwise use dprint.json in current directory
   const configPath = options.config ? path.join(cwd, options.config) : path.join(cwd, "dprint.json");
 
   if (fs.existsSync(configPath)) {
-    console.error(`Configuration file '${path.basename(configPath)}' already exists in the current directory.`);
+    if (shouldLog("error")) {
+      console.error(`Configuration file '${path.basename(configPath)}' already exists in the current directory.`);
+    }
     return 1;
   }
 
@@ -34,10 +46,14 @@ export async function run(options: InitCommandOptions): Promise<number> {
 
   try {
     fs.writeFileSync(configPath, configJson, "utf-8");
-    console.log(`Created ${path.basename(configPath)}`);
+    if (shouldLog("info")) {
+      console.log(`Created ${path.basename(configPath)}`);
+    }
     return 0;
   } catch (error) {
-    console.error(`Error: Failed to create config file: ${(error as Error).message}`);
+    if (shouldLog("error")) {
+      console.error(`Error: Failed to create config file: ${(error as Error).message}`);
+    }
     return 1;
   }
 }
