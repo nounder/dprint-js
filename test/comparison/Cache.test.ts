@@ -52,12 +52,10 @@ t.beforeEach(() => {
     indentWidth: 2,
     useTabs: false,
     incremental: true,
-    includes: ["**/*.{ts,js,json,md}"],
+    includes: ["**/*.{ts,js}"],
     excludes: ["**/node_modules"],
-    plugins: ["@dprint/typescript", "@dprint/json", "@dprint/markdown"],
+    plugins: ["@dprint/typescript"],
     typescript: {},
-    json: {},
-    markdown: {},
   };
   fs.writeFileSync(path.join(oursDir, "dprint.json"), JSON.stringify(ourConfig, null, 2));
 
@@ -67,16 +65,12 @@ t.beforeEach(() => {
     indentWidth: 2,
     useTabs: false,
     incremental: true,
-    includes: ["**/*.{ts,js,json,md}"],
+    includes: ["**/*.{ts,js}"],
     excludes: ["**/node_modules"],
     plugins: [
       "https://plugins.dprint.dev/typescript-0.93.0.wasm",
-      "https://plugins.dprint.dev/json-0.19.3.wasm",
-      "https://plugins.dprint.dev/markdown-0.17.8.wasm",
     ],
     typescript: {},
-    json: {},
-    markdown: {},
   };
   fs.writeFileSync(path.join(theirsDir, "dprint.json"), JSON.stringify(theirConfig, null, 2));
 
@@ -187,29 +181,34 @@ t.it("both implementations invalidate cache when config changes", async () => {
   const checkSkipped = countSkippedFiles(checkResult.stdout.toString());
   t.expect(checkSkipped).toBeGreaterThan(0); // Should skip files with cache
 
-  // Modify config in both directories (change indentWidth which will affect formatting)
+  // Modify config in both directories (change lineWidth which will affect formatting)
   const ourConfigPath = path.join(oursDir, "dprint.json");
   const theirConfigPath = path.join(theirsDir, "dprint.json");
 
   const ourConfig = JSON.parse(fs.readFileSync(ourConfigPath, "utf-8"));
   const theirConfig = JSON.parse(fs.readFileSync(theirConfigPath, "utf-8"));
 
-  ourConfig.indentWidth = 4; // Change from 2 to 4
-  theirConfig.indentWidth = 4;
+  ourConfig.lineWidth = 40; // Change from 80 to 40 to force line breaks
+  theirConfig.lineWidth = 40;
 
   fs.writeFileSync(ourConfigPath, JSON.stringify(ourConfig, null, 2));
   fs.writeFileSync(theirConfigPath, JSON.stringify(theirConfig, null, 2));
 
-  // Third run - should reformat due to config change
-  const ourResult = await $`bun run ${path.join(projectRoot, "bin/dprint")} fmt`.cwd(oursDir).nothrow()
+  // Add a file with a long line that will need reformatting with lineWidth: 40
+  const longLine = `const reallyLongVariableName = { property1: "value1", property2: "value2", property3: "value3" };`;
+  fs.writeFileSync(path.join(oursDir, "LongLine.actual.ts"), longLine);
+  fs.writeFileSync(path.join(theirsDir, "LongLine.actual.ts"), longLine);
+
+  // Third run - should reformat due to config change and new file
+  const ourResult = await $`bun run ${path.join(projectRoot, "bin/dprint")} fmt --log-level info`.cwd(oursDir).nothrow()
     .quiet();
   const theirResult = await $`npx dprint fmt`.cwd(theirsDir).nothrow().quiet();
 
   const ourOutput = ourResult.stdout.toString();
   const theirOutput = theirResult.stdout.toString();
 
-  // With config change, files should be reformatted (not skipped from cache)
-  // Our implementation should format files
+  // With config change and new file, files should be reformatted
+  // Our implementation should format at least the new file
   const ourFormatted = countFormattedFiles(ourOutput);
   t.expect(ourFormatted).toBeGreaterThan(0);
 

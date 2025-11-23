@@ -3,6 +3,7 @@ import * as CheckCommand from "./commands/CheckCommand.js";
 import * as FmtCommand from "./commands/FmtCommand.js";
 import * as InitCommand from "./commands/InitCommand.js";
 import * as ConfigCommand from "./commands/ConfigCommand.js";
+import * as HelpCommand from "./commands/HelpCommand.js";
 import * as OutputFilePathsCommand from "./commands/OutputFilePathsCommand.js";
 import * as OutputResolvedConfigCommand from "./commands/OutputResolvedConfigCommand.js";
 import * as OutputFormatTimesCommand from "./commands/OutputFormatTimesCommand.js";
@@ -16,26 +17,12 @@ export async function main(args = process.argv.slice(2)) {
 
   // Show general help if no command or help command
   if (!parsed.command || parsed.command === "help") {
-    ArgsParser.showHelp();
-    return 0;
+    return await HelpCommand.run();
   }
 
   // Show command-specific help if --help flag is present
   if (parsed.options.help) {
-    switch (parsed.command) {
-      case "init":
-        ArgsParser.showInitHelp();
-        return 0;
-      case "fmt":
-        ArgsParser.showFmtHelp();
-        return 0;
-      case "check":
-        ArgsParser.showCheckHelp();
-        return 0;
-      default:
-        ArgsParser.showHelp();
-        return 0;
-    }
+    return await HelpCommand.run({ subcommand: parsed.command });
   }
 
   try {

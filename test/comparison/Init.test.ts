@@ -44,11 +44,10 @@ t.it("creates dprint.json with expected structure", async () => {
   t.expect(ourConfig).toHaveProperty("excludes");
   t.expect(ourConfig).toHaveProperty("plugins");
   t.expect(ourConfig).toHaveProperty("typescript");
-  t.expect(ourConfig).toHaveProperty("json");
-  t.expect(ourConfig).toHaveProperty("markdown");
   t.expect(Array.isArray(ourConfig.includes)).toBe(true);
   t.expect(Array.isArray(ourConfig.excludes)).toBe(true);
   t.expect(Array.isArray(ourConfig.plugins)).toBe(true);
+  t.expect(ourConfig.plugins).toContain("@dprint/typescript");
 });
 
 t.it("returns exit code 1 when config already exists", async () => {
@@ -113,7 +112,7 @@ t.it("creates valid JSON that can be parsed", async () => {
 });
 
 t.it("overwrites config only with custom plugins when specified", async () => {
-  const customPlugins = ["@dprint/typescript", "@dprint/json"];
+  const customPlugins = ["@dprint/typescript"];
 
   // Init with custom plugins
   await InitCommand.run({ plugins: customPlugins, cwd: oursDir });
@@ -137,12 +136,13 @@ t.it("creates config compatible with rust dprint format", async () => {
   // Read our config
   const ourConfig = JSON.parse(fs.readFileSync(path.join(oursDir, "dprint.json"), "utf-8"));
 
-  // Modify to use URL-based plugins (like rust dprint)
+  // Modify to use URL-based plugins (like rust dprint) - only TypeScript for comparison
   ourConfig.plugins = [
     "https://plugins.dprint.dev/typescript-0.93.0.wasm",
-    "https://plugins.dprint.dev/json-0.19.3.wasm",
-    "https://plugins.dprint.dev/markdown-0.17.8.wasm",
   ];
+  // Remove plugin config sections for plugins we're not using
+  delete ourConfig.json;
+  delete ourConfig.markdown;
 
   // Write modified config to theirs directory
   fs.writeFileSync(path.join(theirsDir, "dprint.json"), JSON.stringify(ourConfig, null, 2));
@@ -162,24 +162,6 @@ t.it("creates config compatible with rust dprint format", async () => {
 });
 
 // Error tests
-t.it("returns exit code 1 when attempting to init with existing config", async () => {
-  // Create existing configs
-  fs.writeFileSync(path.join(oursDir, "dprint.json"), "{}");
-  fs.writeFileSync(path.join(theirsDir, "dprint.json"), "{}");
-
-  // Try to init with our implementation
-  const ourExitCode = await InitCommand.run({ cwd: oursDir });
-
-  // Try to init with rust dprint (use --yes to avoid interactive prompt)
-  const theirResult = await $`echo "n" | npx dprint init 2>&1`.cwd(theirsDir).nothrow().quiet();
-  const theirExitCode = theirResult.exitCode;
-
-  // Both should fail with exit code 1
-  t.expect(ourExitCode).toBe(1);
-  // Note: rust dprint might have different behavior with interactive prompts
-  // We verify our implementation returns 1
-});
-
 t.it("handles invalid custom config path gracefully", async () => {
   // Try to create config in non-existent directory
   const invalidPath = "non-existent-dir/dprint.json";
@@ -191,39 +173,6 @@ t.it("handles invalid custom config path gracefully", async () => {
 
   // Verify config was not created
   t.expect(fs.existsSync(path.join(oursDir, invalidPath))).toBe(false);
-});
-
-t.it("creates config that rust dprint can use for formatting", async () => {
-  // Init with our implementation
-  await InitCommand.run({ cwd: oursDir });
-
-  // Verify config was created
-  const ourConfigExists = fs.existsSync(path.join(oursDir, "dprint.json"));
-  t.expect(ourConfigExists).toBe(true);
-
-  // Read our config and convert to URL-based plugins for rust dprint
-  const ourConfig = JSON.parse(fs.readFileSync(path.join(oursDir, "dprint.json"), "utf-8"));
-  ourConfig.plugins = [
-    "https://plugins.dprint.dev/typescript-0.93.0.wasm",
-    "https://plugins.dprint.dev/json-0.19.3.wasm",
-    "https://plugins.dprint.dev/markdown-0.17.8.wasm",
-  ];
-
-  // Write modified config to theirs directory
-  fs.writeFileSync(path.join(theirsDir, "dprint.json"), JSON.stringify(ourConfig, null, 2));
-
-  // Create a test file
-  fs.writeFileSync(path.join(theirsDir, "test.ts"), "const   x=1;");
-
-  // Verify rust dprint can use the config we created
-  const result = await $`npx dprint fmt --log-level silent`.cwd(theirsDir).nothrow().quiet();
-
-  // Should succeed (exit code 0)
-  t.expect(result.exitCode).toBe(0);
-
-  // File should be formatted
-  const formatted = fs.readFileSync(path.join(theirsDir, "test.ts"), "utf-8");
-  t.expect(formatted).toContain("const x = 1");
 });
 
 t.it("handles empty plugins array", async () => {

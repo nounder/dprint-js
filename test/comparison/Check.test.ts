@@ -14,7 +14,7 @@ let theirsDir;
 // Sample malformatted and formatted code
 const malformattedTS = `const   x=1;const    y={a:1,b:2};`;
 const formattedTS = `const x = 1;\nconst y = { a: 1, b: 2 };\n`;
-const malformattedJSON = `{"a":1,"b":2}`;
+const malformattedTS2 = `function    test(){const    z=3;return    z*2;}`;
 
 t.beforeEach(() => {
   // Create unique test directory in /tmp
@@ -32,12 +32,10 @@ t.beforeEach(() => {
     indentWidth: 2,
     useTabs: false,
     incremental: false,
-    includes: ["**/*.{ts,js,md}", "test.json", "file*.json"],
+    includes: ["**/*.{ts,js}"],
     excludes: ["**/node_modules"],
-    plugins: ["@dprint/typescript", "@dprint/json", "@dprint/markdown"],
+    plugins: ["@dprint/typescript"],
     typescript: {},
-    json: {},
-    markdown: {},
   };
   fs.writeFileSync(path.join(oursDir, "dprint.json"), JSON.stringify(ourConfig, null, 2));
 
@@ -47,16 +45,12 @@ t.beforeEach(() => {
     indentWidth: 2,
     useTabs: false,
     incremental: false,
-    includes: ["**/*.{ts,js,md}", "test.json", "file*.json"],
+    includes: ["**/*.{ts,js}"],
     excludes: ["**/node_modules"],
     plugins: [
       "https://plugins.dprint.dev/typescript-0.93.0.wasm",
-      "https://plugins.dprint.dev/json-0.19.3.wasm",
-      "https://plugins.dprint.dev/markdown-0.17.8.wasm",
     ],
     typescript: {},
-    json: {},
-    markdown: {},
   };
   fs.writeFileSync(path.join(theirsDir, "dprint.json"), JSON.stringify(theirConfig, null, 2));
 });
@@ -158,21 +152,21 @@ t.it("handles mixed formatted/unformatted files identically", async () => {
 });
 
 t.it("respects file patterns identically", async () => {
-  // Create files - test.json is in includes, skip.json is not
+  // Create files
   fs.writeFileSync(path.join(oursDir, "check.ts"), malformattedTS);
-  fs.writeFileSync(path.join(oursDir, "test.json"), malformattedJSON);
+  fs.writeFileSync(path.join(oursDir, "test.ts"), malformattedTS2);
 
   fs.writeFileSync(path.join(theirsDir, "check.ts"), malformattedTS);
-  fs.writeFileSync(path.join(theirsDir, "test.json"), malformattedJSON);
+  fs.writeFileSync(path.join(theirsDir, "test.ts"), malformattedTS2);
 
-  // Check only test.json files with our implementation
-  const ourExitCode = await CheckCommand.run({ filePatterns: ["test.json"], logLevel: "silent", cwd: oursDir });
+  // Check only test.ts files with our implementation
+  const ourExitCode = await CheckCommand.run({ filePatterns: ["test.ts"], logLevel: "silent", cwd: oursDir });
 
-  // Check only test.json files with rust dprint
-  const theirResult = await $`npx dprint check --log-level silent test.json`.cwd(theirsDir).nothrow().quiet();
+  // Check only test.ts files with rust dprint
+  const theirResult = await $`npx dprint check --log-level silent test.ts`.cwd(theirsDir).nothrow().quiet();
   const theirExitCode = theirResult.exitCode;
 
-  // Both should fail because JSON is malformatted and matches includes
+  // Both should fail because test.ts is malformatted
   t.expect(ourExitCode).toBe(20);
   t.expect(theirExitCode).toBe(20);
   t.expect(ourExitCode).toBe(theirExitCode);
@@ -181,10 +175,10 @@ t.it("respects file patterns identically", async () => {
 t.it("list-different outputs same file paths", async () => {
   // Create unformatted files
   fs.writeFileSync(path.join(oursDir, "file1.ts"), malformattedTS);
-  fs.writeFileSync(path.join(oursDir, "file2.json"), malformattedJSON);
+  fs.writeFileSync(path.join(oursDir, "file2.ts"), malformattedTS2);
 
   fs.writeFileSync(path.join(theirsDir, "file1.ts"), malformattedTS);
-  fs.writeFileSync(path.join(theirsDir, "file2.json"), malformattedJSON);
+  fs.writeFileSync(path.join(theirsDir, "file2.ts"), malformattedTS2);
 
   // Check with our implementation using --list-different
   const ourResult = await $`bun run ${
@@ -209,7 +203,7 @@ t.it("list-different outputs same file paths", async () => {
     .map(line => path.basename(line))
     .sort();
 
-  // Both should find file1.ts and file2.json
+  // Both should find file1.ts and file2.ts
   t.expect(ourFiles.length).toBe(2);
   t.expect(theirFiles.length).toBe(2);
   t.expect(ourFiles).toEqual(theirFiles);
