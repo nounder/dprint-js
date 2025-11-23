@@ -1,4 +1,4 @@
-import { createFromBuffer, createStreaming } from "@dprint/formatter";
+import { createFromBuffer, createStreaming } from "./wasm-formatter.js";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import * as crypto from "node:crypto";
