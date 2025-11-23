@@ -7,6 +7,25 @@ import * as ConfigCommand from "../../src/commands/ConfigCommand.js";
 
 const projectRoot = process.cwd();
 
+// Expected output from rust dprint for "config" without subcommand
+const EXPECTED_CONFIG_HELP = `Functionality related to the configuration file.
+
+Usage: dprint config [OPTIONS] <COMMAND>
+
+Commands:
+  init    Initializes a configuration file in the current directory.
+  update  Updates the plugins in the configuration file.
+  add     Adds a plugin to the configuration file.
+  help    Print this message or the help of the given subcommand(s)
+
+Options:
+  -c, --config <config>             Path or url to JSON configuration file. Defaults to dprint.json(c) or .dprint.json(c) in current or ancestor directory when not provided.
+      --config-discovery=<BOOLEAN>  Sets the config discovery mode. Set to \`false\` to completely disable.
+      --plugins <urls/files>...     List of urls or file paths of plugins to use. This overrides what is specified in the config file.
+  -L, --log-level <log-level>       Set log level [default: info] [possible values: debug, info, warn, error, silent]
+  -h, --help                        Print help
+`;
+
 let testDir;
 let oursDir;
 let theirsDir;
@@ -26,12 +45,16 @@ t.afterEach(() => {
   }
 });
 
-t.it("config without subcommand returns exit code 10", async () => {
-  const ourExitCode = await ConfigCommand.run({ cwd: oursDir });
-  const theirResult = await $`npx dprint config`.cwd(theirsDir).nothrow().quiet();
+t.it("config without subcommand shows help and returns exit code 10", async () => {
+  // Run our implementation and capture output
+  const ourResult = await $`bun run ${path.join(projectRoot, "bin/dprint")} config 2>&1`.cwd(oursDir).nothrow().quiet();
 
-  t.expect(ourExitCode).toBe(10);
-  t.expect(theirResult.exitCode).toBe(10);
+  // Should return exit code 10
+  t.expect(ourResult.exitCode).toBe(10);
+
+  // Our output should match the expected help text
+  const ourOutput = ourResult.stdout.toString().trim();
+  t.expect(ourOutput).toBe(EXPECTED_CONFIG_HELP.trim());
 });
 
 // Skip interactive config init test - requires user input in real dprint

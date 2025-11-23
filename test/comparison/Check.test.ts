@@ -4,8 +4,12 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import * as CheckCommand from "../../src/commands/CheckCommand.js";
+import * as Testing from "../Testing.js";
 
 const projectRoot = process.cwd();
+
+// Get local plugin URL for rust dprint
+const typescriptPluginUrl = Testing.getLocalPluginUrl("typescript", projectRoot);
 
 let testDir;
 let oursDir;
@@ -39,7 +43,7 @@ t.beforeEach(() => {
   };
   fs.writeFileSync(path.join(oursDir, "dprint.json"), JSON.stringify(ourConfig, null, 2));
 
-  // Create config for rust dprint (URL-based)
+  // Create config for rust dprint (using local plugin)
   const theirConfig = {
     lineWidth: 80,
     indentWidth: 2,
@@ -48,7 +52,7 @@ t.beforeEach(() => {
     includes: ["**/*.{ts,js}"],
     excludes: ["**/node_modules"],
     plugins: [
-      "https://plugins.dprint.dev/typescript-0.93.0.wasm",
+      typescriptPluginUrl,
     ],
     typescript: {},
   };

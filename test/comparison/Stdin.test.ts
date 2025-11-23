@@ -4,6 +4,7 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import * as FmtCommand from "../../src/commands/FmtCommand.js";
+import * as Testing from "../Testing.js";
 
 let testDir;
 let oursDir;
@@ -12,6 +13,9 @@ let theirsDir;
 // Get path to our dprint binary
 const projectRoot = path.resolve(import.meta.dir, "../..");
 const dprintBin = path.join(projectRoot, "bin/dprint");
+
+// Get local plugin URL for rust dprint
+const typescriptPluginUrl = Testing.getLocalPluginUrl("typescript", projectRoot);
 
 // Sample malformatted code to test
 const malformattedTS = `const   x=1;const    y={a:1,b:2};function    foo(){return    x+y.a;}`;
@@ -39,7 +43,7 @@ t.beforeEach(() => {
   };
   fs.writeFileSync(path.join(oursDir, "dprint.json"), JSON.stringify(ourConfig, null, 2));
 
-  // Create config for rust dprint (URL-based)
+  // Create config for rust dprint (using local plugin)
   const theirConfig = {
     lineWidth: 80,
     indentWidth: 2,
@@ -48,7 +52,7 @@ t.beforeEach(() => {
     includes: ["**/*.{ts,js}"],
     excludes: ["**/node_modules", "dprint.json"],
     plugins: [
-      "https://plugins.dprint.dev/typescript-0.93.0.wasm",
+      typescriptPluginUrl,
     ],
     typescript: {},
   };
