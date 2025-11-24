@@ -6,6 +6,9 @@
   "bin": {
     "dprint": "./bin/dprint"
   },
+  "exports": {
+    ".": "./src/index.ts"
+  },
   "scripts": {
     "test": "bun test ./test",
     "format": "bun run ./bin/dprint fmt",
