@@ -234,7 +234,7 @@ export async function hook(
 }
 
 export async function runMain(): Promise<void> {
-  const isDebug = true && process.env.DEBUG === "1"
+  const isDebug = process.env.DEBUG === "1"
     || process.env.DEBUG === "true"
 
   let logger = !isDebug
