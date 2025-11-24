@@ -1,325 +1,281 @@
-import * as WasmFormatter from "./WasmFormatter.js";
-import * as fs from "node:fs";
-import * as path from "node:path";
-import * as crypto from "node:crypto";
-import * as os from "node:os";
+import * as crypto from "node:crypto"
+import * as fs from "node:fs"
+import * as os from "node:os"
+import * as path from "node:path"
+import * as WasmFormatter from "./WasmFormatter.js"
 
-/**
- * Cache manifest structure
- */
 interface CacheManifest {
-  schemaVersion: number;
-  plugins: Record<string, CachedPluginEntry>;
+  schemaVersion: number
+  plugins: Record<string, CachedPluginEntry>
 }
 
-/**
- * Cached plugin entry
- */
 interface CachedPluginEntry {
-  createdTime: number;
-  info: PluginInfo;
+  createdTime: number
+  info: PluginInfo
 }
 
-/**
- * Plugin information
- */
 export interface PluginInfo {
-  name: string;
-  version: string;
-  configKey: string;
+  name: string
+  version: string
+  configKey: string
 }
 
-/**
- * Plugin data with cached path and info
- */
 interface CachedPluginData {
-  path: string;
-  info: PluginInfo;
+  path: string
+  info: PluginInfo
 }
 
-/**
- * Result from loading a plugin
- */
 export interface LoadedPluginData {
-  formatter: WasmFormatter.Formatter;
-  fileMatchingInfo: WasmFormatter.FileMatchingInfo;
-  configKey?: string;
+  formatter: WasmFormatter.Formatter
+  fileMatchingInfo: WasmFormatter.FileMatchingInfo
+  configKey?: string
 }
 
-/**
- * Loaded plugin with file matching information
- */
 export interface LoadedPlugin {
-  name: string;
-  formatter: WasmFormatter.Formatter;
-  extensions: string[];
-  fileNames: string[];
+  name: string
+  formatter: WasmFormatter.Formatter
+  extensions: string[]
+  fileNames: string[]
 }
 
-/**
- * Result from loadPlugins function
- */
 export interface LoadPluginsResult {
-  plugins: LoadedPlugin[];
-  autoDiscovered: string[];
+  plugins: LoadedPlugin[]
+  autoDiscovered: string[]
 }
 
-/**
- * Result from formatFile function
- */
 export interface FormatFileResult {
-  formatted: boolean;
-  error: string | null;
-  diff?: string;
+  formatted: boolean
+  error: string | null
+  diff?: string
 }
 
-/**
- * Get the cache directory path for remote plugins
- * @returns Path to the cache directory
- */
 function getRemotePluginCacheDir(): string {
   // Check for custom cache directory from environment
   if (process.env.DPRINT_CACHE_DIR) {
-    return path.join(process.env.DPRINT_CACHE_DIR, "cache");
+    return path.join(process.env.DPRINT_CACHE_DIR, "cache")
   }
 
   // Platform-specific cache directories (matching dprint conventions)
-  const platform = os.platform();
-  const homeDir = os.homedir();
+  const platform = os.platform()
+  const homeDir = os.homedir()
 
   if (platform === "win32") {
     // Windows: %LOCALAPPDATA%/dprint/cache
-    const localAppData = process.env.LOCALAPPDATA || path.join(homeDir, "AppData", "Local");
-    return path.join(localAppData, "dprint", "cache");
+    const localAppData = process.env.LOCALAPPDATA
+      || path.join(homeDir, "AppData", "Local")
+    return path.join(localAppData, "dprint", "cache")
   } else if (platform === "darwin") {
     // macOS: ~/Library/Caches/dprint/cache
-    return path.join(homeDir, "Library", "Caches", "dprint", "cache");
+    return path.join(homeDir, "Library", "Caches", "dprint", "cache")
   } else {
     // Linux and others: ~/.cache/dprint/cache
-    return path.join(homeDir, ".cache", "dprint", "cache");
+    return path.join(homeDir, ".cache", "dprint", "cache")
   }
 }
 
-/**
- * Get the cache manifest file path
- * @returns Path to the cache manifest
- */
 function getCacheManifestPath(): string {
-  return path.join(getRemotePluginCacheDir(), "plugin-cache-manifest.json");
+  return path.join(getRemotePluginCacheDir(), "plugin-cache-manifest.json")
 }
 
-/**
- * Load the cache manifest
- * @returns The cache manifest
- */
 function loadCacheManifest(): CacheManifest {
-  const manifestPath = getCacheManifestPath();
+  const manifestPath = getCacheManifestPath()
 
   if (!fs.existsSync(manifestPath)) {
     return {
       schemaVersion: 8,
       plugins: {},
-    };
+    }
   }
 
   try {
-    const content = fs.readFileSync(manifestPath, "utf-8");
-    return JSON.parse(content);
+    const content = fs.readFileSync(manifestPath, "utf-8")
+    return JSON.parse(content)
   } catch (error) {
     // If manifest is corrupted, return empty manifest
     return {
       schemaVersion: 8,
       plugins: {},
-    };
+    }
   }
 }
 
-/**
- * Find package.json in the same directory as the config file
- * @param configDir - Directory containing the config file
- * @returns Path to package.json or null if not found
- */
 function findPackageJson(configDir: string): string | null {
-  const packagePath = path.join(configDir, "package.json");
+  const packagePath = path.join(configDir, "package.json")
   if (fs.existsSync(packagePath)) {
-    return packagePath;
+    return packagePath
   }
-  return null;
+  return null
 }
 
 /**
- * Resolve a package path from the specified directory's node_modules
- * @param packageName - Name of the package
- * @param searchDir - Directory to search from (usually CWD)
  * @returns Absolute path to the package, or null if not found
  */
-function resolvePackageFromDir(packageName: string, searchDir: string): string | null {
+function resolvePackageFromDir(
+  packageName: string,
+  searchDir: string,
+): string | null {
   // For scoped packages like @dprint/typescript, split into scope and name
-  const parts = packageName.split("/");
-  let packagePath: string;
+  const parts = packageName.split("/")
+  let packagePath: string
 
   if (packageName.startsWith("@")) {
     // Scoped package: @scope/name
-    packagePath = path.join(searchDir, "node_modules", parts[0], parts[1]);
+    packagePath = path.join(searchDir, "node_modules", parts[0], parts[1])
   } else {
     // Regular package
-    packagePath = path.join(searchDir, "node_modules", packageName);
+    packagePath = path.join(searchDir, "node_modules", packageName)
   }
 
   // Check if package.json exists in this location
-  const packageJsonPath = path.join(packagePath, "package.json");
+  const packageJsonPath = path.join(packagePath, "package.json")
   if (fs.existsSync(packageJsonPath)) {
-    return packagePath;
+    return packagePath
   }
 
-  return null;
+  return null
 }
 
 /**
- * Check if a package is a valid dprint plugin
- * @param packageName - Name of the package
- * @param packageDir - Directory where package.json is located
  * @returns True if the package is a valid plugin
  */
-async function isValidDprintPlugin(packageName: string, packageDir: string): Promise<boolean> {
+async function isValidDprintPlugin(
+  packageName: string,
+  packageDir: string,
+): Promise<boolean> {
   try {
     // First, try to resolve from the package directory (CWD's node_modules)
-    const packagePath = resolvePackageFromDir(packageName, packageDir);
+    const packagePath = resolvePackageFromDir(packageName, packageDir)
 
-    let pluginModule: any;
+    let pluginModule: any
     if (packagePath) {
       // Import from the resolved path in CWD's node_modules
-      const packageJsonPath = path.join(packagePath, "package.json");
-      const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf-8"));
-      const mainFile = packageJson.main || "index.js";
-      const modulePath = path.join(packagePath, mainFile);
-      pluginModule = await import(modulePath);
+      const packageJsonPath = path.join(packagePath, "package.json")
+      const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf-8"))
+      const mainFile = packageJson.main || "index.js"
+      const modulePath = path.join(packagePath, mainFile)
+      pluginModule = await import(modulePath)
     } else {
       // Fallback to regular import (for development/testing)
-      pluginModule = await import(packageName);
+      pluginModule = await import(packageName)
     }
 
     // Check if the module has the expected dprint plugin interface
-    const hasValidInterface =
-      typeof pluginModule.getPath === "function" ||
-      typeof pluginModule.getBuffer === "function";
+    const hasValidInterface = typeof pluginModule.getPath === "function"
+      || typeof pluginModule.getBuffer === "function"
 
     if (!hasValidInterface) {
-      return false;
+      return false
     }
 
     // Additional check: try to get the WASM path/buffer to verify it's accessible
     try {
       if (typeof pluginModule.getPath === "function") {
-        const wasmPath = pluginModule.getPath();
+        const wasmPath = pluginModule.getPath()
         // Check if the WASM file exists
         if (!fs.existsSync(wasmPath)) {
-          return false;
+          return false
         }
       } else if (typeof pluginModule.getBuffer === "function") {
-        const buffer = pluginModule.getBuffer();
+        const buffer = pluginModule.getBuffer()
         // Check if buffer is valid
         if (!buffer || !Buffer.isBuffer(buffer)) {
-          return false;
+          return false
         }
       }
     } catch (accessError) {
       // If we can't access the WASM, it's not a valid plugin
-      return false;
+      return false
     }
 
-    return true;
+    return true
   } catch (error) {
     // If anything fails during validation (e.g., package doesn't exist), treat as invalid
-    return false;
+    return false
   }
 }
 
 /**
- * Check if a package name matches dprint plugin patterns
- * @param name - Package name
- * @returns True if name matches dprint plugin patterns
+ * @returns true if name matches dprint plugin patterns
  */
 function matchesDprintPattern(name: string): boolean {
   // Exclude the base @dprint/formatter library
   if (name === "@dprint/formatter") {
-    return false;
+    return false
   }
 
   // Match @dprint/* packages
   if (name.startsWith("@dprint/")) {
-    return true;
+    return true
   }
 
   // Match non-scoped dprint-* packages
   if (!name.startsWith("@") && name.startsWith("dprint-")) {
-    return true;
+    return true
   }
 
   // Match scoped packages like @org/dprint-*
-  const scopedMatch = name.match(/^@[^/]+\/dprint-/);
+  const scopedMatch = name.match(/^@[^/]+\/dprint-/)
   if (scopedMatch) {
-    return true;
+    return true
   }
 
-  return false;
+  return false
 }
 
 /**
- * Discover dprint plugins from package.json dependencies
- * @param configDir - Directory containing the config file
  * @returns Array of discovered plugin names
  */
-async function discoverPluginsFromPackageJson(configDir: string): Promise<string[]> {
-  const packagePath = findPackageJson(configDir);
+async function discoverPluginsFromPackageJson(
+  configDir: string,
+): Promise<string[]> {
+  const packagePath = findPackageJson(configDir)
   if (!packagePath) {
-    return [];
+    return []
   }
 
   try {
-    const packageContent = fs.readFileSync(packagePath, "utf-8");
-    const packageJson = JSON.parse(packageContent);
+    const packageContent = fs.readFileSync(packagePath, "utf-8")
+    const packageJson = JSON.parse(packageContent)
 
-    const dependencies = { ...packageJson.dependencies, ...packageJson.devDependencies };
-    const candidateNames = Object.keys(dependencies).filter(matchesDprintPattern);
+    const dependencies = {
+      ...packageJson.dependencies,
+      ...packageJson.devDependencies,
+    }
+    const candidateNames = Object.keys(dependencies).filter(
+      matchesDprintPattern,
+    )
 
     // Validate all candidates in parallel for performance
     const validationResults = await Promise.all(
       candidateNames.map(async (name) => ({
         name,
         isValid: await isValidDprintPlugin(name, configDir),
-      }))
-    );
+      })),
+    )
 
     // Filter to only valid plugins
     const validPlugins = validationResults
       .filter((result) => result.isValid)
-      .map((result) => result.name);
+      .map((result) => result.name)
 
-    return validPlugins;
+    return validPlugins
   } catch (error) {
     // If we can't read or parse package.json, return empty array
-    return [];
+    return []
   }
 }
 
-/**
- * Save the cache manifest
- * @param manifest - The cache manifest to save
- */
 function saveCacheManifest(manifest: CacheManifest): void {
-  const manifestPath = getCacheManifestPath();
-  const cacheDir = getRemotePluginCacheDir();
+  const manifestPath = getCacheManifestPath()
+  const cacheDir = getRemotePluginCacheDir()
 
   // Ensure cache directory exists
-  fs.mkdirSync(cacheDir, { recursive: true });
+  fs.mkdirSync(cacheDir, { recursive: true })
 
-  fs.writeFileSync(manifestPath, JSON.stringify(manifest), "utf-8");
+  fs.writeFileSync(manifestPath, JSON.stringify(manifest), "utf-8")
 }
 
 /**
- * Get plugin info from a remote URL
- * @param url - The plugin URL
  * @returns Plugin info including name, version, and configKey
  */
 function getPluginInfoFromUrl(url: string): PluginInfo {
@@ -327,50 +283,47 @@ function getPluginInfoFromUrl(url: string): PluginInfo {
   // Examples:
   // - https://plugins.dprint.dev/typescript-0.95.11.wasm
   // - https://plugins.dprint.dev/g-plane/markup_fmt-v0.24.0.wasm
-  const urlObj = new URL(url);
-  const filename = path.basename(urlObj.pathname);
+  const urlObj = new URL(url)
+  const filename = path.basename(urlObj.pathname)
 
   // Try to match pattern with optional 'v' prefix before version
   // Matches: name-version.wasm or name-vversion.wasm
-  const match = filename.match(/^(.+?)-v?([\d.]+)\.wasm$/);
+  const match = filename.match(/^(.+?)-v?([\d.]+)\.wasm$/)
 
   if (!match) {
-    throw new Error(`Unable to parse plugin name and version from URL: ${url}`);
+    throw new Error(`Unable to parse plugin name and version from URL: ${url}`)
   }
 
-  const [, name, version] = match;
+  const [, name, version] = match
 
   // The config key is typically the plugin name without the dprint-plugin- prefix
-  let configKey = name;
+  let configKey = name
   if (configKey.startsWith("dprint-plugin-")) {
-    configKey = configKey.replace("dprint-plugin-", "");
+    configKey = configKey.replace("dprint-plugin-", "")
   }
 
   return {
     name: `dprint-plugin-${name}`,
     version,
     configKey,
-  };
+  }
 }
 
 /**
- * Generate a cache file path for a plugin
- * @param pluginName - The plugin name
- * @param version - The plugin version
  * @returns Path to the cached plugin file
  */
 function getCachedPluginPath(pluginName: string, version: string): string {
-  const pluginsDir = path.join(getRemotePluginCacheDir(), "plugins");
+  const pluginsDir = path.join(getRemotePluginCacheDir(), "plugins")
 
   // Generate a hash for the file (simplified version)
   const hash = crypto
     .createHash("sha256")
     .update(`${pluginName}-${version}`)
     .digest("hex")
-    .substring(0, 16);
+    .substring(0, 16)
 
-  const filename = `${version}-${hash}`;
-  return path.join(pluginsDir, pluginName, filename);
+  const filename = `${version}-${hash}`
+  return path.join(pluginsDir, pluginName, filename)
 }
 
 /**
@@ -379,38 +332,25 @@ function getCachedPluginPath(pluginName: string, version: string): string {
  * @returns Path to the cached plugin file, or null if not cached
  */
 function getCachedPluginForUrl(url: string): CachedPluginData | null {
-  const cacheKey = `remote:${url}`;
-  const manifest = loadCacheManifest();
+  const cacheKey = `remote:${url}`
+  const manifest = loadCacheManifest()
 
-  const cachedEntry = manifest.plugins[cacheKey];
+  const cachedEntry = manifest.plugins[cacheKey]
   if (!cachedEntry) {
-    return null;
+    return null
   }
 
-  const pluginPath = getCachedPluginPath(cachedEntry.info.name, cachedEntry.info.version);
+  const pluginPath = getCachedPluginPath(
+    cachedEntry.info.name,
+    cachedEntry.info.version,
+  )
 
   // Check if the file actually exists
   if (!fs.existsSync(pluginPath)) {
-    return null;
+    return null
   }
 
-  return { path: pluginPath, info: cachedEntry.info };
-}
-
-/**
- * Download a file from a URL
- * @param url - The URL to download from
- * @returns The downloaded file content
- */
-async function downloadFile(url: string): Promise<Buffer> {
-  const response = await fetch(url);
-
-  if (!response.ok) {
-    throw new Error(`Failed to download ${url}: ${response.status} ${response.statusText}`);
-  }
-
-  const arrayBuffer = await response.arrayBuffer();
-  return Buffer.from(arrayBuffer);
+  return { path: pluginPath, info: cachedEntry.info }
 }
 
 /**
@@ -420,25 +360,29 @@ async function downloadFile(url: string): Promise<Buffer> {
  * @param info - Plugin info
  * @returns Path to the cached plugin file
  */
-function cacheRemotePlugin(url: string, content: Buffer, info: PluginInfo): string {
-  const cacheKey = `remote:${url}`;
-  const pluginPath = getCachedPluginPath(info.name, info.version);
+function cacheRemotePlugin(
+  url: string,
+  content: Buffer,
+  info: PluginInfo,
+): string {
+  const cacheKey = `remote:${url}`
+  const pluginPath = getCachedPluginPath(info.name, info.version)
 
   // Ensure plugin directory exists
-  fs.mkdirSync(path.dirname(pluginPath), { recursive: true });
+  fs.mkdirSync(path.dirname(pluginPath), { recursive: true })
 
   // Write plugin content
-  fs.writeFileSync(pluginPath, content);
+  fs.writeFileSync(pluginPath, content)
 
   // Update cache manifest
-  const manifest = loadCacheManifest();
+  const manifest = loadCacheManifest()
   manifest.plugins[cacheKey] = {
     createdTime: Math.floor(Date.now() / 1000),
     info,
-  };
-  saveCacheManifest(manifest);
+  }
+  saveCacheManifest(manifest)
 
-  return pluginPath;
+  return pluginPath
 }
 
 /**
@@ -447,7 +391,7 @@ function cacheRemotePlugin(url: string, content: Buffer, info: PluginInfo): stri
  * @returns True if it's a remote URL
  */
 function isRemotePlugin(pluginName: string): boolean {
-  return pluginName.startsWith("http://") || pluginName.startsWith("https://");
+  return pluginName.startsWith("http://") || pluginName.startsWith("https://")
 }
 
 /**
@@ -457,49 +401,51 @@ function isRemotePlugin(pluginName: string): boolean {
  */
 async function loadRemotePlugin(url: string): Promise<LoadedPluginData> {
   // Get plugin info
-  const info = getPluginInfoFromUrl(url);
+  const info = getPluginInfoFromUrl(url)
 
   // Check if already cached
-  const cached = getCachedPluginForUrl(url);
+  const cached = getCachedPluginForUrl(url)
   if (cached) {
     // Load from cache using streaming API
-    const buffer = fs.readFileSync(cached.path);
-    const response = new Response(buffer);
-    const formatter = await WasmFormatter.createStreaming(response);
+    const buffer = fs.readFileSync(cached.path)
+    const response = new Response(buffer)
+    const formatter = await WasmFormatter.createStreaming(response)
     // Must call setConfig before getFileMatchingInfo
-    formatter.setConfig({}, {});
+    formatter.setConfig({}, {})
     return {
       formatter,
       fileMatchingInfo: formatter.getFileMatchingInfo(),
       configKey: cached.info.configKey,
-    };
+    }
   }
 
   // Download and cache the plugin
-  const response = await fetch(url);
+  const response = await fetch(url)
   if (!response.ok) {
-    throw new Error(`Failed to download ${url}: ${response.status} ${response.statusText}`);
+    throw new Error(
+      `Failed to download ${url}: ${response.status} ${response.statusText}`,
+    )
   }
 
   // Get the content as buffer for caching
-  const content = Buffer.from(await response.arrayBuffer());
+  const content = Buffer.from(await response.arrayBuffer())
 
   // Cache the plugin
-  const pluginPath = cacheRemotePlugin(url, content, info);
+  const pluginPath = cacheRemotePlugin(url, content, info)
 
   // Load the plugin using streaming API
-  const cachedBuffer = fs.readFileSync(pluginPath);
-  const cachedResponse = new Response(cachedBuffer);
-  const formatter = await WasmFormatter.createStreaming(cachedResponse);
+  const cachedBuffer = fs.readFileSync(pluginPath)
+  const cachedResponse = new Response(cachedBuffer)
+  const formatter = await WasmFormatter.createStreaming(cachedResponse)
 
   // Must call setConfig before getFileMatchingInfo
-  formatter.setConfig({}, {});
+  formatter.setConfig({}, {})
 
   return {
     formatter,
     fileMatchingInfo: formatter.getFileMatchingInfo(),
     configKey: info.configKey,
-  };
+  }
 }
 
 /**
@@ -508,52 +454,59 @@ async function loadRemotePlugin(url: string): Promise<LoadedPluginData> {
  * @param cwd - Current working directory
  * @returns The loaded formatter with file matching info and optional configKey
  */
-export async function loadPlugin(pluginName: string, cwd: string = process.cwd()): Promise<LoadedPluginData> {
+export async function loadPlugin(
+  pluginName: string,
+  cwd: string = process.cwd(),
+): Promise<LoadedPluginData> {
   try {
     // Check if this is a remote plugin
     if (isRemotePlugin(pluginName)) {
-      return await loadRemotePlugin(pluginName);
+      return await loadRemotePlugin(pluginName)
     }
 
     // Try to resolve from CWD's node_modules first
-    const packagePath = resolvePackageFromDir(pluginName, cwd);
+    const packagePath = resolvePackageFromDir(pluginName, cwd)
 
-    let pluginModule: any;
+    let pluginModule: any
     if (packagePath) {
       // Import from the resolved path in CWD's node_modules
-      const packageJsonPath = path.join(packagePath, "package.json");
-      const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf-8"));
-      const mainFile = packageJson.main || "index.js";
-      const modulePath = path.join(packagePath, mainFile);
-      pluginModule = await import(modulePath);
+      const packageJsonPath = path.join(packagePath, "package.json")
+      const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf-8"))
+      const mainFile = packageJson.main || "index.js"
+      const modulePath = path.join(packagePath, mainFile)
+      pluginModule = await import(modulePath)
     } else {
       // Fallback to regular import (for development/testing)
-      pluginModule = await import(pluginName);
+      pluginModule = await import(pluginName)
     }
 
     // Get the path to the WASM file
-    let wasmPath: string;
+    let wasmPath: string
     if (typeof pluginModule.getPath === "function") {
-      wasmPath = pluginModule.getPath();
+      wasmPath = pluginModule.getPath()
     } else if (typeof pluginModule.getBuffer === "function") {
       // For plugins that haven't updated to getPath yet
-      const buffer = pluginModule.getBuffer();
-      const formatter = WasmFormatter.createFromBuffer(buffer);
-      formatter.setConfig({}, {});
+      const buffer = pluginModule.getBuffer()
+      const formatter = WasmFormatter.createFromBuffer(buffer)
+      formatter.setConfig({}, {})
 
-      return { formatter, fileMatchingInfo: formatter.getFileMatchingInfo() };
+      return { formatter, fileMatchingInfo: formatter.getFileMatchingInfo() }
     } else {
-      throw new Error(`Plugin ${pluginName} does not export getPath() or getBuffer()`);
+      throw new Error(
+        `Plugin ${pluginName} does not export getPath() or getBuffer()`,
+      )
     }
 
     // Read the WASM file
-    const buffer = fs.readFileSync(wasmPath);
-    const formatter = WasmFormatter.createFromBuffer(buffer);
-    formatter.setConfig({}, {});
+    const buffer = fs.readFileSync(wasmPath)
+    const formatter = WasmFormatter.createFromBuffer(buffer)
+    formatter.setConfig({}, {})
 
-    return { formatter, fileMatchingInfo: formatter.getFileMatchingInfo() };
+    return { formatter, fileMatchingInfo: formatter.getFileMatchingInfo() }
   } catch (error) {
-    throw new Error(`Failed to load plugin ${pluginName}: ${(error as Error).message}`);
+    throw new Error(
+      `Failed to load plugin ${pluginName}: ${(error as Error).message}`,
+    )
   }
 }
 
@@ -562,22 +515,24 @@ export async function loadPlugin(pluginName: string, cwd: string = process.cwd()
  * @param config - The dprint configuration
  * @returns Global formatting options
  */
-function extractGlobalConfig(config: Record<string, unknown>): Record<string, unknown> {
+function extractGlobalConfig(
+  config: Record<string, unknown>,
+): Record<string, unknown> {
   const globalOptions = [
     "lineWidth",
     "indentWidth",
     "newLineKind",
     "useTabs",
-  ];
+  ]
 
-  const globalConfig: Record<string, unknown> = {};
+  const globalConfig: Record<string, unknown> = {}
   for (const option of globalOptions) {
     if (config[option] !== undefined) {
-      globalConfig[option] = config[option];
+      globalConfig[option] = config[option]
     }
   }
 
-  return globalConfig;
+  return globalConfig
 }
 
 /**
@@ -587,61 +542,69 @@ function extractGlobalConfig(config: Record<string, unknown>): Record<string, un
  * @param configPath - Optional path to config file (used for auto-discovery)
  * @returns Object containing loaded plugins and auto-discovered plugin names
  */
-export async function loadPlugins(config: Record<string, unknown>, cwd: string = process.cwd(), configPath: string | null = null): Promise<LoadPluginsResult> {
-  let plugins = config.plugins as string[] | undefined;
-  let autoDiscovered: string[] = [];
+export async function loadPlugins(
+  config: Record<string, unknown>,
+  cwd: string = process.cwd(),
+  configPath: string | null = null,
+): Promise<LoadPluginsResult> {
+  let plugins = config.plugins as string[] | undefined
+  let autoDiscovered: string[] = []
 
   // If no plugins specified in config, auto-discover from package.json
   if (!plugins || plugins.length === 0) {
     // Use config directory if available, otherwise use cwd
-    const searchDir = configPath ? path.dirname(configPath) : cwd;
-    plugins = await discoverPluginsFromPackageJson(searchDir);
+    const searchDir = configPath ? path.dirname(configPath) : cwd
+    plugins = await discoverPluginsFromPackageJson(searchDir)
     if (plugins.length > 0) {
-      autoDiscovered = [...plugins];
+      autoDiscovered = [...plugins]
     }
   }
 
-  const loadedPlugins: LoadedPlugin[] = [];
+  const loadedPlugins: LoadedPlugin[] = []
 
   // Extract global formatting options
-  const globalConfig = extractGlobalConfig(config);
+  const globalConfig = extractGlobalConfig(config)
 
   for (const pluginName of plugins) {
     try {
-      const { formatter, fileMatchingInfo, configKey } = await loadPlugin(pluginName, cwd);
+      const { formatter, fileMatchingInfo, configKey } = await loadPlugin(
+        pluginName,
+        cwd,
+      )
 
       // Set configuration for the formatter
       // For remote plugins, configKey is provided. For npm plugins, extract from name
-      let pluginConfigKey: string;
+      let pluginConfigKey: string
       if (configKey) {
-        pluginConfigKey = configKey;
+        pluginConfigKey = configKey
       } else {
         // Extract config key from package name
         // @dprint/typescript -> typescript
         // @org/dprint-markup -> dprint-markup
         // dprint-json -> dprint-json
-        const parts = pluginName.split("/");
-        pluginConfigKey = parts.length > 1 ? parts[1] : pluginName;
+        const parts = pluginName.split("/")
+        pluginConfigKey = parts.length > 1 ? parts[1] : pluginName
       }
 
-      const pluginConfig = (config[pluginConfigKey] as Record<string, unknown>) || {};
+      const pluginConfig = (config[pluginConfigKey] as Record<string, unknown>)
+        || {}
 
       // Call setConfig with global config and plugin-specific configuration
       // Plugin-specific options will override global options
-      formatter.setConfig(globalConfig, pluginConfig);
+      formatter.setConfig(globalConfig, pluginConfig)
 
       loadedPlugins.push({
         name: pluginName,
         formatter,
         extensions: fileMatchingInfo.fileExtensions || [],
         fileNames: fileMatchingInfo.fileNames || [],
-      });
+      })
     } catch (error) {
-      console.error(`Warning: ${(error as Error).message}`);
+      console.error(`Warning: ${(error as Error).message}`)
     }
   }
 
-  return { plugins: loadedPlugins, autoDiscovered };
+  return { plugins: loadedPlugins, autoDiscovered }
 }
 
 /**
@@ -650,77 +613,74 @@ export async function loadPlugins(config: Record<string, unknown>, cwd: string =
  * @param loadedPlugins - Array of loaded plugin objects
  * @returns The formatter to use, or null if none found
  */
-export function getFormatterForFile(filePath: string, loadedPlugins: LoadedPlugin[]): WasmFormatter.Formatter | null {
-  const ext = path.extname(filePath).slice(1); // Remove leading dot
-  const fileName = path.basename(filePath);
+export function getFormatterForFile(
+  filePath: string,
+  loadedPlugins: LoadedPlugin[],
+): WasmFormatter.Formatter | null {
+  const ext = path.extname(filePath).slice(1) // Remove leading dot
+  const fileName = path.basename(filePath)
 
   for (const plugin of loadedPlugins) {
     // Check if file name matches
     if (plugin.fileNames.includes(fileName)) {
-      return plugin.formatter;
+      return plugin.formatter
     }
 
     // Check if extension matches
     if (plugin.extensions.includes(ext)) {
-      return plugin.formatter;
+      return plugin.formatter
     }
   }
 
-  return null;
+  return null
 }
 
-/**
- * Format a file's content
- * @param filePath - Path to the file
- * @param content - File content
- * @param formatter - The formatter to use
- * @returns Formatted content
- */
-export function formatText(filePath: string, content: string, formatter: WasmFormatter.Formatter): string {
+export function formatText(
+  filePath: string,
+  content: string,
+  formatter: WasmFormatter.Formatter,
+): string {
   try {
     // The formatter.formatText API uses object parameter syntax
     const formatted = formatter.formatText({
       filePath: filePath,
       fileText: content,
-    });
+    })
 
-    return formatted;
+    return formatted
   } catch (error) {
-    throw new Error(`Failed to format ${filePath}: ${(error as Error).message}`);
+    throw new Error(`Failed to format ${filePath}: ${(error as Error).message}`)
   }
 }
 
-/**
- * Format a file and optionally write it back
- * @param filePath - Path to the file
- * @param loadedPlugins - Array of loaded plugin objects
- * @param config - The dprint configuration
- * @param check - If true, only check formatting without writing
- * @returns Object with formatted status and optional error message
- */
-export async function formatFile(filePath: string, loadedPlugins: LoadedPlugin[], config: Record<string, unknown>, check: boolean = false): Promise<FormatFileResult> {
+export async function formatFile(
+  filePath: string,
+  loadedPlugins: LoadedPlugin[],
+  config: Record<string, unknown>,
+  check: boolean = false,
+): Promise<FormatFileResult> {
   try {
-    const formatter = getFormatterForFile(filePath, loadedPlugins);
+    const formatter = getFormatterForFile(filePath, loadedPlugins)
     if (!formatter) {
       // No formatter for this file type
-      return { formatted: false, error: null };
+      return { formatted: false, error: null }
     }
 
-    const content = fs.readFileSync(filePath, "utf-8");
-    const formatted = formatText(filePath, content, formatter);
+    const content = fs.readFileSync(filePath, "utf-8")
+    const formatted = formatText(filePath, content, formatter)
 
     if (formatted === content) {
       // File is already formatted
-      return { formatted: false, error: null };
+      return { formatted: false, error: null }
     }
 
     if (!check) {
       // Write the formatted content back
-      fs.writeFileSync(filePath, formatted, "utf-8");
+      fs.writeFileSync(filePath, formatted, "utf-8")
     }
 
-    return { formatted: true, error: null };
+    return { formatted: true, error: null }
   } catch (error) {
-    return { formatted: false, error: (error as Error).message };
+    return { formatted: false, error: (error as Error).message }
   }
 }

@@ -1,9 +1,9 @@
-import * as fs from "node:fs";
-import * as path from "node:path";
-import * as Config from "../Config.js";
-import * as InitCommand from "./InitCommand.js";
-import * as Constants from "../Constants.js";
-import * as Logger from "../Logger.js";
+import * as fs from "node:fs"
+import * as path from "node:path"
+import * as Config from "../Config.js"
+import * as Constants from "../Constants.js"
+import * as Logger from "../Logger.js"
+import * as InitCommand from "./InitCommand.js"
 
 /**
  * Config command - handles configuration-related subcommands
@@ -11,39 +11,41 @@ import * as Logger from "../Logger.js";
  * @returns Exit code
  */
 export async function run(options: {
-  cwd: string;
-  logLevel?: Logger.LogLevel;
-  config?: string;
-  configDiscovery?: boolean;
-  plugins?: string[];
-  args?: string[];
+  cwd: string
+  logLevel?: Logger.LogLevel
+  config?: string
+  configDiscovery?: boolean
+  plugins?: string[]
+  args?: string[]
 }): Promise<number> {
-  const args = options.args || [];
-  const subcommand = args[0];
+  const args = options.args || []
+  const subcommand = args[0]
 
   if (!subcommand || subcommand === "help") {
-    showConfigHelp();
-    return subcommand ? 0 : 10;
+    showConfigHelp()
+    return subcommand ? 0 : 10
   }
 
   switch (subcommand) {
     case "init":
-      return await InitCommand.run(options);
+      return await InitCommand.run(options)
 
     case "add":
-      return await configAddCommand(args.slice(1), options);
+      return await configAddCommand(args.slice(1), options)
 
     case "update":
-      return await configUpdateCommand(options);
+      return await configUpdateCommand(options)
 
     default:
-      console.error(`error: '${Constants.DPRINT} config' requires a subcommand but one was not provided`);
-      console.error(`  [subcommands: init, update, add, help]`);
-      console.error("");
-      console.error(`Usage: ${Constants.DPRINT} config [OPTIONS] <COMMAND>`);
-      console.error("");
-      console.error("For more information, try '--help'.");
-      return 10;
+      console.error(
+        `error: '${Constants.DPRINT} config' requires a subcommand but one was not provided`,
+      )
+      console.error(`  [subcommands: init, update, add, help]`)
+      console.error("")
+      console.error(`Usage: ${Constants.DPRINT} config [OPTIONS] <COMMAND>`)
+      console.error("")
+      console.error("For more information, try '--help'.")
+      return 10
   }
 }
 
@@ -66,7 +68,7 @@ Options:
       --config-discovery=<BOOLEAN>  Sets the config discovery mode. Set to \`false\` to completely disable.
       --plugins <urls/files>...     List of urls or file paths of plugins to use. This overrides what is specified in the config file.
   -L, --log-level <log-level>       Set log level [default: info] [possible values: debug, info, warn, error, silent]
-  -h, --help                        Print help`);
+  -h, --help                        Print help`)
 }
 
 /**
@@ -76,57 +78,65 @@ Options:
  * @returns Exit code
  */
 async function configAddCommand(args: string[] = [], options: {
-  cwd: string;
-  logLevel?: Logger.LogLevel;
-  config?: string;
-  configDiscovery?: boolean;
-  plugins?: string[];
+  cwd: string
+  logLevel?: Logger.LogLevel
+  config?: string
+  configDiscovery?: boolean
+  plugins?: string[]
 }): Promise<number> {
-  const pluginNameOrUrl = args[0];
-  const cwd = options.cwd;
+  const pluginNameOrUrl = args[0]
+  const cwd = options.cwd
 
   if (!pluginNameOrUrl) {
-    console.error("Error: No plugin name or URL provided");
-    console.error(`Usage: ${Constants.DPRINT} config add [url-or-plugin-name]`);
-    return 1;
+    console.error("Error: No plugin name or URL provided")
+    console.error(`Usage: ${Constants.DPRINT} config add [url-or-plugin-name]`)
+    return 1
   }
 
   // Find config file
-  const configPath = Config.findConfigFile(cwd, options);
+  const configPath = Config.findConfigFile(cwd, options)
   if (!configPath) {
     console.error(
-      `No config file found at ${path.join(cwd, "dprint.json")}. Did you mean to create (dprint init) or specify one (--config <path>)?`,
-    );
-    return 11;
+      `No config file found at ${
+        path.join(cwd, "dprint.json")
+      }. Did you mean to create (dprint init) or specify one (--config <path>)?`,
+    )
+    return 11
   }
 
   try {
     // Read existing config
-    const configContent = fs.readFileSync(configPath, "utf-8");
-    const config = JSON.parse(configContent);
+    const configContent = fs.readFileSync(configPath, "utf-8")
+    const config = JSON.parse(configContent)
 
     // Ensure plugins array exists
     if (!config.plugins) {
-      config.plugins = [];
+      config.plugins = []
     }
 
     // Check if plugin already exists
     if (config.plugins.includes(pluginNameOrUrl)) {
-      console.log(`Plugin '${pluginNameOrUrl}' already exists in configuration.`);
-      return 0;
+      console.log(
+        `Plugin '${pluginNameOrUrl}' already exists in configuration.`,
+      )
+      return 0
     }
 
     // Add plugin
-    config.plugins.push(pluginNameOrUrl);
+    config.plugins.push(pluginNameOrUrl)
 
     // Write updated config
-    fs.writeFileSync(configPath, JSON.stringify(config, null, 2) + "\n", "utf-8");
-    console.log(`Added '${pluginNameOrUrl}' to plugins.`);
+    fs.writeFileSync(
+      configPath,
+      JSON.stringify(config, null, 2) + "\n",
+      "utf-8",
+    )
+    console.log(`Added '${pluginNameOrUrl}' to plugins.`)
 
-    return 0;
+    return 0
   } catch (error) {
-    console.error(`Error: ${(error as Error).message}`);
-    return 1;
+    console.error(`Error: ${(error as Error).message}`)
+    return 1
   }
 }
 
@@ -136,60 +146,62 @@ async function configAddCommand(args: string[] = [], options: {
  * @returns Exit code
  */
 async function configUpdateCommand(options: {
-  cwd: string;
-  logLevel?: Logger.LogLevel;
-  config?: string;
-  configDiscovery?: boolean;
+  cwd: string
+  logLevel?: Logger.LogLevel
+  config?: string
+  configDiscovery?: boolean
 }): Promise<number> {
-  const cwd = options.cwd;
+  const cwd = options.cwd
 
   // Find config file
-  const configPath = Config.findConfigFile(cwd, options);
+  const configPath = Config.findConfigFile(cwd, options)
   if (!configPath) {
     console.error(
-      `No config file found at ${path.join(cwd, "dprint.json")}. Did you mean to create (dprint init) or specify one (--config <path>)?`,
-    );
-    return 11;
+      `No config file found at ${
+        path.join(cwd, "dprint.json")
+      }. Did you mean to create (dprint init) or specify one (--config <path>)?`,
+    )
+    return 11
   }
 
   try {
     // Read existing config
-    const configContent = fs.readFileSync(configPath, "utf-8");
-    const config = JSON.parse(configContent);
+    const configContent = fs.readFileSync(configPath, "utf-8")
+    const config = JSON.parse(configContent)
 
     if (!config.plugins || config.plugins.length === 0) {
-      console.log("No plugins to update.");
-      return 0;
+      console.log("No plugins to update.")
+      return 0
     }
 
     // For now, just report that update would happen
     // A full implementation would fetch latest versions and update URLs
-    console.log("Checking for plugin updates...");
+    console.log("Checking for plugin updates...")
 
-    let updated = false;
+    let updated = false
     for (const plugin of config.plugins) {
       if (plugin.startsWith("http")) {
         // Check if there's a newer version available
         // For now, just report the current version
-        const urlPath = new URL(plugin).pathname;
-        const filename = path.basename(urlPath);
-        const match = filename.match(/^(.+?)-v?([\d.]+)\.wasm$/);
+        const urlPath = new URL(plugin).pathname
+        const filename = path.basename(urlPath)
+        const match = filename.match(/^(.+?)-v?([\d.]+)\.wasm$/)
         if (match) {
-          const [, name, version] = match;
-          console.log(`${name}: ${version} (current)`);
+          const [, name, version] = match
+          console.log(`${name}: ${version} (current)`)
         }
       } else {
-        console.log(`${plugin}: npm package (use npm to update)`);
+        console.log(`${plugin}: npm package (use npm to update)`)
       }
     }
 
     if (!updated) {
-      console.log("All plugins are up to date.");
+      console.log("All plugins are up to date.")
     }
 
-    return 0;
+    return 0
   } catch (error) {
-    console.error(`Error: ${(error as Error).message}`);
-    return 1;
+    console.error(`Error: ${(error as Error).message}`)
+    return 1
   }
 }

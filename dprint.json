@@ -12,7 +12,19 @@
     "**/coverage",
     "test/fixtures/**"
   ],
-  "typescript": {},
+  "indentWidth": 2,
+  "lineWidth": 80,
+  "newLineKind": "lf",
+  "typescript": {
+    "semiColons": "asi",
+    "binaryExpression.linePerExpression": true,
+    "preferSingleLine": false,
+    "jsx.forceNewLinesSurroundingContent": true,
+    "memberExpression.linePerExpression": true,
+    "enumDeclaration.memberSpacing": "newLine",
+    "exportDeclaration.forceMultiLine": "always",
+    "importDeclaration.preferSingleLine": true
+  },
   "json": {},
   "markdown": {}
 }

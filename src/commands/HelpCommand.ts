@@ -1,4 +1,4 @@
-import * as Constants from "../Constants.js";
+import * as Constants from "../Constants.js"
 
 /**
  * Show general help message
@@ -20,7 +20,7 @@ SUBCOMMANDS:
     help                    Shows this help message
 
 Use '${Constants.DPRINT} <subcommand> --help' for more information on a specific command.
-`);
+`)
 }
 
 /**
@@ -37,14 +37,15 @@ Options:
       --plugins <urls/files>...     List of urls or file paths of plugins to use. This overrides what is specified in the config file.
   -L, --log-level <log-level>       Set log level [default: info] [possible values: debug, info, warn, error, silent]
   -h, --help                        Print help
-`);
+`)
 }
 
 /**
  * Show fmt command help
  */
 export function showFmtHelp(): void {
-  console.log(`Formats the source files and writes the result to the file system.
+  console.log(
+    `Formats the source files and writes the result to the file system.
 
 Usage: dprint fmt [OPTIONS] [files]...
 
@@ -82,7 +83,8 @@ Options:
           Set log level [default: info] [possible values: debug, info, warn, error, silent]
   -h, --help
           Print help
-`);
+`,
+  )
 }
 
 /**
@@ -125,7 +127,7 @@ Options:
           Set log level [default: info] [possible values: debug, info, warn, error, silent]
   -h, --help
           Print help
-`);
+`)
 }
 
 /**
@@ -133,23 +135,25 @@ Options:
  * @param options - Command options with optional subcommand
  * @returns Exit code (always 0)
  */
-export async function run(options: { subcommand?: string } = {}): Promise<number> {
-  const subcommand = options.subcommand;
+export async function run(
+  options: { subcommand?: string } = {},
+): Promise<number> {
+  const subcommand = options.subcommand
 
   switch (subcommand) {
     case "init":
-      showInitHelp();
-      break;
+      showInitHelp()
+      break
     case "fmt":
-      showFmtHelp();
-      break;
+      showFmtHelp()
+      break
     case "check":
-      showCheckHelp();
-      break;
+      showCheckHelp()
+      break
     default:
-      showHelp();
-      break;
+      showHelp()
+      break
   }
 
-  return 0;
+  return 0
 }

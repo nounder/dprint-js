@@ -5,7 +5,7 @@
  * regardless of the underlying library being used.
  */
 
-import { Glob } from "bun";
+import { Glob } from "bun"
 
 /**
  * Normalize exclude patterns for glob matching
@@ -28,25 +28,25 @@ export function normalizeExcludePatterns(patterns: string[]): string[] {
     // Directory with trailing slash: "dir/" → "dir/**"
     // Excludes the directory and all its contents
     if (pattern.endsWith("/")) {
-      return pattern.slice(0, -1) + "/**";
+      return pattern.slice(0, -1) + "/**"
     }
 
     // Pattern already ending with /** is normalized
     if (pattern.endsWith("/**")) {
-      return pattern;
+      return pattern
     }
 
     // Bare directory name: "dir" → "dir/**"
     // Directory pattern without trailing **: "**/node_modules" → "**/node_modules/**"
     // Only normalize if it doesn't look like a file pattern (no extension)
     if (!pattern.includes(".") && !pattern.endsWith("*")) {
-      return pattern + "/**";
+      return pattern + "/**"
     }
 
     // Already a proper glob pattern, leave unchanged
     // Examples: "*.test.ts", "**/*.ts", "**/*"
-    return pattern;
-  });
+    return pattern
+  })
 }
 
 /**
@@ -65,7 +65,7 @@ export function normalizeExcludePatterns(patterns: string[]): string[] {
 export function normalizeIncludePatterns(patterns: string[]): string[] {
   // Include patterns are passed through unchanged to match original dprint behavior
   // Users must explicitly use patterns like "**/*.ts" or "src/**"
-  return patterns;
+  return patterns
 }
 
 /**
@@ -75,11 +75,14 @@ export function normalizeIncludePatterns(patterns: string[]): string[] {
  * @param type - Whether this is an include or exclude pattern
  * @returns Normalized pattern
  */
-export function normalizePattern(pattern: string, type: "include" | "exclude" = "exclude"): string {
+export function normalizePattern(
+  pattern: string,
+  type: "include" | "exclude" = "exclude",
+): string {
   if (type === "exclude") {
-    return normalizeExcludePatterns([pattern])[0];
+    return normalizeExcludePatterns([pattern])[0]
   } else {
-    return normalizeIncludePatterns([pattern])[0];
+    return normalizeIncludePatterns([pattern])[0]
   }
 }
 
@@ -91,16 +94,22 @@ export function normalizePattern(pattern: string, type: "include" | "exclude" = 
  * @param cwd - Current working directory
  * @returns Array of matching file paths
  */
-export function findMatchingFiles(includePatterns: string[], excludePatterns: string[], cwd: string): string[] {
+export function findMatchingFiles(
+  includePatterns: string[],
+  excludePatterns: string[],
+  cwd: string,
+): string[] {
   // Determine if we need to scan dot files
   // If any include pattern explicitly references dot files/directories, enable dot scanning
-  const needsDotFiles = includePatterns.some((pattern) => pattern.startsWith(".") || pattern.includes("/."));
+  const needsDotFiles = includePatterns.some((pattern) =>
+    pattern.startsWith(".") || pattern.includes("/.")
+  )
 
-  const allFiles = new Set<string>();
-  const excludeGlobs = excludePatterns.map((pattern) => new Glob(pattern));
+  const allFiles = new Set<string>()
+  const excludeGlobs = excludePatterns.map((pattern) => new Glob(pattern))
 
   for (const pattern of includePatterns) {
-    const glob = new Glob(pattern);
+    const glob = new Glob(pattern)
 
     try {
       const iterator = glob.scanSync({
@@ -109,7 +118,7 @@ export function findMatchingFiles(includePatterns: string[], excludePatterns: st
         absolute: false,
         onlyFiles: true,
         followSymlinks: false, // Prevent following symlinks to avoid circular references
-      });
+      })
 
       // Process each file from the iterator
       for (const file of iterator) {
@@ -117,20 +126,20 @@ export function findMatchingFiles(includePatterns: string[], excludePatterns: st
         // https://github.com/oven-sh/bun/issues/24936
         // Paths starting with ../ or containing /../ are outside the working directory
         if (file.startsWith("../") || file.includes("/../")) {
-          continue;
+          continue
         }
 
         // Check if file matches any exclude pattern
-        let shouldExclude = false;
+        let shouldExclude = false
         for (const excludeGlob of excludeGlobs) {
           if (excludeGlob.match(file)) {
-            shouldExclude = true;
-            break;
+            shouldExclude = true
+            break
           }
         }
 
         if (!shouldExclude) {
-          allFiles.add(file);
+          allFiles.add(file)
         }
       }
     } catch (error) {
@@ -138,15 +147,21 @@ export function findMatchingFiles(includePatterns: string[], excludePatterns: st
       // ENAMETOOLONG: filename too long (from circular symlinks)
       // ELOOP: too many symlink levels
       // EPERM: permission denied
-      if ((error as NodeJS.ErrnoException).code === "ENAMETOOLONG" ||
-          (error as NodeJS.ErrnoException).code === "ELOOP" ||
-          (error as NodeJS.ErrnoException).code === "EPERM") {
-        console.warn(`Warning: Skipping pattern '${pattern}' due to filesystem error: ${(error as Error).message}`);
-        continue;
+      if (
+        (error as NodeJS.ErrnoException).code === "ENAMETOOLONG"
+        || (error as NodeJS.ErrnoException).code === "ELOOP"
+        || (error as NodeJS.ErrnoException).code === "EPERM"
+      ) {
+        console.warn(
+          `Warning: Skipping pattern '${pattern}' due to filesystem error: ${
+            (error as Error).message
+          }`,
+        )
+        continue
       }
-      throw error;
+      throw error
     }
   }
 
-  return Array.from(allFiles);
+  return Array.from(allFiles)
 }

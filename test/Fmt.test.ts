@@ -1,16 +1,16 @@
-import * as t from "bun:test";
-import * as fs from "node:fs";
-import * as os from "node:os";
-import * as path from "node:path";
-import * as FmtCommand from "../src/commands/FmtCommand.js";
+import * as t from "bun:test"
+import * as fs from "node:fs"
+import * as os from "node:os"
+import * as path from "node:path"
+import * as FmtCommand from "../src/commands/FmtCommand.js"
 
-let testDir;
-let configPath;
+let testDir
+let configPath
 
 t.beforeEach(() => {
   // Create unique test directory in /tmp
-  testDir = fs.mkdtempSync(path.join(os.tmpdir(), "dprint-test-fmt-"));
-  configPath = path.join(testDir, "dprint.json");
+  testDir = fs.mkdtempSync(path.join(os.tmpdir(), "dprint-test-fmt-"))
+  configPath = path.join(testDir, "dprint.json")
 
   // Create a valid dprint.json
   const config = {
@@ -21,202 +21,229 @@ t.beforeEach(() => {
     typescript: {},
     json: {},
     markdown: {},
-  };
-  fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
-});
+  }
+  fs.writeFileSync(configPath, JSON.stringify(config, null, 2))
+})
 
 t.afterEach(() => {
   // Clean up test directory
   if (testDir && fs.existsSync(testDir)) {
-    fs.rmSync(testDir, { recursive: true, force: true });
+    fs.rmSync(testDir, { recursive: true, force: true })
   }
-});
+})
 
 t.it("formats TypeScript files", async () => {
-  const filePath = path.join(testDir, "test.ts");
-  const unformatted = "const   x=1";
-  fs.writeFileSync(filePath, unformatted);
+  const filePath = path.join(testDir, "test.ts")
+  const unformatted = "const   x=1"
+  fs.writeFileSync(filePath, unformatted)
 
-  const exitCode = await FmtCommand.run({ cwd: testDir });
+  const exitCode = await FmtCommand.run({ cwd: testDir })
 
-  t.expect(exitCode).toBe(0);
-  const formatted = fs.readFileSync(filePath, "utf-8");
-  t.expect(formatted).not.toBe(unformatted);
-  t.expect(formatted).toBe("const x = 1;\n");
-});
+  t.expect(exitCode).toBe(0)
+  const formatted = fs.readFileSync(filePath, "utf-8")
+  t.expect(formatted).not.toBe(unformatted)
+  t.expect(formatted).toBe("const x = 1;\n")
+})
 
 t.it("formats JSON files", async () => {
-  const filePath = path.join(testDir, "test.json");
-  const unformatted = "{\"a\":1,\"b\":2}";
-  fs.writeFileSync(filePath, unformatted);
+  const filePath = path.join(testDir, "test.json")
+  const unformatted = "{\"a\":1,\"b\":2}"
+  fs.writeFileSync(filePath, unformatted)
 
-  const exitCode = await FmtCommand.run({ cwd: testDir });
+  const exitCode = await FmtCommand.run({ cwd: testDir })
 
-  t.expect(exitCode).toBe(0);
-  const formatted = fs.readFileSync(filePath, "utf-8");
-  t.expect(formatted).not.toBe(unformatted);
-  t.expect(formatted).toContain("\n");
-});
+  t.expect(exitCode).toBe(0)
+  const formatted = fs.readFileSync(filePath, "utf-8")
+  t.expect(formatted).not.toBe(unformatted)
+  t.expect(formatted).toContain("\n")
+})
 
 t.it("formats markdown files", async () => {
-  const filePath = path.join(testDir, "test.md");
-  const unformatted = "#   Title\n\nSome   text   here";
-  fs.writeFileSync(filePath, unformatted);
+  const filePath = path.join(testDir, "test.md")
+  const unformatted = "#   Title\n\nSome   text   here"
+  fs.writeFileSync(filePath, unformatted)
 
-  const exitCode = await FmtCommand.run({ cwd: testDir });
+  const exitCode = await FmtCommand.run({ cwd: testDir })
 
-  t.expect(exitCode).toBe(0);
-  const formatted = fs.readFileSync(filePath, "utf-8");
-  t.expect(formatted).toBeDefined();
-});
+  t.expect(exitCode).toBe(0)
+  const formatted = fs.readFileSync(filePath, "utf-8")
+  t.expect(formatted).toBeDefined()
+})
 
 t.it("formats multiple files", async () => {
-  fs.writeFileSync(path.join(testDir, "test1.ts"), "const   a=1");
-  fs.writeFileSync(path.join(testDir, "test2.ts"), "const   b=2");
-  fs.writeFileSync(path.join(testDir, "test3.ts"), "const   c=3");
+  fs.writeFileSync(path.join(testDir, "test1.ts"), "const   a=1")
+  fs.writeFileSync(path.join(testDir, "test2.ts"), "const   b=2")
+  fs.writeFileSync(path.join(testDir, "test3.ts"), "const   c=3")
 
-  const exitCode = await FmtCommand.run({ cwd: testDir });
+  const exitCode = await FmtCommand.run({ cwd: testDir })
 
-  t.expect(exitCode).toBe(0);
-  t.expect(fs.readFileSync(path.join(testDir, "test1.ts"), "utf-8")).toBe("const a = 1;\n");
-  t.expect(fs.readFileSync(path.join(testDir, "test2.ts"), "utf-8")).toBe("const b = 2;\n");
-  t.expect(fs.readFileSync(path.join(testDir, "test3.ts"), "utf-8")).toBe("const c = 3;\n");
-});
+  t.expect(exitCode).toBe(0)
+  t.expect(fs.readFileSync(path.join(testDir, "test1.ts"), "utf-8")).toBe(
+    "const a = 1;\n",
+  )
+  t.expect(fs.readFileSync(path.join(testDir, "test2.ts"), "utf-8")).toBe(
+    "const b = 2;\n",
+  )
+  t.expect(fs.readFileSync(path.join(testDir, "test3.ts"), "utf-8")).toBe(
+    "const c = 3;\n",
+  )
+})
 
 t.it("skips already formatted files", async () => {
-  const filePath = path.join(testDir, "test.ts");
-  const formatted = "const x = 1;\n";
-  fs.writeFileSync(filePath, formatted);
+  const filePath = path.join(testDir, "test.ts")
+  const formatted = "const x = 1;\n"
+  fs.writeFileSync(filePath, formatted)
 
-  const exitCode = await FmtCommand.run({ cwd: testDir });
+  const exitCode = await FmtCommand.run({ cwd: testDir })
 
-  t.expect(exitCode).toBe(0);
-  t.expect(fs.readFileSync(filePath, "utf-8")).toBe(formatted);
-});
+  t.expect(exitCode).toBe(0)
+  t.expect(fs.readFileSync(filePath, "utf-8")).toBe(formatted)
+})
 
 t.it("formats only specified file patterns", async () => {
-  fs.writeFileSync(path.join(testDir, "test.ts"), "const   a=1");
-  fs.writeFileSync(path.join(testDir, "test.json"), "{\"x\":1}");
+  fs.writeFileSync(path.join(testDir, "test.ts"), "const   a=1")
+  fs.writeFileSync(path.join(testDir, "test.json"), "{\"x\":1}")
 
-  const exitCode = await FmtCommand.run({ filePatterns: ["*.ts"], cwd: testDir });
+  const exitCode = await FmtCommand.run({
+    filePatterns: ["*.ts"],
+    cwd: testDir,
+  })
 
-  t.expect(exitCode).toBe(0);
+  t.expect(exitCode).toBe(0)
   // TypeScript file should be formatted
-  t.expect(fs.readFileSync(path.join(testDir, "test.ts"), "utf-8")).toBe("const a = 1;\n");
+  t.expect(fs.readFileSync(path.join(testDir, "test.ts"), "utf-8")).toBe(
+    "const a = 1;\n",
+  )
   // JSON file should remain unformatted (not matched by pattern)
-  t.expect(fs.readFileSync(path.join(testDir, "test.json"), "utf-8")).toBe("{\"x\":1}");
-});
+  t.expect(fs.readFileSync(path.join(testDir, "test.json"), "utf-8")).toBe(
+    "{\"x\":1}",
+  )
+})
 
 t.it("returns 14 when no files found", async () => {
-  const exitCode = await FmtCommand.run({ cwd: testDir });
+  const exitCode = await FmtCommand.run({ cwd: testDir })
 
-  t.expect(exitCode).toBe(14);
-});
+  t.expect(exitCode).toBe(14)
+})
 
 t.it("returns 0 when no files found with --allow-no-files", async () => {
-  const exitCode = await FmtCommand.run({ allowNoFiles: true, cwd: testDir });
+  const exitCode = await FmtCommand.run({ allowNoFiles: true, cwd: testDir })
 
-  t.expect(exitCode).toBe(0);
-});
+  t.expect(exitCode).toBe(0)
+})
 
 t.it("returns 11 when no config file found", async () => {
   // Use isolated directory without config
-  const isolatedDir = fs.mkdtempSync(path.join(os.tmpdir(), "dprint-test-noconfig-"));
+  const isolatedDir = fs.mkdtempSync(
+    path.join(os.tmpdir(), "dprint-test-noconfig-"),
+  )
 
   try {
-    const exitCode = await FmtCommand.run({ cwd: isolatedDir });
-    t.expect(exitCode).toBe(11); // Config error exit code
+    const exitCode = await FmtCommand.run({ cwd: isolatedDir })
+    t.expect(exitCode).toBe(11) // Config error exit code
   } finally {
     if (fs.existsSync(isolatedDir)) {
-      fs.rmSync(isolatedDir, { recursive: true, force: true });
+      fs.rmSync(isolatedDir, { recursive: true, force: true })
     }
   }
-});
+})
 
 t.it("handles nested directories", async () => {
-  const nestedDir = path.join(testDir, "src", "utils");
-  fs.mkdirSync(nestedDir, { recursive: true });
-  fs.writeFileSync(path.join(nestedDir, "helper.ts"), "const   x=1");
+  const nestedDir = path.join(testDir, "src", "utils")
+  fs.mkdirSync(nestedDir, { recursive: true })
+  fs.writeFileSync(path.join(nestedDir, "helper.ts"), "const   x=1")
 
-  const exitCode = await FmtCommand.run({ cwd: testDir });
+  const exitCode = await FmtCommand.run({ cwd: testDir })
 
-  t.expect(exitCode).toBe(0);
-  t.expect(fs.readFileSync(path.join(nestedDir, "helper.ts"), "utf-8")).toBe("const x = 1;\n");
-});
+  t.expect(exitCode).toBe(0)
+  t.expect(fs.readFileSync(path.join(nestedDir, "helper.ts"), "utf-8")).toBe(
+    "const x = 1;\n",
+  )
+})
 
 t.it("respects exclude patterns", async () => {
-  const nodeModulesDir = path.join(testDir, "node_modules");
-  fs.mkdirSync(nodeModulesDir);
-  fs.writeFileSync(path.join(nodeModulesDir, "lib.ts"), "const   x=1");
-  fs.writeFileSync(path.join(testDir, "src.ts"), "const   y=2");
+  const nodeModulesDir = path.join(testDir, "node_modules")
+  fs.mkdirSync(nodeModulesDir)
+  fs.writeFileSync(path.join(nodeModulesDir, "lib.ts"), "const   x=1")
+  fs.writeFileSync(path.join(testDir, "src.ts"), "const   y=2")
 
-  const exitCode = await FmtCommand.run({ cwd: testDir });
+  const exitCode = await FmtCommand.run({ cwd: testDir })
 
-  t.expect(exitCode).toBe(0);
+  t.expect(exitCode).toBe(0)
   // File in node_modules should not be formatted
-  t.expect(fs.readFileSync(path.join(nodeModulesDir, "lib.ts"), "utf-8")).toBe("const   x=1");
+  t.expect(fs.readFileSync(path.join(nodeModulesDir, "lib.ts"), "utf-8")).toBe(
+    "const   x=1",
+  )
   // File in root should be formatted
-  t.expect(fs.readFileSync(path.join(testDir, "src.ts"), "utf-8")).toBe("const y = 2;\n");
-});
+  t.expect(fs.readFileSync(path.join(testDir, "src.ts"), "utf-8")).toBe(
+    "const y = 2;\n",
+  )
+})
 
 t.it("stdin mode outputs only formatted content to stdout", async () => {
   // Mock console.log and console.error
-  let consoleLogOutput = [];
-  let consoleErrorOutput = [];
+  let consoleLogOutput = []
+  let consoleErrorOutput = []
 
   const logSpy = t.spyOn(console, "log").mockImplementation((...args) => {
-    consoleLogOutput.push(args.join(" "));
-  });
+    consoleLogOutput.push(args.join(" "))
+  })
   const errorSpy = t.spyOn(console, "error").mockImplementation((...args) => {
-    consoleErrorOutput.push(args.join(" "));
-  });
+    consoleErrorOutput.push(args.join(" "))
+  })
 
   // Mock stdout.write
-  let stdoutData = "";
-  const stdoutSpy = t.spyOn(process.stdout, "write").mockImplementation((chunk) => {
-    stdoutData += chunk;
-    return true;
-  });
+  let stdoutData = ""
+  const stdoutSpy = t.spyOn(process.stdout, "write").mockImplementation(
+    (chunk) => {
+      stdoutData += chunk
+      return true
+    },
+  )
 
   // Mock stdin event handling
-  const stdinContent = "const   x=1";
-  let dataCallback: (chunk: string) => void;
-  let endCallback: () => void;
+  const stdinContent = "const   x=1"
+  let dataCallback: (chunk: string) => void
+  let endCallback: () => void
 
-  const onSpy = t.spyOn(process.stdin, "on").mockImplementation((event: string, callback: any) => {
-    if (event === "data") {
-      dataCallback = callback;
-      // Immediately call with data
-      setTimeout(() => dataCallback(stdinContent), 0);
-    } else if (event === "end") {
-      endCallback = callback;
-      // Call end after data
-      setTimeout(() => endCallback(), 10);
-    }
-    return process.stdin;
-  });
+  const onSpy = t.spyOn(process.stdin, "on").mockImplementation(
+    (event: string, callback: any) => {
+      if (event === "data") {
+        dataCallback = callback
+        // Immediately call with data
+        setTimeout(() => dataCallback(stdinContent), 0)
+      } else if (event === "end") {
+        endCallback = callback
+        // Call end after data
+        setTimeout(() => endCallback(), 10)
+      }
+      return process.stdin
+    },
+  )
 
   try {
     const exitCode = await FmtCommand.run({
       cwd: testDir,
       stdin: "ts",
-    });
+    })
 
-    t.expect(exitCode).toBe(0);
+    t.expect(exitCode).toBe(0)
 
     // stdout should contain ONLY the formatted content, no diagnostic messages
-    t.expect(stdoutData).toBe("const x = 1;\n");
+    t.expect(stdoutData).toBe("const x = 1;\n")
 
     // No diagnostic messages should appear in console.log
-    t.expect(consoleLogOutput.join("\n")).not.toContain("Using configuration from");
-    t.expect(consoleLogOutput.join("\n")).not.toContain("Loading plugins");
-    t.expect(consoleLogOutput.join("\n")).not.toContain("Loaded");
-    t.expect(consoleLogOutput.join("\n")).not.toContain("[INFO]");
+    t.expect(consoleLogOutput.join("\n")).not.toContain(
+      "Using configuration from",
+    )
+    t.expect(consoleLogOutput.join("\n")).not.toContain("Loading plugins")
+    t.expect(consoleLogOutput.join("\n")).not.toContain("Loaded")
+    t.expect(consoleLogOutput.join("\n")).not.toContain("[INFO]")
   } finally {
     // Restore all spies
-    logSpy.mockRestore();
-    errorSpy.mockRestore();
-    stdoutSpy.mockRestore();
-    onSpy.mockRestore();
+    logSpy.mockRestore()
+    errorSpy.mockRestore()
+    stdoutSpy.mockRestore()
+    onSpy.mockRestore()
   }
-});
+})

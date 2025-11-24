@@ -1,92 +1,102 @@
-import * as fs from "node:fs";
-import * as path from "node:path";
+import * as fs from "node:fs"
+import * as path from "node:path"
 
 /**
  * Options for finding and loading configuration
  */
 export interface ConfigOptions {
-  config?: string;
-  configDiscovery?: boolean;
-  plugins?: string[];
+  config?: string
+  configDiscovery?: boolean
+  plugins?: string[]
 }
 
 /**
  * Configuration object for dprint
  */
 export interface DprintConfig {
-  $schema?: string;
-  projectType?: string;
-  incremental?: boolean;
-  includes?: string[];
-  excludes?: string[];
-  plugins?: string[];
-  typescript?: Record<string, unknown>;
-  json?: Record<string, unknown>;
-  markdown?: Record<string, unknown>;
-  [key: string]: unknown;
+  $schema?: string
+  projectType?: string
+  incremental?: boolean
+  includes?: string[]
+  excludes?: string[]
+  plugins?: string[]
+  typescript?: Record<string, unknown>
+  json?: Record<string, unknown>
+  markdown?: Record<string, unknown>
+  [key: string]: unknown
 }
 
 /**
  * Find dprint.json configuration file starting from the current directory
  * and walking up the directory tree.
  */
-export function findConfigFile(startDir: string = process.cwd(), options: ConfigOptions = {}): string | null {
+export function findConfigFile(
+  startDir: string = process.cwd(),
+  options: ConfigOptions = {},
+): string | null {
   // If config discovery is disabled, don't search
   if (options.configDiscovery === false) {
-    return null;
+    return null
   }
 
   // If custom config path is specified, use it
   if (options.config) {
-    return options.config;
+    return options.config
   }
 
-  let currentDir = startDir;
+  let currentDir = startDir
 
   while (true) {
-    const configPath = path.join(currentDir, "dprint.json");
+    const configPath = path.join(currentDir, "dprint.json")
     if (fs.existsSync(configPath)) {
-      return configPath;
+      return configPath
     }
 
-    const parentDir = path.dirname(currentDir);
+    const parentDir = path.dirname(currentDir)
     if (parentDir === currentDir) {
       // Reached root directory
-      return null;
+      return null
     }
-    currentDir = parentDir;
+    currentDir = parentDir
   }
 }
 
 /**
  * Load and parse dprint.json configuration file
  */
-export function loadConfig(configPath: string, options: ConfigOptions = {}): DprintConfig {
+export function loadConfig(
+  configPath: string,
+  options: ConfigOptions = {},
+): DprintConfig {
   if (!configPath) {
-    throw new Error("No dprint.json configuration file found");
+    throw new Error("No dprint.json configuration file found")
   }
 
   try {
-    const content = fs.readFileSync(configPath, "utf-8");
+    const content = fs.readFileSync(configPath, "utf-8")
 
     // Try parsing directly first
-    let config: DprintConfig;
+    let config: DprintConfig
     try {
-      config = JSON.parse(content);
+      config = JSON.parse(content)
     } catch (parseError) {
       // If direct parsing fails, try stripping comments
-      const jsonContent = stripJsonComments(content);
-      config = JSON.parse(jsonContent);
+      const jsonContent = stripJsonComments(content)
+      config = JSON.parse(jsonContent)
     }
 
     // Apply command-line option overrides
     if (options.plugins && options.plugins.length > 0) {
-      config.plugins = options.plugins;
+      config.plugins = options.plugins
     }
 
-    return config;
+    return config
   } catch (error) {
-    throw new Error(`Failed to parse configuration file ${configPath}: ${(error as Error).message}`);
+    throw new Error(
+      `Failed to parse configuration file ${configPath}: ${
+        (error as Error).message
+      }`,
+    )
   }
 }
 
@@ -95,10 +105,10 @@ export function loadConfig(configPath: string, options: ConfigOptions = {}): Dpr
  */
 function stripJsonComments(jsonString: string): string {
   // Remove single-line comments
-  let result = jsonString.replace(/\/\/.*$/gm, "");
+  let result = jsonString.replace(/\/\/.*$/gm, "")
   // Remove multi-line comments (replace with space to avoid breaking JSON structure)
-  result = result.replace(/\/\*[\s\S]*?\*\//g, " ");
-  return result;
+  result = result.replace(/\/\*[\s\S]*?\*\//g, " ")
+  return result
 }
 
 /**
@@ -125,5 +135,5 @@ export function getDefaultConfig(): DprintConfig {
     "typescript": {},
     "json": {},
     "markdown": {},
-  };
+  }
 }

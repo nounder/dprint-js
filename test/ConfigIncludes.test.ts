@@ -1,24 +1,26 @@
-import * as t from "bun:test";
-import * as fs from "node:fs";
-import * as os from "node:os";
-import * as path from "node:path";
-import * as FmtCommand from "../src/commands/FmtCommand.js";
+import * as t from "bun:test"
+import * as fs from "node:fs"
+import * as os from "node:os"
+import * as path from "node:path"
+import * as FmtCommand from "../src/commands/FmtCommand.js"
 
-let testDir;
-let configPath;
+let testDir
+let configPath
 
 t.beforeEach(() => {
   // Create unique test directory in /tmp
-  testDir = fs.mkdtempSync(path.join(os.tmpdir(), "dprint-test-config-includes-"));
-  configPath = path.join(testDir, "dprint.json");
-});
+  testDir = fs.mkdtempSync(
+    path.join(os.tmpdir(), "dprint-test-config-includes-"),
+  )
+  configPath = path.join(testDir, "dprint.json")
+})
 
 t.afterEach(() => {
   // Clean up test directory
   if (testDir && fs.existsSync(testDir)) {
-    fs.rmSync(testDir, { recursive: true, force: true });
+    fs.rmSync(testDir, { recursive: true, force: true })
   }
-});
+})
 
 t.it("formats files matching includes patterns", async () => {
   const config = {
@@ -26,21 +28,21 @@ t.it("formats files matching includes patterns", async () => {
     excludes: [],
     plugins: ["@dprint/typescript"],
     typescript: {},
-  };
-  fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
+  }
+  fs.writeFileSync(configPath, JSON.stringify(config, null, 2))
 
-  const tsFile = path.join(testDir, "test.ts");
-  const jsFile = path.join(testDir, "test.js");
-  fs.writeFileSync(tsFile, "const   x=1");
-  fs.writeFileSync(jsFile, "const   y=2");
+  const tsFile = path.join(testDir, "test.ts")
+  const jsFile = path.join(testDir, "test.js")
+  fs.writeFileSync(tsFile, "const   x=1")
+  fs.writeFileSync(jsFile, "const   y=2")
 
-  await FmtCommand.run({ cwd: testDir });
+  await FmtCommand.run({ cwd: testDir })
 
   // TS file should be formatted
-  t.expect(fs.readFileSync(tsFile, "utf-8")).toBe("const x = 1;\n");
+  t.expect(fs.readFileSync(tsFile, "utf-8")).toBe("const x = 1;\n")
   // JS file should not be formatted (not in includes)
-  t.expect(fs.readFileSync(jsFile, "utf-8")).toBe("const   y=2");
-});
+  t.expect(fs.readFileSync(jsFile, "utf-8")).toBe("const   y=2")
+})
 
 t.it("supports multiple includes patterns", async () => {
   const config = {
@@ -49,23 +51,23 @@ t.it("supports multiple includes patterns", async () => {
     plugins: ["@dprint/typescript", "@dprint/json"],
     typescript: {},
     json: {},
-  };
-  fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
+  }
+  fs.writeFileSync(configPath, JSON.stringify(config, null, 2))
 
-  const tsFile = path.join(testDir, "test.ts");
-  const jsonFile = path.join(testDir, "test.json");
-  const mdFile = path.join(testDir, "test.md");
+  const tsFile = path.join(testDir, "test.ts")
+  const jsonFile = path.join(testDir, "test.json")
+  const mdFile = path.join(testDir, "test.md")
 
-  fs.writeFileSync(tsFile, "const   x=1");
-  fs.writeFileSync(jsonFile, "{\"a\":1}");
-  fs.writeFileSync(mdFile, "#   Title");
+  fs.writeFileSync(tsFile, "const   x=1")
+  fs.writeFileSync(jsonFile, "{\"a\":1}")
+  fs.writeFileSync(mdFile, "#   Title")
 
-  await FmtCommand.run({ cwd: testDir });
+  await FmtCommand.run({ cwd: testDir })
 
-  t.expect(fs.readFileSync(tsFile, "utf-8")).toBe("const x = 1;\n");
-  t.expect(fs.readFileSync(jsonFile, "utf-8")).toContain("\"a\"");
-  t.expect(fs.readFileSync(mdFile, "utf-8")).toBe("#   Title"); // Not formatted
-});
+  t.expect(fs.readFileSync(tsFile, "utf-8")).toBe("const x = 1;\n")
+  t.expect(fs.readFileSync(jsonFile, "utf-8")).toContain("\"a\"")
+  t.expect(fs.readFileSync(mdFile, "utf-8")).toBe("#   Title") // Not formatted
+})
 
 t.it("supports glob patterns with braces", async () => {
   const config = {
@@ -73,23 +75,23 @@ t.it("supports glob patterns with braces", async () => {
     excludes: [],
     plugins: ["@dprint/typescript"],
     typescript: {},
-  };
-  fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
+  }
+  fs.writeFileSync(configPath, JSON.stringify(config, null, 2))
 
-  const tsFile = path.join(testDir, "test.ts");
-  const jsFile = path.join(testDir, "test.js");
-  const jsonFile = path.join(testDir, "test.json");
+  const tsFile = path.join(testDir, "test.ts")
+  const jsFile = path.join(testDir, "test.js")
+  const jsonFile = path.join(testDir, "test.json")
 
-  fs.writeFileSync(tsFile, "const   x=1");
-  fs.writeFileSync(jsFile, "const   y=2");
-  fs.writeFileSync(jsonFile, "{\"a\":1}");
+  fs.writeFileSync(tsFile, "const   x=1")
+  fs.writeFileSync(jsFile, "const   y=2")
+  fs.writeFileSync(jsonFile, "{\"a\":1}")
 
-  await FmtCommand.run({ cwd: testDir });
+  await FmtCommand.run({ cwd: testDir })
 
-  t.expect(fs.readFileSync(tsFile, "utf-8")).toBe("const x = 1;\n");
-  t.expect(fs.readFileSync(jsFile, "utf-8")).toBe("const y = 2;\n");
-  t.expect(fs.readFileSync(jsonFile, "utf-8")).toBe("{\"a\":1}");
-});
+  t.expect(fs.readFileSync(tsFile, "utf-8")).toBe("const x = 1;\n")
+  t.expect(fs.readFileSync(jsFile, "utf-8")).toBe("const y = 2;\n")
+  t.expect(fs.readFileSync(jsonFile, "utf-8")).toBe("{\"a\":1}")
+})
 
 t.it("matches files in subdirectories with **", async () => {
   const config = {
@@ -97,18 +99,18 @@ t.it("matches files in subdirectories with **", async () => {
     excludes: [],
     plugins: ["@dprint/typescript"],
     typescript: {},
-  };
-  fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
+  }
+  fs.writeFileSync(configPath, JSON.stringify(config, null, 2))
 
-  const subDir = path.join(testDir, "src", "nested");
-  fs.mkdirSync(subDir, { recursive: true });
-  const nestedFile = path.join(subDir, "file.ts");
-  fs.writeFileSync(nestedFile, "const   x=1");
+  const subDir = path.join(testDir, "src", "nested")
+  fs.mkdirSync(subDir, { recursive: true })
+  const nestedFile = path.join(subDir, "file.ts")
+  fs.writeFileSync(nestedFile, "const   x=1")
 
-  await FmtCommand.run({ cwd: testDir });
+  await FmtCommand.run({ cwd: testDir })
 
-  t.expect(fs.readFileSync(nestedFile, "utf-8")).toBe("const x = 1;\n");
-});
+  t.expect(fs.readFileSync(nestedFile, "utf-8")).toBe("const x = 1;\n")
+})
 
 t.it("handles empty includes array", async () => {
   const config = {
@@ -116,17 +118,17 @@ t.it("handles empty includes array", async () => {
     excludes: [],
     plugins: ["@dprint/typescript"],
     typescript: {},
-  };
-  fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
+  }
+  fs.writeFileSync(configPath, JSON.stringify(config, null, 2))
 
-  const tsFile = path.join(testDir, "test.ts");
-  fs.writeFileSync(tsFile, "const   x=1");
+  const tsFile = path.join(testDir, "test.ts")
+  fs.writeFileSync(tsFile, "const   x=1")
 
-  await FmtCommand.run({ cwd: testDir });
+  await FmtCommand.run({ cwd: testDir })
 
   // Should not format anything
-  t.expect(fs.readFileSync(tsFile, "utf-8")).toBe("const   x=1");
-});
+  t.expect(fs.readFileSync(tsFile, "utf-8")).toBe("const   x=1")
+})
 
 // Exhaustive includes tests
 
@@ -136,20 +138,20 @@ t.it("supports single specific file pattern", async () => {
     excludes: [],
     plugins: ["@dprint/typescript"],
     typescript: {},
-  };
-  fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
+  }
+  fs.writeFileSync(configPath, JSON.stringify(config, null, 2))
 
-  const indexFile = path.join(testDir, "index.ts");
-  const otherFile = path.join(testDir, "other.ts");
-  fs.writeFileSync(indexFile, "const   x=1");
-  fs.writeFileSync(otherFile, "const   y=2");
+  const indexFile = path.join(testDir, "index.ts")
+  const otherFile = path.join(testDir, "other.ts")
+  fs.writeFileSync(indexFile, "const   x=1")
+  fs.writeFileSync(otherFile, "const   y=2")
 
-  await FmtCommand.run({ cwd: testDir });
+  await FmtCommand.run({ cwd: testDir })
 
   // Only index.ts should be formatted
-  t.expect(fs.readFileSync(indexFile, "utf-8")).toBe("const x = 1;\n");
-  t.expect(fs.readFileSync(otherFile, "utf-8")).toBe("const   y=2");
-});
+  t.expect(fs.readFileSync(indexFile, "utf-8")).toBe("const x = 1;\n")
+  t.expect(fs.readFileSync(otherFile, "utf-8")).toBe("const   y=2")
+})
 
 t.it("supports wildcard in filename", async () => {
   const config = {
@@ -157,22 +159,22 @@ t.it("supports wildcard in filename", async () => {
     excludes: [],
     plugins: ["@dprint/typescript"],
     typescript: {},
-  };
-  fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
+  }
+  fs.writeFileSync(configPath, JSON.stringify(config, null, 2))
 
-  const test1File = path.join(testDir, "test1.ts");
-  const test2File = path.join(testDir, "test2.ts");
-  const appFile = path.join(testDir, "app.ts");
-  fs.writeFileSync(test1File, "const   a=1");
-  fs.writeFileSync(test2File, "const   b=2");
-  fs.writeFileSync(appFile, "const   c=3");
+  const test1File = path.join(testDir, "test1.ts")
+  const test2File = path.join(testDir, "test2.ts")
+  const appFile = path.join(testDir, "app.ts")
+  fs.writeFileSync(test1File, "const   a=1")
+  fs.writeFileSync(test2File, "const   b=2")
+  fs.writeFileSync(appFile, "const   c=3")
 
-  await FmtCommand.run({ cwd: testDir });
+  await FmtCommand.run({ cwd: testDir })
 
-  t.expect(fs.readFileSync(test1File, "utf-8")).toBe("const a = 1;\n");
-  t.expect(fs.readFileSync(test2File, "utf-8")).toBe("const b = 2;\n");
-  t.expect(fs.readFileSync(appFile, "utf-8")).toBe("const   c=3");
-});
+  t.expect(fs.readFileSync(test1File, "utf-8")).toBe("const a = 1;\n")
+  t.expect(fs.readFileSync(test2File, "utf-8")).toBe("const b = 2;\n")
+  t.expect(fs.readFileSync(appFile, "utf-8")).toBe("const   c=3")
+})
 
 t.it("supports directory-specific patterns", async () => {
   const config = {
@@ -180,29 +182,29 @@ t.it("supports directory-specific patterns", async () => {
     excludes: [],
     plugins: ["@dprint/typescript"],
     typescript: {},
-  };
-  fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
+  }
+  fs.writeFileSync(configPath, JSON.stringify(config, null, 2))
 
-  const srcDir = path.join(testDir, "src");
-  const libDir = path.join(testDir, "lib");
-  fs.mkdirSync(srcDir, { recursive: true });
-  fs.mkdirSync(libDir, { recursive: true });
+  const srcDir = path.join(testDir, "src")
+  const libDir = path.join(testDir, "lib")
+  fs.mkdirSync(srcDir, { recursive: true })
+  fs.mkdirSync(libDir, { recursive: true })
 
-  const srcFile = path.join(srcDir, "app.ts");
-  const libFile = path.join(libDir, "util.ts");
-  const rootFile = path.join(testDir, "index.ts");
+  const srcFile = path.join(srcDir, "app.ts")
+  const libFile = path.join(libDir, "util.ts")
+  const rootFile = path.join(testDir, "index.ts")
 
-  fs.writeFileSync(srcFile, "const   a=1");
-  fs.writeFileSync(libFile, "const   b=2");
-  fs.writeFileSync(rootFile, "const   c=3");
+  fs.writeFileSync(srcFile, "const   a=1")
+  fs.writeFileSync(libFile, "const   b=2")
+  fs.writeFileSync(rootFile, "const   c=3")
 
-  await FmtCommand.run({ cwd: testDir });
+  await FmtCommand.run({ cwd: testDir })
 
   // Only files in src/ should be formatted
-  t.expect(fs.readFileSync(srcFile, "utf-8")).toBe("const a = 1;\n");
-  t.expect(fs.readFileSync(libFile, "utf-8")).toBe("const   b=2");
-  t.expect(fs.readFileSync(rootFile, "utf-8")).toBe("const   c=3");
-});
+  t.expect(fs.readFileSync(srcFile, "utf-8")).toBe("const a = 1;\n")
+  t.expect(fs.readFileSync(libFile, "utf-8")).toBe("const   b=2")
+  t.expect(fs.readFileSync(rootFile, "utf-8")).toBe("const   c=3")
+})
 
 t.it("supports complex glob patterns with multiple wildcards", async () => {
   const config = {
@@ -210,26 +212,26 @@ t.it("supports complex glob patterns with multiple wildcards", async () => {
     excludes: [],
     plugins: ["@dprint/typescript"],
     typescript: {},
-  };
-  fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
+  }
+  fs.writeFileSync(configPath, JSON.stringify(config, null, 2))
 
-  const componentDir = path.join(testDir, "src", "ui", "components");
-  const utilsDir = path.join(testDir, "src", "utils");
-  fs.mkdirSync(componentDir, { recursive: true });
-  fs.mkdirSync(utilsDir, { recursive: true });
+  const componentDir = path.join(testDir, "src", "ui", "components")
+  const utilsDir = path.join(testDir, "src", "utils")
+  fs.mkdirSync(componentDir, { recursive: true })
+  fs.mkdirSync(utilsDir, { recursive: true })
 
-  const componentFile = path.join(componentDir, "Button.tsx");
-  const utilFile = path.join(utilsDir, "helper.ts");
+  const componentFile = path.join(componentDir, "Button.tsx")
+  const utilFile = path.join(utilsDir, "helper.ts")
 
-  fs.writeFileSync(componentFile, "const   x=1");
-  fs.writeFileSync(utilFile, "const   y=2");
+  fs.writeFileSync(componentFile, "const   x=1")
+  fs.writeFileSync(utilFile, "const   y=2")
 
-  await FmtCommand.run({ cwd: testDir });
+  await FmtCommand.run({ cwd: testDir })
 
   // Only component file should be formatted
-  t.expect(fs.readFileSync(componentFile, "utf-8")).toBe("const x = 1;\n");
-  t.expect(fs.readFileSync(utilFile, "utf-8")).toBe("const   y=2");
-});
+  t.expect(fs.readFileSync(componentFile, "utf-8")).toBe("const x = 1;\n")
+  t.expect(fs.readFileSync(utilFile, "utf-8")).toBe("const   y=2")
+})
 
 t.it("handles multiple overlapping patterns", async () => {
   const config = {
@@ -237,28 +239,28 @@ t.it("handles multiple overlapping patterns", async () => {
     excludes: [],
     plugins: ["@dprint/typescript"],
     typescript: {},
-  };
-  fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
+  }
+  fs.writeFileSync(configPath, JSON.stringify(config, null, 2))
 
-  const srcDir = path.join(testDir, "src");
-  fs.mkdirSync(srcDir, { recursive: true });
+  const srcDir = path.join(testDir, "src")
+  fs.mkdirSync(srcDir, { recursive: true })
 
-  const tsFile = path.join(testDir, "app.ts");
-  const jsFile = path.join(srcDir, "util.js");
-  const rootJsFile = path.join(testDir, "index.js");
+  const tsFile = path.join(testDir, "app.ts")
+  const jsFile = path.join(srcDir, "util.js")
+  const rootJsFile = path.join(testDir, "index.js")
 
-  fs.writeFileSync(tsFile, "const   a=1");
-  fs.writeFileSync(jsFile, "const   b=2");
-  fs.writeFileSync(rootJsFile, "const   c=3");
+  fs.writeFileSync(tsFile, "const   a=1")
+  fs.writeFileSync(jsFile, "const   b=2")
+  fs.writeFileSync(rootJsFile, "const   c=3")
 
-  await FmtCommand.run({ cwd: testDir });
+  await FmtCommand.run({ cwd: testDir })
 
   // TS file and src JS file should be formatted
-  t.expect(fs.readFileSync(tsFile, "utf-8")).toBe("const a = 1;\n");
-  t.expect(fs.readFileSync(jsFile, "utf-8")).toBe("const b = 2;\n");
+  t.expect(fs.readFileSync(tsFile, "utf-8")).toBe("const a = 1;\n")
+  t.expect(fs.readFileSync(jsFile, "utf-8")).toBe("const b = 2;\n")
   // Root JS file should not be formatted (not in src/)
-  t.expect(fs.readFileSync(rootJsFile, "utf-8")).toBe("const   c=3");
-});
+  t.expect(fs.readFileSync(rootJsFile, "utf-8")).toBe("const   c=3")
+})
 
 t.it("supports includes patterns without directory prefixes", async () => {
   const config = {
@@ -266,24 +268,24 @@ t.it("supports includes patterns without directory prefixes", async () => {
     excludes: [],
     plugins: ["@dprint/typescript"],
     typescript: {},
-  };
-  fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
+  }
+  fs.writeFileSync(configPath, JSON.stringify(config, null, 2))
 
-  const srcDir = path.join(testDir, "src");
-  fs.mkdirSync(srcDir, { recursive: true });
+  const srcDir = path.join(testDir, "src")
+  fs.mkdirSync(srcDir, { recursive: true })
 
-  const rootFile = path.join(testDir, "index.ts");
-  const nestedFile = path.join(srcDir, "app.ts");
+  const rootFile = path.join(testDir, "index.ts")
+  const nestedFile = path.join(srcDir, "app.ts")
 
-  fs.writeFileSync(rootFile, "const   a=1");
-  fs.writeFileSync(nestedFile, "const   b=2");
+  fs.writeFileSync(rootFile, "const   a=1")
+  fs.writeFileSync(nestedFile, "const   b=2")
 
-  await FmtCommand.run({ cwd: testDir });
+  await FmtCommand.run({ cwd: testDir })
 
   // Only root-level file should be formatted
-  t.expect(fs.readFileSync(rootFile, "utf-8")).toBe("const a = 1;\n");
-  t.expect(fs.readFileSync(nestedFile, "utf-8")).toBe("const   b=2");
-});
+  t.expect(fs.readFileSync(rootFile, "utf-8")).toBe("const a = 1;\n")
+  t.expect(fs.readFileSync(nestedFile, "utf-8")).toBe("const   b=2")
+})
 
 t.it("matches deeply nested files correctly", async () => {
   const config = {
@@ -291,18 +293,18 @@ t.it("matches deeply nested files correctly", async () => {
     excludes: [],
     plugins: ["@dprint/typescript"],
     typescript: {},
-  };
-  fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
+  }
+  fs.writeFileSync(configPath, JSON.stringify(config, null, 2))
 
-  const deepDir = path.join(testDir, "a", "b", "c", "d");
-  fs.mkdirSync(deepDir, { recursive: true });
-  const deepFile = path.join(deepDir, "file.ts");
-  fs.writeFileSync(deepFile, "const   x=1");
+  const deepDir = path.join(testDir, "a", "b", "c", "d")
+  fs.mkdirSync(deepDir, { recursive: true })
+  const deepFile = path.join(deepDir, "file.ts")
+  fs.writeFileSync(deepFile, "const   x=1")
 
-  await FmtCommand.run({ cwd: testDir });
+  await FmtCommand.run({ cwd: testDir })
 
-  t.expect(fs.readFileSync(deepFile, "utf-8")).toBe("const x = 1;\n");
-});
+  t.expect(fs.readFileSync(deepFile, "utf-8")).toBe("const x = 1;\n")
+})
 
 t.it("handles includes with dot in directory names", async () => {
   const config = {
@@ -310,19 +312,19 @@ t.it("handles includes with dot in directory names", async () => {
     excludes: [],
     plugins: ["@dprint/typescript"],
     typescript: {},
-  };
-  fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
+  }
+  fs.writeFileSync(configPath, JSON.stringify(config, null, 2))
 
-  const dotDir = path.join(testDir, ".config");
-  fs.mkdirSync(dotDir, { recursive: true });
-  const dotFile = path.join(dotDir, "settings.ts");
-  const regularFile = path.join(testDir, "app.ts");
-  fs.writeFileSync(dotFile, "const   x=1");
-  fs.writeFileSync(regularFile, "const   y=2");
+  const dotDir = path.join(testDir, ".config")
+  fs.mkdirSync(dotDir, { recursive: true })
+  const dotFile = path.join(dotDir, "settings.ts")
+  const regularFile = path.join(testDir, "app.ts")
+  fs.writeFileSync(dotFile, "const   x=1")
+  fs.writeFileSync(regularFile, "const   y=2")
 
-  await FmtCommand.run({ cwd: testDir });
+  await FmtCommand.run({ cwd: testDir })
 
   // Both hidden and regular files should be formatted when explicitly included
-  t.expect(fs.readFileSync(dotFile, "utf-8")).toBe("const x = 1;\n");
-  t.expect(fs.readFileSync(regularFile, "utf-8")).toBe("const y = 2;\n");
-});
+  t.expect(fs.readFileSync(dotFile, "utf-8")).toBe("const x = 1;\n")
+  t.expect(fs.readFileSync(regularFile, "utf-8")).toBe("const y = 2;\n")
+})
