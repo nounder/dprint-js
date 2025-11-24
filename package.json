@@ -1,6 +1,6 @@
 {
   "name": "dprint-cli",
-  "version": "0.2.1",
+  "version": "0.3.1",
   "description": "JavaScript implementation of dprint CLI for formatter",
   "type": "module",
   "bin": {
@@ -36,4 +36,10 @@
     "@dprint/json": "^0.19.4",
     "@dprint/markdown": "^0.17.8"
   }
+  },
+  "files": [
+    "bin/",
+    "src/",
+    "package.json"
+  ]
 }
