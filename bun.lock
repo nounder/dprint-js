@@ -1,12 +1,13 @@
 {
   "lockfileVersion": 1,
+  "configVersion": 0,
   "workspaces": {
     "": {
       "name": "dprint-js",
       "devDependencies": {
-        "@dprint/json": "^0.19.3",
+        "@dprint/json": "^0.19.4",
         "@dprint/markdown": "^0.17.8",
-        "@dprint/typescript": "^0.93.0",
+        "@dprint/typescript": "^0.93.4",
         "@types/bun": "latest",
         "dprint": "^0.50.2",
         "typescript": "^5.9.3",
