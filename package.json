@@ -29,13 +29,15 @@
   },
   "dependencies": {},
   "devDependencies": {
-    "@types/bun": "latest",
-    "typescript": "^5.9.3",
-    "dprint": "^0.50.2",
-    "@dprint/typescript": "^0.93.4",
     "@dprint/json": "^0.19.4",
-    "@dprint/markdown": "^0.17.8"
-  }
+    "@dprint/markdown": "^0.17.8",
+    "@dprint/typescript": "^0.93.4",
+    "@types/bun": "latest",
+    "dprint": "^0.50.2",
+    "tree-sitter": "^0.25.0",
+    "tree-sitter-typescript": "^0.23.2",
+    "typescript": "^5.9.3",
+    "web-tree-sitter": "^0.25.10"
   },
   "files": [
     "bin/",
