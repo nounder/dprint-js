@@ -1,0 +1,37 @@
+#!/usr/bin/env bun
+
+import { $ } from "bun"
+
+const [
+  ,
+  ,
+  commitMsgFile,
+  commitSource,
+] = process.argv
+
+if (commitSource) {
+  process.exit(0)
+}
+
+const stagedFiles = (await $`git diff-index --cached --name-only HEAD`.text())
+  .trim()
+  .split("\n")
+  .filter(Boolean)
+
+if (
+  !stagedFiles.includes("package.json")
+  || stagedFiles.length !== 1
+) {
+  process.exit(0)
+}
+
+// Get old and new package.json versions
+const oldContent = await $`git show HEAD:package.json`.text()
+const newContent = await $`git show :package.json`.text()
+
+const oldVersion = JSON.parse(oldContent).version
+const newVersion = JSON.parse(newContent).version
+
+if (oldVersion !== newVersion) {
+  await Bun.write(commitMsgFile, `version ${newVersion}\n`)
+}

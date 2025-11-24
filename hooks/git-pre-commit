@@ -1,0 +1,26 @@
+#!/usr/bin/env bun
+
+import { $ } from "bun"
+
+const stagedFiles = (await $`git diff-index --cached --name-only HEAD`.text())
+  .trim()
+  .split("\n")
+  .filter(Boolean)
+
+if (!stagedFiles.includes("package.json")) {
+  process.exit(0)
+}
+
+const oldContent = await $`git show HEAD:package.json`.text()
+const newContent = await $`git show :package.json`.text()
+
+const oldVersion = JSON.parse(oldContent).version
+const newVersion = JSON.parse(newContent).version
+
+if (
+  oldVersion !== newVersion
+  && stagedFiles.length !== 1
+) {
+  console.error("Error: version changes must be committed alone")
+  process.exit(1)
+}

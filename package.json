@@ -14,7 +14,8 @@
     "test": "bun test ./test",
     "format": "bun run ./bin/dprint fmt",
     "check": "bun run ./bin/dprint check",
-    "publish": "bunx npm publish"
+    "deploy": "bunx npm publish",
+    "prepare": "./hooks/install"
   },
   "repository": {
     "type": "git",

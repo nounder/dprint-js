@@ -1,0 +1,48 @@
+#!/usr/bin/env bun
+
+/**
+ * Install git hooks from hooks/ directory to .git/hooks/
+ */
+
+import { $ } from "bun"
+import * as NFS from "fs"
+
+const GitHooks = [
+  "pre-commit",
+  "prepare-commit-msg",
+]
+
+try {
+  const gitDir = (await $`git rev-parse --git-dir`.text()).trim()
+  const gitHooksDir = `${gitDir}/hooks`
+
+  const installed = []
+
+  for (const hookName of GitHooks) {
+    const sourcePath = `${import.meta.dirname}/git-${hookName}`
+    const targetPath = `${gitHooksDir}/${hookName}`
+
+    // Check if hook already exists and is identical
+    if (NFS.existsSync(targetPath)) {
+      const sourceContent = NFS.readFileSync(sourcePath)
+      const targetContent = NFS.readFileSync(targetPath)
+      if (sourceContent.equals(targetContent)) {
+        continue
+      }
+    }
+
+    NFS.copyFileSync(sourcePath, targetPath)
+    installed.push(hookName)
+  }
+
+  if (installed.length > 0) {
+    console.log("Installing git hooks...")
+    for (const hookName of installed) {
+      console.log(`  ✓ Installed ${hookName}`)
+    }
+    console.log("\nGit hooks installed successfully!")
+  }
+} catch (error) {
+  // Silently exit if not in a git repo
+  process.exit(0)
+}
