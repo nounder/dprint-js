@@ -1,11 +1,11 @@
 import * as fs from "node:fs"
 import * as path from "node:path"
-import * as Cache from "../Cache.js"
-import * as Config from "../Config.js"
-import * as Constants from "../Constants.js"
-import * as Files from "../Files.js"
-import * as Formatter from "../Formatter.js"
-import * as Logger from "../Logger.js"
+import * as Cache from "../Cache.ts"
+import * as Config from "../Config.ts"
+import * as Constants from "../Constants.ts"
+import * as Files from "../Files.ts"
+import * as Formatter from "../Formatter.ts"
+import * as Logger from "../Logger.ts"
 
 /**
  * Read all data from stdin

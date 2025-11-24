@@ -1,9 +1,9 @@
 import * as fs from "node:fs"
 import * as path from "node:path"
-import * as Config from "../Config.js"
-import * as Constants from "../Constants.js"
-import * as Logger from "../Logger.js"
-import * as InitCommand from "./InitCommand.js"
+import * as Config from "../Config.ts"
+import * as Constants from "../Constants.ts"
+import * as Logger from "../Logger.ts"
+import * as InitCommand from "./InitCommand.ts"
 
 /**
  * Config command - handles configuration-related subcommands

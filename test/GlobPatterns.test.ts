@@ -2,7 +2,7 @@ import * as t from "bun:test"
 import * as fs from "node:fs"
 import * as os from "node:os"
 import * as path from "node:path"
-import * as FmtCommand from "../src/commands/FmtCommand.js"
+import * as FmtCommand from "../src/commands/FmtCommand.ts"
 
 let testDir
 

@@ -2,8 +2,8 @@ import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test"
 import * as fs from "node:fs"
 import * as os from "node:os"
 import * as path from "node:path"
-import * as Formatter from "../src/Formatter.js"
-import { findLocalPlugin } from "./Testing.js"
+import * as Formatter from "../src/Formatter.ts"
+import { findLocalPlugin } from "./Testing.ts"
 
 /**
  * Get the cache directory path (matches formatter.js implementation)

@@ -3,8 +3,8 @@ import * as t from "bun:test"
 import * as fs from "node:fs"
 import * as os from "node:os"
 import * as path from "node:path"
-import * as InitCommand from "../../src/commands/InitCommand.js"
-import * as Testing from "../Testing.js"
+import * as InitCommand from "../../src/commands/InitCommand.ts"
+import * as Testing from "../Testing.ts"
 
 const projectRoot = process.cwd()
 

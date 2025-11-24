@@ -1,7 +1,7 @@
 import * as path from "node:path"
-import * as Config from "../Config.js"
-import * as Formatter from "../Formatter.js"
-import * as Logger from "../Logger.js"
+import * as Config from "../Config.ts"
+import * as Formatter from "../Formatter.ts"
+import * as Logger from "../Logger.ts"
 
 /**
  * Output the resolved configuration for the plugins

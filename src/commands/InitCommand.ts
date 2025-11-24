@@ -1,7 +1,7 @@
 import * as fs from "node:fs"
 import * as path from "node:path"
-import * as Config from "../Config.js"
-import * as Logger from "../Logger.js"
+import * as Config from "../Config.ts"
+import * as Logger from "../Logger.ts"
 
 /**
  * Initialize a new dprint.json configuration file

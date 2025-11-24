@@ -2,7 +2,7 @@ import * as t from "bun:test"
 import * as fs from "node:fs"
 import * as os from "node:os"
 import * as path from "node:path"
-import * as Files from "../src/Files.js"
+import * as Files from "../src/Files.ts"
 
 t.it("security: vulnerable glob patterns are silently filtered", async () => {
   const testDir = fs.mkdtempSync(

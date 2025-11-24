@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test"
 import * as fs from "node:fs"
 import * as path from "node:path"
-import * as Files from "../src/Files.js"
+import * as Files from "../src/Files.ts"
 
 describe("gitignore", () => {
   let testDir: string

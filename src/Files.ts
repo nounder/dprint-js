@@ -1,8 +1,8 @@
 import { Glob } from "bun"
 import * as fs from "node:fs"
 import * as path from "node:path"
-import * as Gitignore from "./Gitignore.js"
-import * as GlobUtils from "./Glob.js"
+import * as Gitignore from "./Gitignore.ts"
+import * as GlobUtils from "./Glob.ts"
 
 /**
  * Dprint configuration object

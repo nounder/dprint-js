@@ -1,5 +1,5 @@
-import * as Commands from "./Commands.js"
-import * as Constants from "./Constants.js"
+import * as Commands from "./Commands.ts"
+import * as Constants from "./Constants.ts"
 
 /**
  * Parsed command line arguments

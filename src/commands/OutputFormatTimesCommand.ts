@@ -1,9 +1,9 @@
 import * as fs from "node:fs"
 import * as path from "node:path"
-import * as Config from "../Config.js"
-import * as Files from "../Files.js"
-import * as Formatter from "../Formatter.js"
-import * as Logger from "../Logger.js"
+import * as Config from "../Config.ts"
+import * as Files from "../Files.ts"
+import * as Formatter from "../Formatter.ts"
+import * as Logger from "../Logger.ts"
 
 /**
  * Output the amount of time it takes to format each file

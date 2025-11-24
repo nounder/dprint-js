@@ -1,13 +1,13 @@
-import * as ArgsParser from "./ArgsParser.js"
-import * as CheckCommand from "./commands/CheckCommand.js"
-import * as ConfigCommand from "./commands/ConfigCommand.js"
-import * as FmtCommand from "./commands/FmtCommand.js"
-import * as HelpCommand from "./commands/HelpCommand.js"
-import * as InitCommand from "./commands/InitCommand.js"
-import * as OutputFilePathsCommand from "./commands/OutputFilePathsCommand.js"
-import * as OutputFormatTimesCommand from "./commands/OutputFormatTimesCommand.js"
-import * as OutputResolvedConfigCommand from "./commands/OutputResolvedConfigCommand.js"
-import * as Constants from "./Constants.js"
+import * as ArgsParser from "./ArgsParser.ts"
+import * as CheckCommand from "./commands/CheckCommand.ts"
+import * as ConfigCommand from "./commands/ConfigCommand.ts"
+import * as FmtCommand from "./commands/FmtCommand.ts"
+import * as HelpCommand from "./commands/HelpCommand.ts"
+import * as InitCommand from "./commands/InitCommand.ts"
+import * as OutputFilePathsCommand from "./commands/OutputFilePathsCommand.ts"
+import * as OutputFormatTimesCommand from "./commands/OutputFormatTimesCommand.ts"
+import * as OutputResolvedConfigCommand from "./commands/OutputResolvedConfigCommand.ts"
+import * as Constants from "./Constants.ts"
 
 /**
  * Main CLI function

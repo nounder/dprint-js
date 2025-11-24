@@ -1,7 +1,7 @@
 import * as path from "node:path"
-import * as Config from "../Config.js"
-import * as Files from "../Files.js"
-import * as Logger from "../Logger.js"
+import * as Config from "../Config.ts"
+import * as Files from "../Files.ts"
+import * as Logger from "../Logger.ts"
 
 /**
  * Output the resolved file paths based on configuration and arguments

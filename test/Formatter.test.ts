@@ -2,7 +2,7 @@ import * as t from "bun:test"
 import * as fs from "node:fs"
 import * as os from "node:os"
 import * as path from "node:path"
-import * as Formatter from "../src/Formatter.js"
+import * as Formatter from "../src/Formatter.ts"
 
 t.it("loads @dprint/typescript plugin successfully", async () => {
   const result = await Formatter.loadPlugin("@dprint/typescript")

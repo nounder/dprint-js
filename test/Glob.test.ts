@@ -1,5 +1,5 @@
 import * as t from "bun:test"
-import * as Glob from "../src/Glob.js"
+import * as Glob from "../src/Glob.ts"
 
 t.describe("glob normalization", () => {
   t.it(

@@ -3,8 +3,8 @@ import * as t from "bun:test"
 import * as fs from "node:fs"
 import * as os from "node:os"
 import * as path from "node:path"
-import * as FmtCommand from "../../src/commands/FmtCommand.js"
-import * as Testing from "../Testing.js"
+import * as FmtCommand from "../../src/commands/FmtCommand.ts"
+import * as Testing from "../Testing.ts"
 
 const projectRoot = process.cwd()
 const fixturesDir = path.join(projectRoot, "test/fixtures")

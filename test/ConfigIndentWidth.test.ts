@@ -1,5 +1,5 @@
 import * as t from "bun:test"
-import * as Formatter from "../src/Formatter.js"
+import * as Formatter from "../src/Formatter.ts"
 
 t.it("respects indentWidth: 2 for TypeScript", async () => {
   const config = {

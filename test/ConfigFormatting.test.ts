@@ -1,5 +1,5 @@
 import * as t from "bun:test"
-import * as Formatter from "../src/Formatter.js"
+import * as Formatter from "../src/Formatter.ts"
 
 // Tests for global formatting options (lineWidth, indentWidth, useTabs)
 // These are passed to all formatters. We're verifying they are respected,

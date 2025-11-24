@@ -1,8 +1,8 @@
 import * as t from "bun:test"
 import * as fs from "node:fs"
 import * as path from "node:path"
-import * as CheckCommand from "../src/commands/CheckCommand.js"
-import * as FmtCommand from "../src/commands/FmtCommand.js"
+import * as CheckCommand from "../src/commands/CheckCommand.ts"
+import * as FmtCommand from "../src/commands/FmtCommand.ts"
 
 const projectRoot = process.cwd()
 const testDir = path.join(projectRoot, "test-tmp-auto-load")
