@@ -128,7 +128,9 @@ t.it(
   async () => {
     // First run - format everything
     await FmtCommand.run({ logLevel: "silent", cwd: oursDir })
-    await $`${THEIR_BIN} fmt --log-level silent`.cwd(theirsDir).nothrow()
+    await $`${THEIR_BIN} fmt --log-level silent`
+      .cwd(theirsDir)
+      .nothrow()
       .quiet()
 
     // Second run - should skip everything due to cache
@@ -136,7 +138,9 @@ t.it(
       .cwd(oursDir)
       .nothrow()
       .quiet()
-    const theirResult = await $`${THEIR_BIN} fmt`.cwd(theirsDir).nothrow()
+    const theirResult = await $`${THEIR_BIN} fmt`
+      .cwd(theirsDir)
+      .nothrow()
       .quiet()
 
     const ourOutput = ourResult.stdout.toString()
@@ -164,7 +168,9 @@ t.it(
   async () => {
     // First run - format everything
     await FmtCommand.run({ logLevel: "silent", cwd: oursDir })
-    await $`${THEIR_BIN} fmt --log-level silent`.cwd(theirsDir).nothrow()
+    await $`${THEIR_BIN} fmt --log-level silent`
+      .cwd(theirsDir)
+      .nothrow()
       .quiet()
 
     // Modify one file in both directories with malformed code
@@ -180,7 +186,9 @@ t.it(
       .cwd(oursDir)
       .nothrow()
       .quiet()
-    const theirResult = await $`${THEIR_BIN} fmt`.cwd(theirsDir).nothrow()
+    const theirResult = await $`${THEIR_BIN} fmt`
+      .cwd(theirsDir)
+      .nothrow()
       .quiet()
 
     const ourOutput = ourResult.stdout.toString()
@@ -346,7 +354,9 @@ t.it(
     const ourTime1 = Date.now() - ourStart1
 
     const theirStart1 = Date.now()
-    await $`${THEIR_BIN} fmt --log-level silent`.cwd(theirsDir).nothrow()
+    await $`${THEIR_BIN} fmt --log-level silent`
+      .cwd(theirsDir)
+      .nothrow()
       .quiet()
     const theirTime1 = Date.now() - theirStart1
 
@@ -356,7 +366,9 @@ t.it(
     const ourTime2 = Date.now() - ourStart2
 
     const theirStart2 = Date.now()
-    await $`${THEIR_BIN} fmt --log-level silent`.cwd(theirsDir).nothrow()
+    await $`${THEIR_BIN} fmt --log-level silent`
+      .cwd(theirsDir)
+      .nothrow()
       .quiet()
     const theirTime2 = Date.now() - theirStart2
 

@@ -6,11 +6,11 @@
  *   import Baz from "./Baz.js"
  */
 
-import * as Glob from "./Glob.ts"
-import * as Gitignore from "./Gitignore.ts"
-import { Parser, Language } from "web-tree-sitter"
 import * as fs from "fs"
 import * as path from "path"
+import { Language, Parser } from "web-tree-sitter"
+import * as Gitignore from "./Gitignore.ts"
+import * as Glob from "./Glob.ts"
 
 interface ImportMatch {
   file: string
@@ -38,7 +38,10 @@ export async function findJsImports(
   const parser = new Parser()
 
   // Load tree-sitter-typescript WASM
-  const wasmPath = new URL("../node_modules/tree-sitter-typescript/tree-sitter-typescript.wasm", import.meta.url)
+  const wasmPath = new URL(
+    "../node_modules/tree-sitter-typescript/tree-sitter-typescript.wasm",
+    import.meta.url,
+  )
   const wasmBuffer = fs.readFileSync(wasmPath)
   const TypeScript = await Language.load(wasmBuffer)
   parser.setLanguage(TypeScript)
@@ -56,7 +59,11 @@ export async function findJsImports(
   const normalizedExcludes = Glob.normalizeExcludePatterns(excludePatterns)
 
   // Find all matching files
-  let files = Glob.findMatchingFiles(normalizedIncludes, normalizedExcludes, cwd)
+  let files = Glob.findMatchingFiles(
+    normalizedIncludes,
+    normalizedExcludes,
+    cwd,
+  )
 
   // Filter files through gitignore rules
   files = files.filter((file) => !gitignore.ignores(file))
@@ -76,7 +83,10 @@ export async function findJsImports(
         if (node.type === "string") {
           // Check if parent is import_statement or import_clause
           const parent = node.parent
-          if (parent?.type === "import_statement" || parent?.type === "import_clause") {
+          if (
+            parent?.type === "import_statement"
+            || parent?.type === "import_clause"
+          ) {
             const text = node.text
             // Extract string content (remove quotes)
             const importPath = text.slice(1, -1)
@@ -105,7 +115,9 @@ export async function findJsImports(
     } catch (error) {
       // Skip files that can't be read or parsed
       if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
-        console.warn(`Warning: Failed to parse ${file}: ${(error as Error).message}`)
+        console.warn(
+          `Warning: Failed to parse ${file}: ${(error as Error).message}`,
+        )
       }
     }
   }
@@ -135,7 +147,10 @@ export async function replaceJsWithTs(
   const parser = new Parser()
 
   // Load tree-sitter-typescript WASM
-  const wasmPath = new URL("../node_modules/tree-sitter-typescript/tree-sitter-typescript.wasm", import.meta.url)
+  const wasmPath = new URL(
+    "../node_modules/tree-sitter-typescript/tree-sitter-typescript.wasm",
+    import.meta.url,
+  )
   const wasmBuffer = fs.readFileSync(wasmPath)
   const TypeScript = await Language.load(wasmBuffer)
   parser.setLanguage(TypeScript)
@@ -153,7 +168,11 @@ export async function replaceJsWithTs(
   const normalizedExcludes = Glob.normalizeExcludePatterns(excludePatterns)
 
   // Find all matching files
-  let files = Glob.findMatchingFiles(normalizedIncludes, normalizedExcludes, cwd)
+  let files = Glob.findMatchingFiles(
+    normalizedIncludes,
+    normalizedExcludes,
+    cwd,
+  )
 
   // Filter files through gitignore rules
   files = files.filter((file) => !gitignore.ignores(file))
@@ -173,7 +192,10 @@ export async function replaceJsWithTs(
         if (node.type === "string") {
           // Check if parent is import_statement or import_clause
           const parent = node.parent
-          if (parent?.type === "import_statement" || parent?.type === "import_clause") {
+          if (
+            parent?.type === "import_statement"
+            || parent?.type === "import_clause"
+          ) {
             const oldText = node.text
             // Extract string content (remove quotes)
             const importPath = oldText.slice(1, -1)
@@ -187,7 +209,11 @@ export async function replaceJsWithTs(
               // Get the full import statement text
               const importStatement = parent.text
               const nodeOffsetInParent = node.startIndex - parent.startIndex
-              const newImportStatement = importStatement.slice(0, nodeOffsetInParent) + newText + importStatement.slice(nodeOffsetInParent + oldText.length)
+              const newImportStatement = importStatement
+                .slice(0, nodeOffsetInParent) + newText + importStatement
+                .slice(
+                  nodeOffsetInParent + oldText.length,
+                )
 
               // Record the replacement
               const lines = content.slice(0, node.startIndex).split("\n")
@@ -203,7 +229,8 @@ export async function replaceJsWithTs(
               })
 
               // Apply the replacement
-              content = content.slice(0, node.startIndex) + newText + content.slice(node.endIndex)
+              content = content.slice(0, node.startIndex) + newText + content
+                .slice(node.endIndex)
             }
           }
         }
@@ -224,7 +251,9 @@ export async function replaceJsWithTs(
     } catch (error) {
       // Skip files that can't be read or parsed
       if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
-        console.warn(`Warning: Failed to process ${file}: ${(error as Error).message}`)
+        console.warn(
+          `Warning: Failed to process ${file}: ${(error as Error).message}`,
+        )
       }
     }
   }
@@ -268,7 +297,10 @@ export function formatMatches(matches: ImportMatch[]): string {
 /**
  * Format replacement results for display
  */
-export function formatReplacements(replacements: Replacement[], dryRun: boolean = false): string {
+export function formatReplacements(
+  replacements: Replacement[],
+  dryRun: boolean = false,
+): string {
   if (replacements.length === 0) {
     return "No replacements to make"
   }
@@ -285,7 +317,9 @@ export function formatReplacements(replacements: Replacement[], dryRun: boolean 
   )
 
   const prefix = dryRun ? "[DRY RUN] Would replace" : "Replaced"
-  let output = `${prefix} ${replacements.length} import(s) across ${Object.keys(grouped).length} file(s):\n\n`
+  let output = `${prefix} ${replacements.length} import(s) across ${
+    Object.keys(grouped).length
+  } file(s):\n\n`
 
   for (const [file, fileReplacements] of Object.entries(grouped)) {
     output += `${file}\n`
@@ -306,7 +340,12 @@ if (import.meta.main) {
   const dryRun = args.includes("--dry-run")
 
   if (args.includes("--replace")) {
-    const replacements = await replaceJsWithTs(process.cwd(), ["**/*.ts", "**/*.tsx", "**/*.js", "**/*.jsx"], ["node_modules", "dist", ".git"], dryRun)
+    const replacements = await replaceJsWithTs(
+      process.cwd(),
+      ["**/*.ts", "**/*.tsx", "**/*.js", "**/*.jsx"],
+      ["node_modules", "dist", ".git"],
+      dryRun,
+    )
     console.log(formatReplacements(replacements, dryRun))
   } else {
     const matches = await findJsImports()

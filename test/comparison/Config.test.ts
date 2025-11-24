@@ -56,7 +56,9 @@ t.it(
   "config without subcommand shows help and returns exit code 10",
   async () => {
     // Run our implementation and capture output
-    const ourResult = await $`${OURS_BIN} config 2>&1`.cwd(oursDir).nothrow()
+    const ourResult = await $`${OURS_BIN} config 2>&1`
+      .cwd(oursDir)
+      .nothrow()
       .quiet()
 
     // Should return exit code 10
